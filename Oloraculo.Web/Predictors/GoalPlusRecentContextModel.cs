@@ -3,7 +3,7 @@ using Oloraculo.Web.Probability;
 
 namespace Oloraculo.Web.Predictors
 {
-    public class GoalPlusRecentContextModel : GoalModel
+    public class GoalPlusRecentContextModel : IPredictor
     {
         private readonly GoalModel _goalModel;
 
@@ -13,15 +13,14 @@ namespace Oloraculo.Web.Predictors
         }
 
         public GoalPlusRecentContextModel(GoalModel goalModel)
-            : base([], 0)
         {
             _goalModel = goalModel;
         }
 
-        public override string Name => "Goles + contexto reciente";
-        public override int Priority => 5;
+        public string Name => "Goles + contexto reciente";
+        public int Priority => 5;
 
-        public override MatchPrediction Predict(MatchContext context)
+        public MatchPrediction Predict(MatchContext context)
         {
             var (homeGoals, awayGoals, degradedGoalModel) = _goalModel.ExpectedGoals(context);
             var usedFeatures = new List<string> { "Modelo de goles" };
