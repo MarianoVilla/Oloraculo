@@ -53,6 +53,26 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
     }
 
     [Fact]
+    public void ReadmeExporter_InsertsSnapshotBlockAfterFirstTopLevelSection()
+    {
+        var readme = """
+        # Holi.
+        intro
+
+        ## Video
+        link
+
+        # Oloraculo
+        details
+        """;
+
+        var updated = ReadmeSnapshotExportService.ReplaceSnapshotBlock(readme, "fresh");
+
+        Assert.True(updated.IndexOf("fresh", StringComparison.Ordinal) < updated.IndexOf("# Oloraculo", StringComparison.Ordinal));
+        Assert.True(updated.IndexOf("fresh", StringComparison.Ordinal) > updated.IndexOf("## Video", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ReadmeExporter_RendersTournamentRowsByChampionProbability()
     {
         var projection = new TournamentProjection

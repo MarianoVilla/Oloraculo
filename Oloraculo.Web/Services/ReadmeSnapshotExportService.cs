@@ -91,11 +91,38 @@ namespace Oloraculo.Web.Services
             if (start >= 0 && end > start)
             {
                 end += EndMarker.Length;
-                return readme[..start] + renderedBlock + readme[end..];
+                readme = readme[..start].TrimEnd() + Environment.NewLine + readme[end..].TrimStart();
             }
 
-            var separator = readme.EndsWith(Environment.NewLine, StringComparison.Ordinal) ? Environment.NewLine : Environment.NewLine + Environment.NewLine;
-            return readme.TrimEnd() + separator + renderedBlock + Environment.NewLine;
+            var insertionIndex = SnapshotInsertionIndex(readme);
+            return readme[..insertionIndex].TrimEnd() +
+                Environment.NewLine + Environment.NewLine +
+                renderedBlock +
+                Environment.NewLine + Environment.NewLine +
+                readme[insertionIndex..].TrimStart();
+        }
+
+        private static int SnapshotInsertionIndex(string readme)
+        {
+            var firstHeading = readme.IndexOf("# ", StringComparison.Ordinal);
+            if (firstHeading < 0)
+                return 0;
+
+            var searchFrom = firstHeading + 2;
+            while (searchFrom < readme.Length)
+            {
+                var nextLine = readme.IndexOf('\n', searchFrom);
+                if (nextLine < 0)
+                    return readme.Length;
+
+                var candidate = nextLine + 1;
+                if (candidate < readme.Length && readme[candidate] == '#' && candidate + 1 < readme.Length && readme[candidate + 1] == ' ')
+                    return candidate;
+
+                searchFrom = candidate;
+            }
+
+            return readme.Length;
         }
 
         public static string RenderSnapshotBlock(
@@ -105,13 +132,13 @@ namespace Oloraculo.Web.Services
             DateTimeOffset generatedAt)
         {
             var builder = new StringBuilder();
-            builder.AppendLine("## Latest Snapshot");
-            builder.AppendLine("_As new information comes in and real matches are played, " +
-                "Oloráculo adjusts its predictions and posts them here daily. You can find the most recent snapshot below._");
+            builder.AppendLine("## Predicciones más recientes");
+            builder.AppendLine("_A medida que se recibe nueva información y se juegan partidos reales, " +
+                "el Oloráculo ajusta sus predicciones y las publica acá. A continuación vas a encontrar las más recientes._");
             builder.AppendLine();
-            builder.AppendLine("### Tournament Outlook");
+            builder.AppendLine("### Torneo");
             builder.AppendLine();
-            builder.AppendLine($"_Generated {generatedAt.UtcDateTime:yyyy-MM-dd HH:mm} UTC from {projection.Simulations.ToString("N0", CultureInfo.InvariantCulture)} simulations._");
+            builder.AppendLine($"_Generado {generatedAt.UtcDateTime:yyyy-MM-dd HH:mm} UTC a través de {projection.Simulations.ToString("N0", CultureInfo.InvariantCulture)} simulaciones._");
             builder.AppendLine();
             builder.AppendLine("| Team | Group | Qualify | QF | SF | Final | Champion |");
             builder.AppendLine("| --- | --- | ---: | ---: | ---: | ---: | ---: |");
@@ -122,7 +149,7 @@ namespace Oloraculo.Web.Services
             }
 
             builder.AppendLine();
-            builder.AppendLine("### Group Fixtures");
+            builder.AppendLine("### Grupos");
             builder.AppendLine();
 
             foreach (var group in predictions.GroupBy(p => p.Fixture.Group).OrderBy(g => g.Key))
