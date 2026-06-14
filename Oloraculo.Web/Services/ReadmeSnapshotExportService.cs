@@ -331,6 +331,7 @@ namespace Oloraculo.Web.Services
             return LimitedList(signals, maxItems: 4, maxItemLength: 90);
         }
 
+        //ToDo: this sucks, either drivers should be a richer type, or the predictor should provide a rationale text
         private static bool IsSignalDriver(string driver)
         {
             var normalized = FlattenWhitespace(driver);
