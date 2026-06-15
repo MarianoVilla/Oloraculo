@@ -49372,18 +49372,18 @@ date,home_team,away_team,home_score,away_score,tournament,city,country,neutral
 2026-06-07,Liechtenstein,Cyprus,0,2,Friendly,Vaduz,Liechtenstein,FALSE
 2026-06-07,Morocco,Norway,1,1,Friendly,Harrison,United States,TRUE
 2026-06-07,Denmark,Ukraine,2,1,Friendly,Odense,Denmark,FALSE
-2026-06-11,Mexico,South Africa,NA,NA,FIFA World Cup,Mexico City,Mexico,FALSE
-2026-06-11,South Korea,Czech Republic,NA,NA,FIFA World Cup,Zapopan,Mexico,TRUE
-2026-06-12,Canada,Bosnia and Herzegovina,NA,NA,FIFA World Cup,Toronto,Canada,FALSE
-2026-06-12,United States,Paraguay,NA,NA,FIFA World Cup,Inglewood,United States,FALSE
-2026-06-13,Qatar,Switzerland,NA,NA,FIFA World Cup,Santa Clara,United States,TRUE
-2026-06-13,Brazil,Morocco,NA,NA,FIFA World Cup,East Rutherford,United States,TRUE
-2026-06-13,Haiti,Scotland,NA,NA,FIFA World Cup,Foxborough,United States,TRUE
-2026-06-13,Australia,Turkey,NA,NA,FIFA World Cup,Vancouver,Canada,TRUE
-2026-06-14,Germany,Curaçao,NA,NA,FIFA World Cup,Houston,United States,TRUE
-2026-06-14,Ivory Coast,Ecuador,NA,NA,FIFA World Cup,Philadelphia,United States,TRUE
-2026-06-14,Netherlands,Japan,NA,NA,FIFA World Cup,Arlington,United States,TRUE
-2026-06-14,Sweden,Tunisia,NA,NA,FIFA World Cup,Guadalupe,Mexico,TRUE
+2026-06-11,Mexico,South Africa,2,0,FIFA World Cup,Mexico City,Mexico,FALSE
+2026-06-11,South Korea,Czech Republic,2,1,FIFA World Cup,Zapopan,Mexico,TRUE
+2026-06-12,Canada,Bosnia and Herzegovina,1,1,FIFA World Cup,Toronto,Canada,FALSE
+2026-06-12,United States,Paraguay,4,1,FIFA World Cup,Inglewood,United States,FALSE
+2026-06-13,Qatar,Switzerland,1,1,FIFA World Cup,Santa Clara,United States,TRUE
+2026-06-13,Brazil,Morocco,1,1,FIFA World Cup,East Rutherford,United States,TRUE
+2026-06-13,Haiti,Scotland,0,1,FIFA World Cup,Foxborough,United States,TRUE
+2026-06-13,Australia,Turkey,2,0,FIFA World Cup,Vancouver,Canada,TRUE
+2026-06-14,Germany,Curaçao,7,1,FIFA World Cup,Houston,United States,TRUE
+2026-06-14,Ivory Coast,Ecuador,1,0,FIFA World Cup,Philadelphia,United States,TRUE
+2026-06-14,Netherlands,Japan,2,2,FIFA World Cup,Arlington,United States,TRUE
+2026-06-14,Sweden,Tunisia,5,1,FIFA World Cup,Guadalupe,Mexico,TRUE
 2026-06-15,Belgium,Egypt,NA,NA,FIFA World Cup,Seattle,United States,TRUE
 2026-06-15,Iran,New Zealand,NA,NA,FIFA World Cup,Inglewood,United States,TRUE
 2026-06-15,Spain,Cape Verde,NA,NA,FIFA World Cup,Atlanta,United States,TRUE
