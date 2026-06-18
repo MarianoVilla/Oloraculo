@@ -7,12 +7,12 @@
 @inject OloraculoDbContext Db
 @inject ISnackbar Snackbar
 
-<PageTitle>Datos</PageTitle>
+<PageTitle>Data</PageTitle>
 
 <MudStack Spacing="3">
     <div class="page-head">
-        <MudText Typo="Typo.h3">Datos</MudText>
-        <MudText Typo="Typo.body1" Color="Color.Secondary">Estado de importación CSV y actualización opcional desde API-Football.</MudText>
+        <MudText Typo="Typo.h3">Data</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">CSV import status and optional API-Football refreshes.</MudText>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(_error))
@@ -22,10 +22,10 @@
 
     <MudPaper Class="surface-card" Elevation="0">
         <MudStack Row="true" Spacing="1" Class="action-row">
-            <BusyButton Text="Reimportar CSV" BusyText="Importando" IsBusy="_busy" Icon="@Icons.Material.Filled.UploadFile" OnClick="ImportAll" />
-            <BusyButton Text="Actualizar rankings" BusyText="Actualizando" IsBusy="_rankingsBusy" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.Sync" OnClick="RefreshRankings" />
-            <BusyButton Text="Actualizar partidos API-Football" BusyText="Actualizando" IsBusy="_apiBusy" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.CloudSync" OnClick="RefreshApi" />
-            <BusyButton Text="Actualizar disponibilidad" BusyText="Analizando" IsBusy="_availabilityBusy" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.FactCheck" OnClick="RefreshAvailability" />
+            <BusyButton Text="Reimport CSV" BusyText="Importing" IsBusy="_busy" Icon="@Icons.Material.Filled.UploadFile" OnClick="ImportAll" />
+            <BusyButton Text="Refresh rankings" BusyText="Refreshing" IsBusy="_rankingsBusy" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.Sync" OnClick="RefreshRankings" />
+            <BusyButton Text="Refresh API-Football matches" BusyText="Refreshing" IsBusy="_apiBusy" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.CloudSync" OnClick="RefreshApi" />
+            <BusyButton Text="Refresh availability" BusyText="Analyzing" IsBusy="_availabilityBusy" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.FactCheck" OnClick="RefreshAvailability" />
         </MudStack>
         @if (_busy || _rankingsBusy || _apiBusy || _availabilityBusy)
         {
@@ -33,7 +33,7 @@
         }
         @if (_report is not null)
         {
-            <MudAlert Class="mt-2" Severity="Severity.Success" Variant="Variant.Outlined">@_report.Teams equipos, @_report.Groups grupos, @_report.Fixtures partidos, @_report.Results resultados, @_report.Ratings ratings.</MudAlert>
+            <MudAlert Class="mt-2" Severity="Severity.Success" Variant="Variant.Outlined">@_report.Teams teams, @_report.Groups groups, @_report.Fixtures fixtures, @_report.Results results, @_report.Ratings ratings.</MudAlert>
         }
         @if (_rankingsReport is not null)
         {
@@ -41,7 +41,7 @@
                 @string.Join(" ", _rankingsReport.Notes)
                 @if (_rankingsReport.AnyFileUpdated)
                 {
-                    <span> Archivos actualizados: @string.Join(", ", _rankingsReport.UpdatedFiles). Ratings importados: @_ratings.</span>
+                    <span> Updated files: @string.Join(", ", _rankingsReport.UpdatedFiles). Imported ratings: @_ratings.</span>
                 }
             </MudAlert>
             @foreach (var error in _rankingsReport.Errors)
@@ -51,7 +51,7 @@
         }
         @if (_apiReport is not null)
         {
-            <MudAlert Class="mt-2" Severity="@(_apiReport.Errors.Count > 0 ? Severity.Warning : Severity.Info)" Variant="Variant.Outlined">Impactos API enriquecidos: @_apiReport.ImpactMatchedPlayers. Fallback por posición: @_apiReport.ImpactFallbackPlayers. @string.Join(" ", _apiReport.Notes)</MudAlert>
+            <MudAlert Class="mt-2" Severity="@(_apiReport.Errors.Count > 0 ? Severity.Warning : Severity.Info)" Variant="Variant.Outlined">API-enriched impacts: @_apiReport.ImpactMatchedPlayers. Position fallback: @_apiReport.ImpactFallbackPlayers. @string.Join(" ", _apiReport.Notes)</MudAlert>
             @foreach (var error in _apiReport.Errors)
             {
                 <MudAlert Class="mt-2" Severity="Severity.Warning" Variant="Variant.Outlined">@error</MudAlert>
@@ -60,7 +60,7 @@
         @if (_availabilityReport is not null)
         {
             <MudAlert Class="mt-2" Severity="@(_availabilityReport.Errors.Count > 0 ? Severity.Warning : Severity.Info)" Variant="Variant.Outlined">
-                Fuentes leídas: @_availabilityReport.SourcesFetched. Fuentes omitidas: @_availabilityReport.SourcesSkipped. Reclamos guardados: @_availabilityReport.ClaimsSaved. Confirmados out: @_availabilityReport.ConfirmedOutClaims. Dudas: @_availabilityReport.DoubtfulClaims. Disponibles: @_availabilityReport.AvailableClaims. Reclamos que afectan predicciones: @_availabilityReport.ClaimsAffectingPredictions. Roles matcheados: @_availabilityReport.RoleMatchedClaims. Roles desconocidos: @_availabilityReport.RoleUnknownClaims. Impactos enriquecidos: @_availabilityReport.ImpactMatchedClaims. Fallback por posición: @_availabilityReport.ImpactFallbackClaims. Contextos actualizados: @_availabilityReport.ContextRowsUpdated. @string.Join(" ", _availabilityReport.Notes)
+                Sources fetched: @_availabilityReport.SourcesFetched. Sources skipped: @_availabilityReport.SourcesSkipped. Claims saved: @_availabilityReport.ClaimsSaved. Confirmed out: @_availabilityReport.ConfirmedOutClaims. Doubtful: @_availabilityReport.DoubtfulClaims. Available: @_availabilityReport.AvailableClaims. Claims affecting predictions: @_availabilityReport.ClaimsAffectingPredictions. Matched roles: @_availabilityReport.RoleMatchedClaims. Unknown roles: @_availabilityReport.RoleUnknownClaims. Enriched impacts: @_availabilityReport.ImpactMatchedClaims. Position fallback: @_availabilityReport.ImpactFallbackClaims. Updated contexts: @_availabilityReport.ContextRowsUpdated. @string.Join(" ", _availabilityReport.Notes)
             </MudAlert>
             @foreach (var error in _availabilityReport.Errors)
             {
@@ -70,7 +70,7 @@
         @if (_roleReport is not null)
         {
             <MudAlert Class="mt-2" Severity="@(_roleReport.Errors.Count > 0 ? Severity.Warning : Severity.Info)" Variant="Variant.Outlined">
-                Enriquecimiento de roles: @_roleReport.RoleMatchedClaims matcheados, @_roleReport.RoleUnknownClaims desconocidos. Impactos enriquecidos: @_roleReport.ImpactMatchedClaims. Fallback por posición: @_roleReport.ImpactFallbackClaims. @string.Join(" ", _roleReport.Notes)
+                Role enrichment: @_roleReport.RoleMatchedClaims matched, @_roleReport.RoleUnknownClaims unknown. Enriched impacts: @_roleReport.ImpactMatchedClaims. Position fallback: @_roleReport.ImpactFallbackClaims. @string.Join(" ", _roleReport.Notes)
             </MudAlert>
             @foreach (var error in _roleReport.Errors)
             {
@@ -80,8 +80,8 @@
     </MudPaper>
 
     <MudGrid Spacing="2">
-        <MudItem xs="12" md="4"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_teams</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Equipos</MudText></MudPaper></MudItem>
-        <MudItem xs="12" md="4"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_fixtures</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Partidos</MudText></MudPaper></MudItem>
+        <MudItem xs="12" md="4"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_teams</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Teams</MudText></MudPaper></MudItem>
+        <MudItem xs="12" md="4"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_fixtures</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Matches</MudText></MudPaper></MudItem>
         <MudItem xs="12" md="4"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_ratings</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Ratings</MudText></MudPaper></MudItem>
     </MudGrid>
 
@@ -97,16 +97,16 @@
         {
             <MudTable Items="_ratingRows" Dense="true" Hover="true" Elevation="0" Class="dense-table">
                 <HeaderContent>
-                    <MudTh>Equipo</MudTh>
-                    <MudTh>Tipo</MudTh>
-                    <MudTh Class="num">Valor</MudTh>
-                    <MudTh>Fuente</MudTh>
+                    <MudTh>Team</MudTh>
+                    <MudTh>Type</MudTh>
+                    <MudTh Class="num">Value</MudTh>
+                    <MudTh>Source</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Equipo"><TeamLabel TeamId="@context.TeamId" Name="@Name(context.TeamId)" /></MudTd>
-                    <MudTd DataLabel="Tipo">@context.Type</MudTd>
-                    <MudTd DataLabel="Valor" Class="num">@context.Value.ToString("0")</MudTd>
-                    <MudTd DataLabel="Fuente">@context.Source</MudTd>
+                    <MudTd DataLabel="Team"><TeamLabel TeamId="@context.TeamId" Name="@Name(context.TeamId)" /></MudTd>
+                    <MudTd DataLabel="Type">@context.Type</MudTd>
+                    <MudTd DataLabel="Value" Class="num">@context.Value.ToString("0")</MudTd>
+                    <MudTd DataLabel="Source">@context.Source</MudTd>
                 </RowTemplate>
             </MudTable>
         }
@@ -145,12 +145,12 @@
         {
             _report = await Importer.ImportAllAsync();
             await Load();
-            Snackbar.Add("Datos CSV importados.", Severity.Success);
+            Snackbar.Add("CSV data imported.", Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo importar el CSV.", Severity.Error);
+            Snackbar.Add("Could not import CSV data.", Severity.Error);
         }
         finally
         {
@@ -166,12 +166,12 @@
         {
             _apiReport = await Api.RefreshFixturesAsync();
             await Load();
-            Snackbar.Add(_apiReport.Errors.Count > 0 ? "La actualización de API terminó con advertencias." : "Partidos de API-Football actualizados.", _apiReport.Errors.Count > 0 ? Severity.Warning : Severity.Success);
+            Snackbar.Add(_apiReport.Errors.Count > 0 ? "API refresh completed with warnings." : "API-Football matches refreshed.", _apiReport.Errors.Count > 0 ? Severity.Warning : Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo actualizar API-Football.", Severity.Error);
+            Snackbar.Add("Could not refresh API-Football.", Severity.Error);
         }
         finally
         {
@@ -189,12 +189,12 @@
             if (_rankingsReport.AnyFileUpdated)
                 _ratings = await Importer.ImportRatingsOnlyAsync();
             await Load();
-            Snackbar.Add(_rankingsReport.Errors.Count > 0 ? "La actualización de rankings terminó con advertencias." : "Rankings actualizados.", _rankingsReport.Errors.Count > 0 ? Severity.Warning : Severity.Success);
+            Snackbar.Add(_rankingsReport.Errors.Count > 0 ? "Ranking refresh completed with warnings." : "Rankings refreshed.", _rankingsReport.Errors.Count > 0 ? Severity.Warning : Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudieron actualizar los rankings.", Severity.Error);
+            Snackbar.Add("Could not refresh rankings.", Severity.Error);
         }
         finally
         {
@@ -211,12 +211,12 @@
             _availabilityReport = await Availability.RefreshAsync();
             _roleReport = await Api.EnrichAvailabilityRolesAsync();
             await Load();
-            Snackbar.Add(_availabilityReport.Errors.Count > 0 ? "La actualización de disponibilidad terminó con advertencias." : "Disponibilidad actualizada.", _availabilityReport.Errors.Count > 0 ? Severity.Warning : Severity.Success);
+            Snackbar.Add(_availabilityReport.Errors.Count > 0 ? "Availability refresh completed with warnings." : "Availability refreshed.", _availabilityReport.Errors.Count > 0 ? Severity.Warning : Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo actualizar la disponibilidad.", Severity.Error);
+            Snackbar.Add("Could not refresh availability.", Severity.Error);
         }
         finally
         {

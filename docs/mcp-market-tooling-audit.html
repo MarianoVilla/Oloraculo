@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oloraculo MCP Market Tooling Audit</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #172033;
+      --ink: #e5e7eb;
+      --muted: #9ca3af;
+      --line: #334155;
+      --good: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --info: #38bdf8;
+      --accent: #a78bfa;
+      --code: #020617;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+      background: radial-gradient(circle at 20% 0%, #1e293b 0, var(--bg) 34rem);
+      color: var(--ink);
+    }
+    header, main { max-width: 1180px; margin: 0 auto; padding: 1.25rem; }
+    header { padding-top: 2rem; }
+    h1, h2, h3 { line-height: 1.15; margin: 0 0 .7rem; }
+    h1 { font-size: clamp(2rem, 4vw, 3.4rem); letter-spacing: -.04em; }
+    h2 { font-size: 1.55rem; margin-top: 2rem; }
+    h3 { font-size: 1.05rem; margin-top: 1.2rem; }
+    a { color: #93c5fd; }
+    .subtitle { color: var(--muted); max-width: 860px; font-size: 1.05rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015)), var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 1rem;
+      box-shadow: 0 10px 35px rgba(0,0,0,.18);
+    }
+    .card h3 { margin-top: 0; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .18rem .55rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: .78rem;
+      white-space: nowrap;
+      margin: .12rem .12rem .12rem 0;
+    }
+    .pass { color: var(--good); border-color: rgba(34,197,94,.35); }
+    .trial { color: var(--warn); border-color: rgba(245,158,11,.35); }
+    .reject { color: var(--bad); border-color: rgba(239,68,68,.35); }
+    .info { color: var(--info); border-color: rgba(56,189,248,.35); }
+    .accent { color: var(--accent); border-color: rgba(167,139,250,.35); }
+    table { width: 100%; border-collapse: collapse; margin: .8rem 0 1.2rem; font-size: .92rem; }
+    th, td { border-bottom: 1px solid var(--line); padding: .65rem .55rem; vertical-align: top; }
+    th { text-align: left; color: #cbd5e1; background: rgba(255,255,255,.035); }
+    tr:hover td { background: rgba(255,255,255,.025); }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      background: var(--code);
+      color: #d1fae5;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+    }
+    code { padding: .08rem .28rem; }
+    pre { overflow-x: auto; padding: .85rem; }
+    .callout {
+      border-left: 4px solid var(--info);
+      background: rgba(56,189,248,.08);
+      padding: .9rem 1rem;
+      border-radius: 10px;
+      margin: 1rem 0;
+    }
+    .danger { border-left-color: var(--bad); background: rgba(239,68,68,.08); }
+    .warning { border-left-color: var(--warn); background: rgba(245,158,11,.08); }
+    .ok { border-left-color: var(--good); background: rgba(34,197,94,.08); }
+    .small { color: var(--muted); font-size: .86rem; }
+    ul { padding-left: 1.2rem; }
+    .toc { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0; }
+    .toc a { text-decoration: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="pill accent">Firecrawl-backed research</span>
+    <span class="pill info">Generated 2026-06-16</span>
+    <h1>MCP Market tooling audit for Oloraculo + NativePM</h1>
+    <p class="subtitle">
+      This report reviews the supplied MCP Market categories for the World Cup 2026 prediction/combo-bet workflow:
+      Oloraculo owns football modelling, scoreline payoff maps, combo EV, and dashboards; NativePM/polytrade owns live market data,
+      risk, AWS operations, and the money path. The recommendation is deliberately conservative: tools must reduce a concrete failure mode,
+      not just add agent surface area.
+    </p>
+    <div class="toc">
+      <a class="pill" href="#executive">Executive decision</a>
+      <a class="pill" href="#install-now">Install now</a>
+      <a class="pill" href="#trial">Trial / gated</a>
+      <a class="pill" href="#reject">Do not install</a>
+      <a class="pill" href="#skills">Skills</a>
+      <a class="pill" href="#coverage">Research coverage</a>
+      <a class="pill" href="#snippets">Config snippets</a>
+    </div>
+  </header>
+
+  <main>
+    <section id="executive" class="card">
+      <h2>Executive decision</h2>
+      <p>
+        Install the high-signal MCP stack, but keep credentialed/infrastructure tools disabled until their read-only accounts exist. Do <strong>not</strong> install general trading/autonomous cloud tools. The stack wired into Oloraculo is:
+      </p>
+      <div class="grid">
+        <div class="card">
+          <h3>Research ingestion</h3>
+          <p><strong>Firecrawl MCP</strong> for repeatable web crawling/scraping of public docs, Polymarket docs, MCP docs, and football source pages.</p>
+          <span class="pill pass">enabled</span><span class="pill warning">env key only</span>
+        </div>
+        <div class="card">
+          <h3>Browser evidence</h3>
+          <p><strong>Chrome DevTools MCP</strong> and <strong>Playwright MCP</strong> for Blazor UI debugging, console errors, network inspection, screenshots, and performance traces.</p>
+          <span class="pill pass">enabled</span><span class="pill info">credential-free</span>
+        </div>
+        <div class="card">
+          <h3>Semantic code/LSP</h3>
+          <p><strong>Serena</strong> is enabled with <code>--project-from-cwd</code> and <code>--language-backend LSP</code>, and also configured globally for other JS/TS/WebGL projects.</p>
+          <span class="pill pass">enabled</span><span class="pill info">cross-project</span>
+        </div>
+        <div class="card">
+          <h3>Ops observability</h3>
+          <p><strong>DBHub, GitHub, Grafana, Prometheus, Sentry, AWS Docs</strong> are installed as disabled/gated entries until local TOML/env/read-only accounts exist.</p>
+          <span class="pill trial">wired disabled</span><span class="pill warning">read-only tokens</span>
+        </div>
+      </div>
+      <div class="callout danger">
+        <strong>Credential note:</strong> the Firecrawl key was pasted into chat during the request. Do not put it in repo files, docs, MCP config, shell commands, or logs.
+        Rotate it and set the replacement only as <code>FIRECRAWL_API_KEY</code> in your local environment or secret manager.
+      </div>
+    </section>
+
+    <section id="install-now">
+      <h2>Enabled now</h2>
+      <table>
+        <thead>
+          <tr><th>Tool</th><th>Why it is genuinely useful</th><th>How to install/configure</th><th>Risks / gates</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Firecrawl MCP</strong><br><a href="https://mcpmarket.com/server/firecrawl">MCP Market</a></td>
+            <td>
+              Best fit for broad public research: crawls MCP Market, Polymarket docs, sportsbook docs, FIFA/ESPN source pages, and vendor documentation into clean markdown.
+              It directly supports Oloraculo's documentation workflow and evidence packets.
+            </td>
+            <td>
+              <pre><code>npx -y firecrawl-mcp</code></pre>
+              Configure only through env inheritance: <code>FIRECRAWL_API_KEY</code>. The Firecrawl MCP package was verified locally; keyless scrape/search also worked in rate-limited mode.
+            </td>
+            <td>
+              API-key/credit-gated. Rotate the exposed key. Never hardcode the token in <code>.mcp.json</code>, <code>opencode.json</code>, docs, or shell commands.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Playwright MCP</strong><br><a href="https://www.npmjs.com/package/@playwright/mcp">NPM</a></td>
+            <td>
+              Complements Chrome DevTools with deterministic browser automation. Useful for visual evidence of the Combo Lab and route pages.
+            </td>
+            <td>
+              <pre><code>npx -y @playwright/mcp@latest --isolated --browser=chromium --headless --block-service-workers</code></pre>
+              Enabled in <code>opencode.json</code> with localhost origins only.
+            </td>
+            <td>Credential-free, but browser automation can interact with local apps. Do not use on pages containing secrets.</td>
+          </tr>
+          <tr>
+            <td><strong>Serena</strong><br>global + project config</td>
+            <td>
+              LSP-backed semantic navigation for C#, JS, TS, WebGL, and similar codebases. Configured with <code>--project-from-cwd</code> so it is not tied to Oloraculo.
+            </td>
+            <td>
+              <pre><code>C:\Users\gianz\.local\bin\serena.exe start-mcp-server --context ide --language-backend LSP --project-from-cwd</code></pre>
+              Enabled both in Oloraculo and global OpenCode config.
+            </td>
+            <td>Indexes project code. Keep generated DBs, logs, and secret files ignored/excluded.</td>
+          </tr>
+          <tr>
+            <td><strong>Chrome DevTools MCP</strong><br><a href="https://mcpmarket.com/server/chrome-devtools-1">MCP Market</a></td>
+            <td>
+              Superior for Oloraculo UI evidence: console errors, network calls, trace/performance insights, screenshots, and DOM interactions. Useful for proving the combo lab page actually renders correctly.
+            </td>
+            <td>
+              <pre><code>npx -y chrome-devtools-mcp@latest --isolated --headless --no-usage-statistics --no-performance-crux --redactNetworkHeaders</code></pre>
+              NPM package <code>chrome-devtools-mcp</code> was verified. Use alongside, not instead of, <code>dotnet test</code>.
+            </td>
+            <td>
+              Browser-control MCP. Keep disabled by default; enable only for UI debugging/evidence sessions. It must not touch secrets or live execution endpoints.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Context7</strong><br><a href="https://mcp.context7.com/mcp">Remote MCP</a></td>
+            <td>
+              Already configured. Best low-risk source for current docs on .NET, EF Core, MudBlazor, MCP protocol, Firecrawl, and package APIs before code changes.
+            </td>
+            <td>
+              Already present in <code>opencode.json</code>. Keep enabled.
+            </td>
+            <td>Credential-free. Still verify code against tests; docs are not evidence of model edge.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="trial">
+      <h2>Trial or gate behind read-only credentials</h2>
+      <table>
+        <thead>
+          <tr><th>Tool</th><th>Decision</th><th>Why / when</th><th>Install sketch</th><th>Gate</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>DBHub</strong><br><a href="https://mcpmarket.com/server/dbhub">MCP Market</a></td>
+            <td><span class="pill trial">trial</span></td>
+            <td>Good universal DB gateway for SQLite/Postgres/MySQL. In Oloraculo it can inspect the generated SQLite schema, snapshots, and evaluation rows faster than hand-written EF queries.</td>
+            <td><pre><code>npx -y @bytebase/dbhub</code></pre></td>
+            <td>Use a copied SQLite DB or read-only SQLite URI. Never point write-capable agents at production/live trading stores.</td>
+          </tr>
+          <tr>
+            <td><strong>Grafana MCP</strong><br><a href="https://mcpmarket.com/server/grafana">MCP Market</a></td>
+            <td><span class="pill trial">gated</span></td>
+            <td>Useful only if Grafana has Oloraculo/NativePM dashboards. Can query dashboards, data sources, alerts, Prometheus/Loki metadata.</td>
+            <td>Marketplace page indicates Grafana ecosystem MCP; use official Grafana release/Docker/source, not guessed npm names.</td>
+            <td>Read-only Grafana service account. Disable incident/alert mutation tools unless explicitly needed.</td>
+          </tr>
+          <tr>
+            <td><strong>Prometheus MCP</strong><br><a href="https://mcpmarket.com/server/prometheus-1">MCP Market</a></td>
+            <td><span class="pill trial">gated</span></td>
+            <td>Useful for NativePM metrics queries if Prometheus is populated. Not useful before metrics exist.</td>
+            <td>Install from the specific marketplace/GitHub source after verifying maintainer and read-only query support.</td>
+            <td>Query-only endpoint. No alert/rule mutation. Never claim stack health without command output.</td>
+          </tr>
+          <tr>
+            <td><strong>Serena / semantic code tools</strong><br><a href="https://mcpmarket.com/server/claude-context">Claude Context</a>, <a href="https://mcpmarket.com/server/codebase-memory">Codebase Memory</a></td>
+            <td><span class="pill trial">already planned</span></td>
+            <td>Useful for codebase navigation. Current repo already has Serena configured disabled, which is the right low-risk trial path.</td>
+            <td>Keep current Serena config. Trial indexing on Oloraculo only, verify it does not scan secret files.</td>
+            <td>Prefer local index, ignore <code>appsettings.Development.json</code>, logs, databases, and secret-bearing files.</td>
+          </tr>
+          <tr>
+            <td><strong>Phoenix</strong><br><a href="https://mcpmarket.com/server/phoenix">MCP Market</a></td>
+            <td><span class="pill trial">later</span></td>
+            <td>Useful only if Oloraculo starts evaluating LLM availability/news classifiers or prompt-based extraction. It is overkill for deterministic scoreline math.</td>
+            <td>Use local/container Phoenix only after LLM evaluation datasets exist.</td>
+            <td>Do not confuse LLM observability with football-model calibration.</td>
+          </tr>
+          <tr>
+            <td><strong>AWS MCP servers</strong><br><a href="https://mcpmarket.com/server/aws-3">MCP Market</a></td>
+            <td><span class="pill trial">docs/cost only</span></td>
+            <td>Potentially useful for AWS docs/search/cost questions. Do not replace NativePM SSM scripts or grant write access.</td>
+            <td>Use official AWS Labs MCP docs. Install only a documentation/cost read-only subset if supported.</td>
+            <td>No routine SSH, no broad AWS mutators, no secret reads. Prefer existing SSM runbooks.</td>
+          </tr>
+          <tr>
+            <td><strong>Chart Generator</strong><br><a href="https://mcpmarket.com/server/chart-generator">MCP Market</a></td>
+            <td><span class="pill trial">optional</span></td>
+            <td>Could quickly sketch probability/EV charts for docs. Oloraculo should still render production charts natively in Blazor.</td>
+            <td>Install only if report graphics become a bottleneck.</td>
+            <td>Generated charts are presentation, not evidence.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="reject">
+      <h2>Do not install now</h2>
+      <div class="callout warning">
+        The marketplace is packed with high-ranking but irrelevant tools. High popularity does not equal fit. The trading system needs fewer tools with stronger gates.
+      </div>
+      <table>
+        <thead><tr><th>Class / examples reviewed</th><th>Decision</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Polymarket / trading MCPs</strong>: Polymarket, QuantDinger, TradingView, AI Trader, Maverick</td>
+            <td><span class="pill reject">reject</span></td>
+            <td>They either advertise autonomous trade/position features or generic market analysis. NativePM money path must stay Rust-first with exact approval/WAL/risk gates. Build a custom read-only PM market importer instead.</td>
+          </tr>
+          <tr>
+            <td><strong>Agent swarm frameworks</strong>: Ruflo, Claude-Flow, PAL, Praison AI, Archon, Fast Agent</td>
+            <td><span class="pill reject">reject</span></td>
+            <td>They add orchestration complexity, not football/market evidence. Oloraculo already has local agents/skills; better to keep deterministic workflows.</td>
+          </tr>
+          <tr>
+            <td><strong>Heavy federated AI/data platforms</strong>: MindsDB, OpenMetadata, GreptimeDB, LanceDB, VectorChord, Graphiti, Cognee</td>
+            <td><span class="pill reject">hold/reject</span></td>
+            <td>Useful in enterprise data stacks, but too heavy before Oloraculo has a stable combo evidence schema. Use EF/SQLite and simple files first.</td>
+          </tr>
+          <tr>
+            <td><strong>Generic DB platforms</strong>: Supabase, Convex, Neon, MongoDB, MySQL, MotherDuck, Data API Builder, Tabularis</td>
+            <td><span class="pill reject">reject</span></td>
+            <td>They imply platform migration or write-capable DB access. Oloraculo currently uses SQLite; NativePM has its own data path. DBHub read-only is enough.</td>
+          </tr>
+          <tr>
+            <td><strong>Cloud mutators</strong>: Kubernetes, kubectl, Docker, Cloudflare, Terraform, OpenOps, StackQL, Gcloud, Azure, Cloud Run</td>
+            <td><span class="pill reject">reject by default</span></td>
+            <td>High blast radius. Do not give agents natural-language mutation over infrastructure. Use existing SSM/Terraform scripts with human-reviewed diffs.</td>
+          </tr>
+          <tr>
+            <td><strong>Design-authoring tools</strong>: Figma Context, Cursor Talk to Figma, Penpot, Next AI Draw.io, Magic, Better Icons, Excalidraw</td>
+            <td><span class="pill reject">mostly reject</span></td>
+            <td>Oloraculo is MudBlazor, not Figma-driven React. Chrome DevTools gives better immediate UI evidence. Use Mermaid/manual docs before diagram MCPs.</td>
+          </tr>
+          <tr>
+            <td><strong>Media/OCR/vision</strong>: FunASR, PaddleOCR, Google Vision, VideoDB, fal.ai, Blender, Adobe, KiCAD, FreeCAD</td>
+            <td><span class="pill reject">reject</span></td>
+            <td>Not connected to World Cup price discovery, scoreline modelling, Polymarket market mapping, or execution safety.</td>
+          </tr>
+          <tr>
+            <td><strong>News/trend aggregators</strong>: TrendRadar, OpenNews, Zenfeed</td>
+            <td><span class="pill reject">reject for trading</span></td>
+            <td>Tempting but noisy. For football availability/news, use explicit source fetchers and evidence classifications inside Oloraculo.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="skills">
+      <h2>Agent Skills: install vs copy concepts locally</h2>
+      <p>
+        MCP Market skills are mostly generic. For this project, copy the useful patterns into repo-local skills rather than installing broad third-party skill packs.
+      </p>
+      <table>
+        <thead><tr><th>Skill category reviewed</th><th>Useful concepts</th><th>Recommendation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Data Science & ML skills: PyTorch, Agent Harness, Cost-Aware Pipeline, OCR, Placekey, Kaggle, Wolfram, OpenRouter</td>
+            <td>Agent Harness and Cost-Aware Pipeline concepts are useful for tool discipline and expensive LLM/API workflows. PyTorch/OCR/media are irrelevant.</td>
+            <td>Create local skills: <code>combo-payoff-mapping</code>, <code>football-live-state-model</code>, <code>model-calibration-audit</code>, <code>llm-cost-hygiene</code>.</td>
+          </tr>
+          <tr>
+            <td>Analytics & Monitoring skills: Canary Watch, Performance Benchmark, Timeline Report, Honeyhive, Better Stack</td>
+            <td>Canary Watch and Performance Benchmark map well to Blazor UI/endpoint checks. Timeline Report is useful for release notes. Honeyhive only if LLM classification grows.</td>
+            <td>Create local skills: <code>oloraculo-ui-canary</code>, <code>performance-benchmark</code>, <code>release-timeline-report</code>.</td>
+          </tr>
+          <tr>
+            <td>Database skills: PostgreSQL Patterns, Database Migration Expert, ClickHouse Analytics</td>
+            <td>Migration safety and ClickHouse analytics discipline are useful. Oloraculo currently has runtime schema extension/no migrations; NativePM has ClickHouse/lake gates.</td>
+            <td>Create local skills: <code>sqlite-schema-safety</code> for Oloraculo; keep NativePM's ClickHouse parity skill in polytrade.</td>
+          </tr>
+          <tr>
+            <td>Cloud Infrastructure skills: Cloudflare, Big Data Cloud, Turbot, DigitalOcean, Microsoft tenant</td>
+            <td>Mostly irrelevant automation wrappers. Cloud ops must remain scripted and permission-gated.</td>
+            <td>No install. Keep <code>aws-ssm-ops</code> style runbooks local and read-only by default.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="coverage">
+      <h2>Research coverage</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Firecrawl scrape scope</h3>
+          <p>69 MCP Market pages scraped successfully, 0 failed.</p>
+          <ul>
+            <li>15 server category pages: first three pages of Data Science & ML, Analytics & Monitoring, Database Management, Cloud Infrastructure, Design Tools.</li>
+            <li>6 agent-skill category pages: supplied skill categories plus second pages where high-volume.</li>
+            <li>48 detail pages for likely candidates and high-risk rejects.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Categories supplied by user</h3>
+          <ul>
+            <li><a href="https://mcpmarket.com/categories/data-science-ml">Data Science & ML MCP servers</a></li>
+            <li><a href="https://mcpmarket.com/categories/analytics-monitoring">Analytics & Monitoring MCP servers</a></li>
+            <li><a href="https://mcpmarket.com/categories/database-management">Database Management MCP servers</a></li>
+            <li><a href="https://mcpmarket.com/categories/cloud-infrastructure">Cloud Infrastructure MCP servers</a></li>
+            <li><a href="https://mcpmarket.com/categories/design-tools">Design Tools MCP servers</a></li>
+            <li>All supplied agent-skill categories in data science, analytics, database, and cloud.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Evaluation criteria</h3>
+          <ul>
+            <li>Does it improve football-model evidence, contract mapping, combo EV, UI proof, or ops observability?</li>
+            <li>Can it run read-only or credential-free?</li>
+            <li>Does it avoid live order paths and cloud mutation?</li>
+            <li>Is a repo-local skill/custom service safer than a marketplace MCP?</li>
+          </ul>
+        </div>
+      </div>
+      <p class="small">
+        MCP Market lists thousands of items in some categories. This audit reviewed every supplied category, the top ranked pages, and candidate detail pages.
+        It does not recommend exhaustively installing or individually validating thousands of unrelated marketplace items because that would increase risk without improving the trading/model workflow.
+      </p>
+    </section>
+
+    <section id="snippets">
+      <h2>Safe config snippets</h2>
+      <p>Use placeholders/env vars only. Do not paste real keys into these files.</p>
+
+      <h3>Claude-style <code>.mcp.json</code> example</h3>
+      <pre><code>{
+  "mcpServers": {
+    "firecrawl": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "firecrawl-mcp"],
+      "env": {
+        "FIRECRAWL_API_KEY": "&lt;inherited from environment; do not hardcode&gt;"
+      }
+    },
+    "chrome-devtools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp"],
+      "env": {}
+    },
+    "dbhub-readonly": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@bytebase/dbhub"],
+      "env": {
+        "DBHUB_DATABASE_URL": "sqlite:C:/path/to/copied-oloraculo.db?mode=ro"
+      }
+    }
+  }
+}</code></pre>
+
+      <h3>OpenCode-style intent</h3>
+      <pre><code>{
+  "mcp": {
+    "firecrawl": {
+      "type": "local",
+      "command": ["npx", "-y", "firecrawl-mcp"],
+      "enabled": false,
+      "timeout": 60000
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": ["npx", "-y", "chrome-devtools-mcp"],
+      "enabled": false,
+      "timeout": 60000
+    }
+  }
+}</code></pre>
+
+      <div class="callout ok">
+        <strong>Install order:</strong> Firecrawl first, Chrome DevTools second, DBHub trial third. Grafana/Prometheus only after read-only service accounts and real dashboards exist.
+      </div>
+      <div class="callout danger">
+        <strong>Never install:</strong> Polymarket/trading MCPs with order/position tools, broad cloud mutators, or autonomous agent-swarm frameworks into the live trading workspace.
+      </div>
+    </section>
+  </main>
+</body>
+</html>

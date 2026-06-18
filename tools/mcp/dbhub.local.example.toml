@@ -1,0 +1,10 @@
+[[sources]]
+id = "oloraculo_local"
+description = "Local Oloraculo SQLite database for read-only schema and snapshot inspection. Prefer a copied DB file over the live app DB."
+dsn = "sqlite:///C:/Users/gianz/prediction/Oloraculo/Oloraculo.Web/oloraculo.db"
+
+[[tools]]
+name = "execute_sql"
+source = "oloraculo_local"
+readonly = true
+max_rows = 500

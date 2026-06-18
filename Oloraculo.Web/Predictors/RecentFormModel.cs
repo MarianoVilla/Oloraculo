@@ -5,7 +5,7 @@ namespace Oloraculo.Web.Predictors
 {
     public class RecentFormModel : IPredictor
     {
-        public string Name => "Forma reciente";
+        public string Name => "Recent form";
         public int Priority => 3;
 
         public MatchPrediction Predict(MatchContext context)
@@ -20,7 +20,7 @@ namespace Oloraculo.Web.Predictors
                     HomeTeamId = context.HomeTeam.Id,
                     AwayTeamId = context.AwayTeam.Id,
                     Outcome = OutcomeProbabilities.Uniform,
-                    Explanation = "Se necesitan ratings Elo para ambos equipos para hacer esta predicción.",
+                    Explanation = "Elo ratings are required for both teams to make this prediction.",
                     Degraded = true,
                 };
             }
@@ -42,11 +42,11 @@ namespace Oloraculo.Web.Predictors
                 HomeTeamId = context.HomeTeam.Id,
                 AwayTeamId = context.AwayTeam.Id,
                 Outcome = Outcome,
-                Explanation = $"Usando Elo más forma reciente cuando está disponible: {context.HomeTeam.Name} delta {HomeFormDelta:F1}, " +
+                Explanation = $"Using Elo plus recent form when available: {context.HomeTeam.Name} delta {HomeFormDelta:F1}, " +
                 $"{context.AwayTeam.Name} delta: {AwayFormDelta:F1}.",
-                Drivers = new[] { "Resultados recientes" },
-                FeaturesUsed = new[] { "Resultados recientes", "Ratings Elo" },
-                FeaturesMissing = MissingRecentHistory ? ["historial reciente para uno o ambos equipos"] : Array.Empty<string>(),
+                Drivers = new[] { "Recent results" },
+                FeaturesUsed = new[] { "Recent results", "Elo ratings" },
+                FeaturesMissing = MissingRecentHistory ? ["recent history for one or both teams"] : Array.Empty<string>(),
                 Sources = [SourceMetadata.EloRatings, SourceMetadata.HistoricalResultsCsv],
                 Degraded = MissingRecentHistory,
             };

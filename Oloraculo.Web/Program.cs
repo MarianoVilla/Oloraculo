@@ -1,6 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using Oloraculo.Web;
+using Oloraculo.Web.Archive;
+using Oloraculo.Web.ComboLab.Markets;
+using Oloraculo.Web.ComboLab.Monitor;
+using Oloraculo.Web.ComboLab.Scalp;
+using Oloraculo.Web.Feeds;
+using Oloraculo.Web.Feeds.Adapters;
+using Oloraculo.Web.WorldCup.Burden;
 using Oloraculo.Web.Components;
 using Oloraculo.Web.DAL;
 using Oloraculo.Web.Services;
@@ -17,9 +24,11 @@ builder.Services.AddRazorComponents()
 builder.Services.AddMudServices();
 
 builder.Services.Configure<OloraculoConfig>(builder.Configuration.GetSection("Oloraculo"));
-var ConnectionString = builder.Configuration.GetConnectionString("Oloraculo") ?? 
+builder.Services.Configure<FeedStatusOptions>(builder.Configuration.GetSection("Oloraculo:FeedStatus"));
+var ConnectionString = builder.Configuration.GetConnectionString("Oloraculo") ??
     throw new ArgumentNullException("No connection string found in the config!");
 
+builder.Services.AddHealthChecks();
 
 builder.Services.AddDbContext<OloraculoDbContext>(options => options.UseSqlite(ConnectionString));
 
@@ -29,6 +38,52 @@ builder.Services.AddScoped<EvaluationService>();
 builder.Services.AddScoped<SnapshotService>();
 builder.Services.AddScoped<SimulationService>();
 builder.Services.AddScoped<ReadmeSnapshotExportService>();
+builder.Services.AddScoped<ComboLabMonitorService>();
+builder.Services.AddScoped<LiveComplementaryLockService>();
+builder.Services.AddScoped<ComboLabEvidenceLedgerService>();
+builder.Services.AddScoped<SportsScalpScannerService>();
+builder.Services.AddSingleton<ISecretPresenceReader, EnvironmentSecretPresenceReader>();
+builder.Services.AddSingleton<IObjectArchiveService, S3ObjectArchiveService>();
+builder.Services.AddSingleton<IObjectArchiveHealthProbe, DefaultObjectArchiveHealthProbe>();
+builder.Services.AddSingleton<IFeedStatusHealthStore, InMemoryFeedStatusHealthStore>();
+builder.Services.AddHttpClient<DatabetSportsbookFeedStatusAdapter>((sp, client) =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<OloraculoConfig>>().Value;
+    client.Timeout = TimeSpan.FromSeconds(5);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(options.RankingRefreshUserAgent);
+});
+builder.Services.AddHttpClient<DatabetWidgetsFeedStatusAdapter>((sp, client) =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<OloraculoConfig>>().Value;
+    client.Timeout = TimeSpan.FromSeconds(5);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(options.RankingRefreshUserAgent);
+});
+builder.Services.AddHttpClient<OddsPapiPinnacleFeedStatusAdapter>((sp, client) =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<OloraculoConfig>>().Value;
+    client.Timeout = TimeSpan.FromSeconds(5);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(options.RankingRefreshUserAgent);
+});
+builder.Services.AddHttpClient<GridFeedStatusAdapter>((sp, client) =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<OloraculoConfig>>().Value;
+    client.Timeout = TimeSpan.FromSeconds(5);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(options.RankingRefreshUserAgent);
+});
+builder.Services.AddTransient<IFeedStatusAdapter>(sp => sp.GetRequiredService<DatabetSportsbookFeedStatusAdapter>());
+builder.Services.AddTransient<IFeedStatusAdapter>(sp => sp.GetRequiredService<DatabetWidgetsFeedStatusAdapter>());
+builder.Services.AddTransient<IFeedStatusAdapter>(sp => sp.GetRequiredService<OddsPapiPinnacleFeedStatusAdapter>());
+builder.Services.AddTransient<IFeedStatusAdapter>(sp => sp.GetRequiredService<GridFeedStatusAdapter>());
+builder.Services.AddTransient<PolymarketClobFeedStatusAdapter>();
+builder.Services.AddTransient<IFeedStatusAdapter>(sp => sp.GetRequiredService<PolymarketClobFeedStatusAdapter>());
+builder.Services.AddTransient<ObjectArchiveFeedStatusAdapter>();
+builder.Services.AddTransient<IFeedStatusAdapter>(sp => sp.GetRequiredService<ObjectArchiveFeedStatusAdapter>());
+builder.Services.AddScoped<FeedStatusService>();
+if (builder.Configuration.GetValue<bool>("Oloraculo:FeedStatus:EnableBackgroundProbes"))
+{
+    builder.Services.AddHostedService<FeedStatusProbeWorker>();
+}
+builder.Services.AddScoped<WorldCupBurdenCoverageService>();
 builder.Services.AddHttpClient<PlayerImpactService>((sp, client) =>
 {
     var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<OloraculoConfig>>().Value;
@@ -58,6 +113,12 @@ builder.Services.AddHttpClient<AvailabilityNewsService>((sp, client) =>
     client.BaseAddress = new Uri(options.OpenRouterBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(60);
     client.DefaultRequestHeaders.UserAgent.ParseAdd(options.AvailabilityRefreshUserAgent);
+});
+builder.Services.AddHttpClient<PolymarketMarketDataService>((sp, client) =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<OloraculoConfig>>().Value;
+    client.Timeout = TimeSpan.FromSeconds(20);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd(options.RankingRefreshUserAgent);
 });
 
 var app = builder.Build();
@@ -118,8 +179,13 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseStaticFiles();
 
 app.UseAntiforgery();
+
+app.MapHealthChecks("/healthz");
+app.MapGet("/snapshot.json", (FeedStatusService feeds, IObjectArchiveService archive) =>
+    Results.Json(RuntimeStatusSnapshot.Create(DateTimeOffset.UtcNow, archive.Readiness, feeds.Snapshot())));
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

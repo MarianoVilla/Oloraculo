@@ -2,34 +2,34 @@
 @inject OloraculoDbContext Db
 @inject IOptions<OloraculoConfig> Options
 
-<PageTitle>Oloráculo</PageTitle>
+<PageTitle>World Cup Edge Lab</PageTitle>
 
 <MudStack Spacing="3">
     <div class="page-head">
-        <MudText Typo="Typo.h3">Oloráculo</MudText>
-        <MudText Typo="Typo.body1" Color="Color.Secondary">Funciona como huele</MudText>
+        <MudText Typo="Typo.h3">World Cup Edge Lab</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">Analysis-only World Cup modeling and market research.</MudText>
     </div>
 
     <MudGrid Spacing="2">
-        <MudItem xs="12" sm="6" lg="3"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_teams</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Equipos</MudText></MudPaper></MudItem>
-        <MudItem xs="12" sm="6" lg="3"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_fixtures</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Partidos</MudText></MudPaper></MudItem>
-        <MudItem xs="12" sm="6" lg="3"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_results</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Resultados</MudText></MudPaper></MudItem>
-        <MudItem xs="12" sm="6" lg="3"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@Options.Value.SimulationCount.ToString("N0")</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Simulaciones</MudText></MudPaper></MudItem>
+        <MudItem xs="12" sm="6" lg="3"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_teams</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Teams</MudText></MudPaper></MudItem>
+        <MudItem xs="12" sm="6" lg="3"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_fixtures</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Matches</MudText></MudPaper></MudItem>
+        <MudItem xs="12" sm="6" lg="3"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_results</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Results</MudText></MudPaper></MudItem>
+        <MudItem xs="12" sm="6" lg="3"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@Options.Value.SimulationCount.ToString("N0")</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Simulations</MudText></MudPaper></MudItem>
     </MudGrid>
 
     <MudGrid Spacing="2">
         <MudItem xs="12" md="6">
             <MudPaper Class="surface-card" Elevation="0">
-                <MudText Typo="Typo.h6">Flujo del proyecto</MudText>
+                <MudText Typo="Typo.h6">Project flow</MudText>
                 <ol class="clean-list">
-                    <li>Los CSV crean el mundo futbolero.</li>
-                    <li>API-Football puede enriquecer partidos cuando hay datos.</li>
-                    <li>La escalera predice un partido por vez.</li>
-                    <li>El Oráculo final elige el escalón usable más alto.</li>
-                    <li>Monte Carlo juega muchas veces el torneo oficial 2026.</li>
-                    <li>Las predicciones guardadas se evalúan cuando llegan resultados.</li>
+                    <li>CSV files create the football universe.</li>
+                    <li>API-Football can enrich matches when data is available.</li>
+                    <li>The ladder predicts one match at a time.</li>
+                    <li>The final edge model selects the highest usable ladder rung.</li>
+                    <li>Monte Carlo runs the official 2026 tournament structure many times.</li>
+                    <li>Saved predictions are evaluated when results arrive.</li>
                 </ol>
-                <MudButton Href="lab" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Science">Abrir laboratorio</MudButton>
+                <MudButton Href="lab" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Science">Open lab</MudButton>
             </MudPaper>
         </MudItem>
 
@@ -38,9 +38,9 @@
                 <MudText Typo="Typo.h6">Escalera</MudText>
                 <MudTable Items="_ladder" Dense="true" Hover="true" Elevation="0">
                     <RowTemplate>
-                        <MudTd DataLabel="Nivel"><MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">@context.Level</MudChip></MudTd>
-                        <MudTd DataLabel="Modelo">@context.Model</MudTd>
-                        <MudTd DataLabel="Señal"><MudText Typo="Typo.body2" Color="Color.Secondary">@context.Signal</MudText></MudTd>
+                        <MudTd DataLabel="Level"><MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">@context.Level</MudChip></MudTd>
+                        <MudTd DataLabel="Model">@context.Model</MudTd>
+                        <MudTd DataLabel="Signal"><MudText Typo="Typo.body2" Color="Color.Secondary">@context.Signal</MudText></MudTd>
                     </RowTemplate>
                 </MudTable>
             </MudPaper>
@@ -54,13 +54,13 @@
     private int _results;
     private readonly List<LadderRow> _ladder =
     [
-        new("L0", "Base", "probabilidad uniforme"),
-        new("L1", "Ranking FIFA", "puntos externos"),
-        new("L2", "Elo", "fortaleza de largo plazo"),
-        new("L3", "Forma reciente", "resultados de corto plazo"),
-        new("L4", "Goles", "marcadores Poisson"),
-        new("L5", "Contexto", "ajuste con fuentes"),
-        new("Final", "Oráculo final", "escalón usable más alto")
+        new("L0", "Baseline", "uniform probability"),
+        new("L1", "FIFA ranking", "external points"),
+        new("L2", "Elo", "long-run strength"),
+        new("L3", "Recent form", "short-run results"),
+        new("L4", "Goals", "Poisson scorelines"),
+        new("L5", "Context", "source-adjusted"),
+        new("Final", "Final edge model", "highest usable rung")
     ];
 
     protected override async Task OnInitializedAsync()

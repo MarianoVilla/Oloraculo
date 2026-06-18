@@ -1,0 +1,151 @@
+{
+  "_comment": "Oloraculo MCP example. Copy to .mcp.json only when a client needs it. .mcp.json is gitignored. Never paste real tokens into this example or any committed file.",
+  "mcpServers": {
+    "oloraculo-context": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["tools/mcp/oloraculo_context_server.py"],
+      "env": {}
+    },
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "chrome-devtools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--isolated",
+        "--headless",
+        "--no-usage-statistics",
+        "--no-performance-crux",
+        "--redactNetworkHeaders"
+      ],
+      "env": {}
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--isolated",
+        "--browser=chromium",
+        "--headless",
+        "--block-service-workers",
+        "--allowed-origins=http://localhost:*;https://localhost:*"
+      ],
+      "env": {}
+    },
+    "serena": {
+      "type": "stdio",
+      "command": "C:/Users/gianz/.local/bin/serena.exe",
+      "args": [
+        "start-mcp-server",
+        "--context",
+        "ide",
+        "--language-backend",
+        "LSP",
+        "--project-from-cwd"
+      ],
+      "env": {
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUTF8": "1"
+      }
+    },
+    "firecrawl-research": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "firecrawl-mcp"],
+      "env": {
+        "FIRECRAWL_API_KEY": "<set in parent environment; do not hardcode>"
+      }
+    },
+    "dbhub-oloraculo": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@bytebase/dbhub@latest",
+        "--transport",
+        "stdio",
+        "--config",
+        "tools/mcp/dbhub.local.toml"
+      ],
+      "env": {}
+    },
+    "github-readonly": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "-e",
+        "GITHUB_TOOLSETS=repos,issues,pull_requests,actions,code_security",
+        "ghcr.io/github/github-mcp-server",
+        "--read-only"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "<set in parent environment; read-only token preferred>"
+      }
+    },
+    "grafana-readonly": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-grafana",
+        "--disable-write",
+        "--disable-admin",
+        "--disable-incident",
+        "--disable-oncall",
+        "--disable-sift",
+        "--disable-snapshot",
+        "--disable-alerting"
+      ],
+      "env": {
+        "GRAFANA_URL": "<set in parent environment>",
+        "GRAFANA_SERVICE_ACCOUNT_TOKEN": "<set in parent environment; read-only>"
+      }
+    },
+    "prometheus-readonly": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "PROMETHEUS_URL",
+        "-e",
+        "PROMETHEUS_TOKEN",
+        "-e",
+        "PROMETHEUS_DISABLE_LINKS=True",
+        "-e",
+        "PROMETHEUS_REQUEST_TIMEOUT=30",
+        "ghcr.io/pab1it0/prometheus-mcp-server:latest"
+      ],
+      "env": {
+        "PROMETHEUS_URL": "<set in parent environment>",
+        "PROMETHEUS_TOKEN": "<set in parent environment if needed>"
+      }
+    },
+    "sentry-readonly": {
+      "type": "http",
+      "url": "https://mcp.sentry.dev/mcp"
+    },
+    "aws-docs": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "AWS_DOCUMENTATION_PARTITION": "aws"
+      }
+    }
+  }
+}

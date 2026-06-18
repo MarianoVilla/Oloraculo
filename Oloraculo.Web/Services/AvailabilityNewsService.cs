@@ -42,7 +42,7 @@ namespace Oloraculo.Web.Services
         public async Task<AvailabilityRefreshReport> RefreshAsync(CancellationToken ct = default)
         {
             if (!IsConfigured)
-                return new AvailabilityRefreshReport { IsConfigured = false, Notes = ["La clave de OpenRouter no está configurada."] };
+                return new AvailabilityRefreshReport { IsConfigured = false, Notes = ["OpenRouter key is not configured."] };
 
             var notes = new List<string>();
             var errors = new List<string>();
@@ -61,7 +61,7 @@ namespace Oloraculo.Web.Services
                 if (!fetch.Success || string.IsNullOrWhiteSpace(fetch.Text))
                 {
                     skipped++;
-                    errors.Add(fetch.Error ?? $"No se pudo leer {url}.");
+                    errors.Add(fetch.Error ?? $"Could not read {url}.");
                     continue;
                 }
 
@@ -78,7 +78,7 @@ namespace Oloraculo.Web.Services
                     savedConfirmedOut += claims.Count(c => IsConfirmedOut(c.Status));
                     savedDoubtful += claims.Count(c => c.Status is AvailabilityClaimStatus.Doubtful or AvailabilityClaimStatus.FitnessConcern);
                     savedAvailable += claims.Count(c => c.Status == AvailabilityClaimStatus.Available);
-                    notes.Add($"{fetch.Publisher ?? fetch.Url}: {claims.Count} reclamos de disponibilidad guardados desde OpenRouter.");
+                    notes.Add($"{fetch.Publisher ?? fetch.Url}: {claims.Count} availability claims saved from OpenRouter.");
                 }
                 catch (Exception ex)
                 {
@@ -90,12 +90,12 @@ namespace Oloraculo.Web.Services
                         savedConfirmedOut += deterministicClaims.Count(c => IsConfirmedOut(c.Status));
                         savedDoubtful += deterministicClaims.Count(c => c.Status is AvailabilityClaimStatus.Doubtful or AvailabilityClaimStatus.FitnessConcern);
                         savedAvailable += deterministicClaims.Count(c => c.Status == AvailabilityClaimStatus.Available);
-                        notes.Add($"{fetch.Publisher ?? fetch.Url}: {deterministicClaims.Count} reclamos guardados desde filas de tracker.");
-                        errors.Add($"{url}: OpenRouter no devolvió datos parseables ({ex.Message}); se usaron filas de tracker parseadas localmente.");
+                        notes.Add($"{fetch.Publisher ?? fetch.Url}: {deterministicClaims.Count} claims saved from tracker rows.");
+                        errors.Add($"{url}: OpenRouter returned no parseable data ({ex.Message}); locally parsed tracker rows were used.");
                     }
                     else
                     {
-                        errors.Add($"{url}: OpenRouter no devolvió datos parseables ({ex.Message}). Se conservan reclamos previos de esa fuente.");
+                        errors.Add($"{url}: OpenRouter returned no parseable data ({ex.Message}). Existing claims from that source were preserved.");
                     }
                 }
             }
@@ -141,7 +141,7 @@ namespace Oloraculo.Web.Services
                 RoleUnknownClaims = affecting - matched,
                 ImpactMatchedClaims = impactMatched,
                 ImpactFallbackClaims = affecting - impactMatched,
-                Notes = updated ? ["Contexto de disponibilidad actualizado desde noticias."] : ["No se encontró el partido seleccionado."]
+                Notes = updated ? ["Availability context refreshed from news."] : ["Selected match was not found."]
             };
         }
 
@@ -486,14 +486,14 @@ namespace Oloraculo.Web.Services
                     return SourceFetchResult.Fail(url, (int)response.StatusCode, title, publisher, $"HTTP {(int)response.StatusCode} al leer {url}.");
 
                 if (LooksBotGated(html))
-                    return SourceFetchResult.Fail(url, (int)response.StatusCode, title, publisher, $"{publisher ?? url}: la página parece bloqueada por verificación o JavaScript.");
+                    return SourceFetchResult.Fail(url, (int)response.StatusCode, title, publisher, $"{publisher ?? url}: page appears blocked by verification or JavaScript.");
 
                 var text = ExtractReadableText(html);
                 if (text.Length > _config.AvailabilityMaxArticleChars)
                     text = text[.._config.AvailabilityMaxArticleChars];
 
                 if (text.Length < 200)
-                    return SourceFetchResult.Fail(url, (int)response.StatusCode, title, publisher, $"{publisher ?? url}: texto insuficiente para clasificar.");
+                    return SourceFetchResult.Fail(url, (int)response.StatusCode, title, publisher, $"{publisher ?? url}: insufficient text to classify.");
 
                 return SourceFetchResult.Ok(url, (int)response.StatusCode, title, publisher, text);
             }
@@ -594,7 +594,7 @@ namespace Oloraculo.Web.Services
         private static string AppendAvailabilityNote(string existing, int home, int away, int matched, int unknown)
         {
             var prefix = string.IsNullOrWhiteSpace(existing) ? "" : existing.Split(" Noticias:")[0].Trim();
-            var note = $"Noticias: bajas confirmadas equipo A {home}, equipo B {away}; roles matcheados {matched}; roles desconocidos {unknown}.";
+            var note = $"News: confirmed absences Team A {home}, Team B {away}; matched roles {matched}; unknown roles {unknown}.";
             return string.IsNullOrWhiteSpace(prefix) ? note : $"{prefix} {note}";
         }
 

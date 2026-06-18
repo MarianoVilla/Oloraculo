@@ -17,19 +17,19 @@ namespace Oloraculo.Web.Predictors
             _goalModel = goalModel;
         }
 
-        public string Name => "Goles + contexto reciente";
+        public string Name => "Goals + recent context";
         public int Priority => 5;
 
         public MatchPrediction Predict(MatchContext context)
         {
             var (homeGoals, awayGoals, degradedGoalModel) = _goalModel.ExpectedGoals(context);
-            var usedFeatures = new List<string> { "Modelo de goles" };
+            var usedFeatures = new List<string> { "Goal model" };
             var missingFeatures = new List<string>();
             var drivers = new List<string>();
             var appliedContext = false;
 
             if (degradedGoalModel)
-                missingFeatures.Add("datos requeridos por el modelo de goles");
+                missingFeatures.Add("required goal-model data");
 
             if (context.FixtureContext is { } ctx)
             {
@@ -45,44 +45,44 @@ namespace Oloraculo.Web.Predictors
                     awayGoals *= Math.Max(0.82, 1.0 - ctx.UnavailableAwayAttackImpact);
                     homeGoals *= 1.0 + ctx.UnavailableAwayDefenseImpact;
                     awayGoals *= 1.0 + ctx.UnavailableHomeDefenseImpact;
-                    usedFeatures.Add("Disponibilidad de jugadores");
-                    drivers.Add($"Impacto por rol aplicado. Equipo A: ataque -{ctx.UnavailableHomeAttackImpact:P1}, defensa -{ctx.UnavailableHomeDefenseImpact:P1}; equipo B: ataque -{ctx.UnavailableAwayAttackImpact:P1}, defensa -{ctx.UnavailableAwayDefenseImpact:P1}.");
+                    usedFeatures.Add("Player availability");
+                    drivers.Add($"Role-aware impact applied. Team A: attack -{ctx.UnavailableHomeAttackImpact:P1}, defense -{ctx.UnavailableHomeDefenseImpact:P1}; Team B: attack -{ctx.UnavailableAwayAttackImpact:P1}, defense -{ctx.UnavailableAwayDefenseImpact:P1}.");
                     appliedContext = true;
                 }
                 else if (ctx.UnavailableHomePlayers > 0 || ctx.UnavailableAwayPlayers > 0)
                 {
                     homeGoals *= Math.Max(0.86, 1.0 - ctx.UnavailableHomePlayers * 0.02);
                     awayGoals *= Math.Max(0.86, 1.0 - ctx.UnavailableAwayPlayers * 0.02);
-                    usedFeatures.Add("Disponibilidad de jugadores");
-                    drivers.Add($"Disponibilidad de jugadores aplicada. Bajas: equipo A {ctx.UnavailableHomePlayers}, equipo B {ctx.UnavailableAwayPlayers}.");
+                    usedFeatures.Add("Player availability");
+                    drivers.Add($"Player availability applied. Absences: Team A {ctx.UnavailableHomePlayers}, Team B {ctx.UnavailableAwayPlayers}.");
                     appliedContext = true;
                 }
                 else
                 {
-                    missingFeatures.Add("disponibilidad de jugadores con impacto");
+                    missingFeatures.Add("player availability with impact");
                 }
 
                 if (ctx.HasLineups)
-                    missingFeatures.Add("modelo de impacto de alineaciones");
+                    missingFeatures.Add("lineup impact model");
                 else
-                    missingFeatures.Add("alineaciones");
+                    missingFeatures.Add("lineups");
 
                 if (ctx.HasOdds)
-                    missingFeatures.Add("calibración por cuotas");
+                    missingFeatures.Add("odds calibration");
                 else
-                    missingFeatures.Add("cuotas");
+                    missingFeatures.Add("odds");
             }
             else
             {
-                missingFeatures.AddRange(["disponibilidad de jugadores", "alineaciones", "cuotas"]);
+                missingFeatures.AddRange(["player availability", "lineups", "odds"]);
             }
 
             var scoreline = _goalModel.BuildScoreline(homeGoals, awayGoals);
             usedFeatures.AddRange(
             [
-                "Fuerza de ataque ajustada por rival",
-                "Vulnerabilidad defensiva ajustada por rival",
-                "Grilla de marcadores Dixon-Coles"
+                "Opponent-adjusted attacking strength",
+                "Opponent-adjusted defensive vulnerability",
+                "Dixon-Coles scoreline grid"
             ]);
 
             var degraded = degradedGoalModel || !appliedContext;
@@ -103,9 +103,9 @@ namespace Oloraculo.Web.Predictors
                 Scoreline = scoreline,
                 MostLikelyScore = scoreline.MostLikelyScoreline(),
                 Explanation = appliedContext
-                    ? $"Modelo de goles ajustado con contexto de fuentes. Goles esperados: {context.HomeTeam.Name} {homeGoals:0.00} - {awayGoals:0.00} {context.AwayTeam.Name}."
-                    : $"Ningún contexto de fuentes modificó el modelo de goles. Goles esperados: {context.HomeTeam.Name} {homeGoals:0.00} - {awayGoals:0.00} {context.AwayTeam.Name}.",
-                Drivers = drivers.Count == 0 ? ["No se aplicó ajuste de contexto"] : drivers,
+                    ? $"Goal model adjusted with source context. Expected goals: {context.HomeTeam.Name} {homeGoals:0.00} - {awayGoals:0.00} {context.AwayTeam.Name}."
+                    : $"No source context changed the goal model. Expected goals: {context.HomeTeam.Name} {homeGoals:0.00} - {awayGoals:0.00} {context.AwayTeam.Name}.",
+                Drivers = drivers.Count == 0 ? ["No context adjustment applied"] : drivers,
                 FeaturesUsed = usedFeatures,
                 FeaturesMissing = missingFeatures,
                 Sources = sources,

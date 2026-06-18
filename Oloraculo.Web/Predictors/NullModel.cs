@@ -5,7 +5,7 @@ namespace Oloraculo.Web.Predictors
 {
     public class NullModel : IPredictor
     {
-        public string Name => "Modelo base";
+        public string Name => "Baseline model";
         public int Priority => 0;
         public MatchPrediction Predict(MatchContext context) 
         {
@@ -21,7 +21,7 @@ namespace Oloraculo.Web.Predictors
                 ExpectedAwayGoals = null,
                 Scoreline = null,
                 MostLikelyScore = null,
-                Explanation = "Probabilidad uniforme sin señales adicionales.",
+                Explanation = "Uniform probability with no additional signals.",
                 Drivers = Array.Empty<string>(),
                 FeaturesUsed = Array.Empty<string>(),
                 FeaturesMissing = Array.Empty<string>(),

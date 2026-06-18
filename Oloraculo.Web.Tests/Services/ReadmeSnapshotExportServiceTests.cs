@@ -57,19 +57,19 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
     public void ReadmeExporter_InsertsSnapshotBlockAfterFirstTopLevelSection()
     {
         var readme = """
-        # Holi.
+        # Hello.
         intro
 
         ## Video
         link
 
-        # Oloraculo
+        # World Cup Edge Lab
         details
         """;
 
         var updated = ReadmeSnapshotExportService.ReplaceSnapshotBlock(readme, "fresh");
 
-        Assert.True(updated.IndexOf("fresh", StringComparison.Ordinal) < updated.IndexOf("# Oloraculo", StringComparison.Ordinal));
+        Assert.True(updated.IndexOf("fresh", StringComparison.Ordinal) < updated.IndexOf("# World Cup Edge Lab", StringComparison.Ordinal));
         Assert.True(updated.IndexOf("fresh", StringComparison.Ordinal) > updated.IndexOf("## Video", StringComparison.Ordinal));
     }
 
@@ -83,7 +83,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
             var dataRoot = Path.Combine(webRoot, "Data");
             Directory.CreateDirectory(dataRoot);
             File.WriteAllText(Path.Combine(root, "Oloraculo.sln"), "");
-            File.WriteAllText(Path.Combine(root, "README.md"), "# Holi.\n\n# Oloraculo\n");
+            File.WriteAllText(Path.Combine(root, "README.md"), "# Hello.\n\n# World Cup Edge Lab\n");
             foreach (var file in Directory.GetFiles(Path.Combine(WebProjectRoot(), "Data"), "*.csv"))
                 File.Copy(file, Path.Combine(dataRoot, Path.GetFileName(file)));
 
@@ -113,7 +113,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
             {
                 Kind = "match",
                 FixtureId = fixture.Id,
-                ModelName = "Oráculo final",
+                ModelName = "Final edge model",
                 CreatedAt = oldCreatedAt,
                 InputSummaryHash = "old",
                 PayloadJson = "{}",
@@ -298,7 +298,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
         Assert.Contains("| Match | Status | Result / Pick | Why | H | D | A |", rendered);
         Assert.Contains("| <img", rendered);
         Assert.Contains("| 3-1 |", rendered);
-        Assert.Contains("Marcador m&#225;s probable: 1-1", rendered);
+        Assert.Contains("Most likely score: 1-1", rendered);
         Assert.Contains("60", rendered);
         Assert.Contains("%", rendered);
     }
@@ -325,15 +325,15 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
             [
                 PredictionResult(
                     UnplayedFixture(),
-                    sources: [new SourceMetadata("model ladder", "derived", Notes: "Goles + contexto reciente")],
-                    featuresUsed: ["Modelo de goles", "Disponibilidad de jugadores"],
-                    drivers: ["Aplicó una calibración Elo/FIFA de 15 % hacia empate."])
+                    sources: [new SourceMetadata("model ladder", "derived", Notes: "Goals + recent context")],
+                    featuresUsed: ["Goal model", "Player availability"],
+                    drivers: ["Applied a 15 % Elo/FIFA calibration toward draw."])
             ],
             Names(),
             DateTimeOffset.Parse("2026-01-02T00:00:00Z"));
 
-        Assert.Contains("Model: Oraculo final (Goles + contexto reciente)", rendered);
-        Assert.Contains("Signals: Modelo de goles, Disponibilidad de jugadores", rendered);
+        Assert.Contains("Model: Final edge model (Goals + recent context)", rendered);
+        Assert.Contains("Signals: Goal model, Player availability", rendered);
         Assert.Contains("Elo/FIFA", rendered);
     }
 
@@ -355,7 +355,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
                 ]
             });
 
-        Assert.Contains("Bajas: Argentina: Moise Bombito (injury)", rendered);
+        Assert.Contains("Absences: Argentina: Moise Bombito (injury)", rendered);
         Assert.DoesNotContain("Available Player", rendered);
     }
 
@@ -444,7 +444,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
             FixtureId = fixture.Id,
             HomeTeamId = fixture.HomeTeamId,
             AwayTeamId = fixture.AwayTeamId,
-            PredictorName = "Oraculo final",
+            PredictorName = "Final edge model",
             PredictorPriority = 5,
             Outcome = new OutcomeProbabilities(.6, .25, .15),
             ExpectedHomeGoals = expectedHomeGoals,
@@ -482,7 +482,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
         var dataRoot = Path.Combine(webRoot, "Data");
         Directory.CreateDirectory(dataRoot);
         File.WriteAllText(Path.Combine(root, "Oloraculo.sln"), "");
-        File.WriteAllText(Path.Combine(root, "README.md"), "# Holi.\n\n# Oloraculo\n");
+        File.WriteAllText(Path.Combine(root, "README.md"), "# Hello.\n\n# World Cup Edge Lab\n");
         foreach (var file in Directory.GetFiles(Path.Combine(WebProjectRoot(), "Data"), "*.csv"))
             File.Copy(file, Path.Combine(dataRoot, Path.GetFileName(file)));
 

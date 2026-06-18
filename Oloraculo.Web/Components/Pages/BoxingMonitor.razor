@@ -1,0 +1,448 @@
+@page "/monitor"
+@page "/boxing-monitor"
+@layout Oloraculo.Web.Components.Layout.MonitorLayout
+@rendermode InteractiveServer
+@implements IDisposable
+
+<PageTitle>BOXR Monitor</PageTitle>
+
+<div class="boxr-shell">
+    <header class="boxr-top">
+        <div class="boxr-brand"><span class="boxr-live-dot"></span><span>BOXR</span></div>
+        <div class="boxr-sep"></div>
+        <span class="boxr-route-label">ROUTE</span>
+        <span class="boxr-route">POR vs COD · U2.5-&gt;O2.5</span>
+        <div class="boxr-score">
+            <span>1H</span>
+            <strong>0-0</strong>
+            <span>@ClockText</span>
+        </div>
+        <div class="boxr-top-kpis">
+            <div class="boxr-top-kpi">
+                <span>LOCKED IF FULL</span>
+                <strong class="boxr-good">+$32.00 · 8.7%</strong>
+            </div>
+            <div class="boxr-top-kpi">
+                <span>EXPOSURE NOW</span>
+                <strong class="boxr-bad">-$109.50</strong>
+            </div>
+            <span class="boxr-pill warn">PARTIAL HEDGE</span>
+        </div>
+    </header>
+
+    <main class="boxr-cockpit">
+        <section class="boxr-rail">
+            <Panel Title="ALERTS" Meta="ACTIONABLE">
+                <div class="boxr-stack compact">
+                    @foreach (var alert in Alerts)
+                    {
+                        <div class="boxr-alert @alert.Tone">
+                            <span>@alert.Tag</span>
+                            <p>@alert.Text</p>
+                        </div>
+                    }
+                </div>
+            </Panel>
+
+            <Panel Title="EVENT TAPE" Meta="WHY PRICE MOVED">
+                <div class="boxr-stack">
+                    @foreach (var item in Events)
+                    {
+                        <div class="boxr-event @item.Tone">
+                            <strong>@item.Minute</strong>
+                            <div>
+                                <h4>@item.Text</h4>
+                                <p>@item.Effect</p>
+                                <div class="boxr-event-move">
+                                    <span>EXP <b class="@item.ExpectedTone">@item.ExpectedMove</b></span>
+                                    <span>ACT <b class="@item.ActualTone">@item.ActualMove</b></span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </Panel>
+
+            <Panel Title="SCENARIO PLAYBOOK" Meta="U2.5 DECAY LEG">
+                <div class="boxr-stack">
+                    @foreach (var branch in Playbook)
+                    {
+                        <div class="boxr-play @branch.Tone">
+                            <div><span class="boxr-pill @branch.Tone">@branch.Tag</span><strong>@branch.Condition</strong></div>
+                            <p>@branch.Action</p>
+                        </div>
+                    }
+                </div>
+            </Panel>
+        </section>
+
+        <section class="boxr-center">
+            <Panel Title="@($"DECAY CURVE · O2.5 · 0-0")" Meta="@($"STICKY {StickyPremium:+0.0;-0.0;0.0}c · T-TGT 8-12M")">
+                <div class="boxr-legend">
+                    <span><i class="actual"></i>ACTUAL</span>
+                    <span><i class="normal"></i>NORMAL 0-0</span>
+                    <span><i class="danger"></i>DANGEROUS 0-0</span>
+                    <span><i class="quiet"></i>QUIET 0-0</span>
+                </div>
+                <svg class="boxr-decay" viewBox="0 0 600 244" preserveAspectRatio="none" role="img" aria-label="O2.5 decay curve">
+                    @foreach (var y in YLabels)
+                    {
+                        <line x1="42" y1="@F(y.Y)" x2="582" y2="@F(y.Y)" class="grid"></line>
+                        @SvgText("36", F(y.Y + 3), y.Label, "end")
+                    }
+                    @foreach (var t in TargetLines)
+                    {
+                        <line x1="42" y1="@F(t.Y)" x2="582" y2="@F(t.Y)" class="@t.Tone target"></line>
+                        @SvgText("580", F(t.Y - 3), t.Label, "end", t.Tone)
+                    }
+                    @foreach (var x in XLabels)
+                    {
+                        @SvgText(F(x.X), "238", x.Label, "middle")
+                    }
+                    <polyline points="@NormalPath" class="normal-path"></polyline>
+                    <polyline points="@DangerPath" class="danger-path"></polyline>
+                    <polyline points="@QuietPath" class="quiet-path"></polyline>
+                    <line x1="@F(NowX)" y1="14" x2="@F(NowX)" y2="206" class="now-line"></line>
+                    <polyline points="@ActualPath" class="actual-path"></polyline>
+                    <circle cx="@F(NowX)" cy="@F(NowY)" r="3" class="actual-dot"></circle>
+                    <circle cx="@F(NowX)" cy="@F(NowY)" r="6" class="actual-ring"></circle>
+                </svg>
+            </Panel>
+
+            <div class="boxr-split">
+                <Panel Title="SELECTED ROUTE" Meta="POR-COD · O/U 2.5">
+                    <div class="boxr-route-panel">
+                        <div class="boxr-leg entry">
+                            <span>ENTRY LEG · FILLED</span>
+                            <strong>U2.5 <b>@@48c</b></strong>
+                            <small>400 sh · $192.00</small>
+                        </div>
+                        <div class="boxr-leg hedge">
+                            <span>HEDGE LEG · OPPOSITE</span>
+                            <strong>O2.5 <b>now 43c</b></strong>
+                            <small>150 sh @@45.3c filled · 250 sh working</small>
+                        </div>
+                        <div class="boxr-targets">
+                            <Kpi Label="BREAKEVEN" Value="52c" />
+                            <Kpi Label="5% ROI" Value="47c" Tone="good" />
+                            <Kpi Label="8% ROI" Value="45c" Tone="good" />
+                            <Kpi Label="10% ROI" Value="43c" Tone="good" />
+                        </div>
+                        <div class="boxr-ladder">
+                            <div class="boxr-section-label">RECOMMENDED HEDGE LADDER <span>STAGED · GTC</span></div>
+                            @foreach (var row in Ladder)
+                            {
+                                <div class="boxr-ladder-row">
+                                    <strong class="@row.Tone">@row.Price</strong>
+                                    <div class="boxr-fill"><i style="width:@row.FillWidth"></i></div>
+                                    <span>@row.SizeLabel</span>
+                                </div>
+                            }
+                        </div>
+                        <div class="boxr-result-strip">
+                            <Kpi Label="LOCKED IF FULL" Value="+$32.00" Tone="good" />
+                            <Kpi Label="ROI IF FULL" Value="8.7%" Tone="good" />
+                            <Kpi Label="EXPOSURE NOW" Value="-$109.50" Tone="bad" />
+                        </div>
+                    </div>
+                </Panel>
+
+                <Panel Title="HEDGE LADDER PLANNER" Meta="TGT 8% ROI · MAX LOSS $30">
+                    <div class="boxr-hedge">
+                        <div class="boxr-hedge-head"><span>PRICE</span><span>FILL</span><span>SHARES</span><span>STATE</span></div>
+                        @foreach (var row in HedgeRows)
+                        {
+                            <div class="boxr-hedge-row">
+                                <strong class="@row.Tone">@row.Price</strong>
+                                <div class="boxr-fill"><i style="width:@row.FillWidth"></i></div>
+                                <span>@row.SizeLabel</span>
+                                <em class="boxr-pill @row.StateTone">@row.State</em>
+                            </div>
+                        }
+                        <div class="boxr-result-strip">
+                            <Kpi Label="AVG IF FULL" Value="44.0c" />
+                            <Kpi Label="LOCKED PNL" Value="+$32.00" Tone="good" />
+                            <Kpi Label="ROI" Value="8.7%" Tone="good" />
+                        </div>
+                        <table class="boxr-table mini">
+                            <thead><tr><th>STATE</th><th>ENTRY WINS</th><th>HEDGE WINS</th><th>FLAG</th></tr></thead>
+                            <tbody>
+                                @foreach (var scenario in Scenarios)
+                                {
+                                    <tr>
+                                        <td>@scenario.State</td>
+                                        <td class="@scenario.EntryTone">@scenario.EntryWins</td>
+                                        <td class="@scenario.HedgeTone">@scenario.HedgeWins</td>
+                                        <td><span class="boxr-pill @scenario.FlagTone">@scenario.Flag</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <p class="boxr-note">No-loss flips at 349 hedge sh. Min 199 more sh &lt;=44c to neutralise Over. Fillable &lt;=44c now: 188. Stagger 43-44c; do not lift.</p>
+                    </div>
+                </Panel>
+            </div>
+
+            <Panel Title="POSITION BLOTTER" Meta="SETTLEMENT PNL · NOT MARK">
+                <table class="boxr-table">
+                    <thead>
+                        <tr><th>POSITION</th><th>SIDE A</th><th>SIDE B</th><th>COST</th><th>PNL A</th><th>PNL B</th><th>MIN PNL</th><th>STATUS</th><th>TO EQ</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Blotter)
+                        {
+                            <tr class="@row.RowTone">
+                                <td><strong>@row.Position</strong><span>@row.Market</span></td>
+                                <td><b class="bad">@row.SideA</b> <span>@row.AvgA</span></td>
+                                <td><b class="good">@row.SideB</b> <span>@row.AvgB</span></td>
+                                <td>@row.Cost</td>
+                                <td class="@row.PnlATone">@row.PnlA</td>
+                                <td class="@row.PnlBTone">@row.PnlB</td>
+                                <td class="@row.MinTone">@row.MinPnl</td>
+                                <td><em class="boxr-pill @row.StatusTone">@row.Status</em></td>
+                                <td>@row.ToEqualize</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </Panel>
+        </section>
+
+        <section class="boxr-right">
+            <Panel Title="CLOB · O2.5 · BUY SIDE" Meta="0.5C TICK">
+                <div class="boxr-book-head"><span>PRICE</span><span>SIZE</span><span>TOTAL</span></div>
+                <div class="boxr-book">
+                    @foreach (var row in AskRows)
+                    {
+                        <div class="boxr-book-row ask">
+                            <i style="width:@row.DepthWidth"></i>
+                            <strong>@row.Price</strong><span>@row.Size</span><span>@row.Total</span>
+                        </div>
+                    }
+                    <div class="boxr-spread">
+                        <span>LAST <b class="good">@LastPrice</b></span>
+                        <span>MID <b>@MidPrice</b> SPR <b>1.0c</b></span>
+                    </div>
+                    @foreach (var row in BidRows)
+                    {
+                        <div class="boxr-book-row bid @(row.Mine ? "mine" : "")">
+                            <i style="width:@row.DepthWidth"></i>
+                            <strong>@row.Price @(row.Mine ? "*" : "")</strong><span>@row.Size</span><span>@row.Total</span>
+                        </div>
+                    }
+                </div>
+                <p class="boxr-book-warning">FILLABLE @@44c OR BELOW: 188 sh · ladder needs 250. Stagger, do not market.</p>
+            </Panel>
+
+            <Panel Title="TIME & SALES · O2.5" Meta="LIVE">
+                <div class="boxr-book-head"><span>TIME</span><span>PRICE</span><span>SIZE</span></div>
+                <div class="boxr-tape">
+                    @foreach (var row in TapeRows)
+                    {
+                        <div style="@row.Style">
+                            <span>@row.Time</span>
+                            <strong class="@row.Tone">@row.Price</strong>
+                            <span class="@row.Tone">@row.Size</span>
+                        </div>
+                    }
+                </div>
+            </Panel>
+        </section>
+    </main>
+
+    <footer class="boxr-status">
+        <span class="boxr-good">CLOB 14MS</span>
+        <span>MATCH FEED 320MS</span>
+        <span>FILLABLE @@ TGT 188 SH</span>
+        <span class="boxr-status-build">BOXR · V1 · READ ONLY · /snapshot.json READY</span>
+    </footer>
+</div>
+
+@code {
+    private Timer? _timer;
+    private int _tick;
+
+    protected override void OnInitialized()
+    {
+        _timer = new Timer(_ => InvokeAsync(() =>
+        {
+            _tick = (_tick + 1) % 290;
+            StateHasChanged();
+        }), null, 850, 850);
+    }
+
+    public void Dispose() => _timer?.Dispose();
+
+    private int MatchSeconds => 900 + _tick * 6;
+    private int CurrentMinute => Math.Clamp(MatchSeconds / 60, 0, 44);
+    private string ClockText => $"{MatchSeconds / 60}:{MatchSeconds % 60:00}";
+    private double StickyPremium => Math.Max(1.4, 5.2 - CurrentMinute * .16) + (CurrentMinute >= 5 && CurrentMinute < 9 ? 1.8 : 0) + .6 * Math.Sin(CurrentMinute / 3.2);
+    private double LastCents => Math.Round(ActualC(CurrentMinute) + Math.Sin(_tick / 3.0) * .8);
+    private string LastPrice => $"{LastCents:0}c";
+    private string MidPrice => $"{LastCents + .5:0.0}c";
+    private double NowX => XFor(CurrentMinute);
+    private double NowY => YFor(ActualC(CurrentMinute));
+
+    private string NormalPath => Polyline(NormalC);
+    private string DangerPath => Polyline(DangerC);
+    private string QuietPath => Polyline(QuietC);
+    private string ActualPath => Polyline(ActualC, CurrentMinute, 1);
+
+    private IReadOnlyList<(double Y, string Label)> YLabels => new[] { 55, 45, 35, 25 }.Select(v => (YFor(v), $"{v}c")).ToList();
+    private IReadOnlyList<(double X, string Label)> XLabels => new[] { 0, 15, 30, 45, 60, 75, 90 }.Select(v => (XFor(v), $"{v}'")).ToList();
+    private IReadOnlyList<(double Y, string Label, string Tone)> TargetLines =>
+    [
+        (YFor(52), "BREAKEVEN 52c", "muted"),
+        (YFor(45), "8% ROI 45c", "good"),
+        (YFor(43), "10% ROI 43c", "good")
+    ];
+
+    private IReadOnlyList<AlertRow> Alerts =>
+    [
+        new("TARGET", "good", "O2.5 hit 44c. Filling 100 sh here locks 8.7% ROI if full ladder completes."),
+        new("EXPOSED", "bad", "Still exposed: if Over wins now, loss = -$109.50. Need 199 more hedge sh <=44c."),
+        new("DEPTH", "warn", "Hedge target touched but fillable depth only 188 sh <=44c. Stagger, do not market."),
+        new("STICKY", "bad", $"Dangerous 0-0: actual O2.5 is +{StickyPremium:0.0}c above theoretical decay."),
+        new("NO-PANIC", "muted", "If POR scores: do not lift O2.5 above 65c. That locks a loss. Wait for post-goal decay.")
+    ];
+
+    private static IReadOnlyList<EventRow> Events =>
+    [
+        new("17'", "bad", "COD dangerous counter, shot blocked", "Box entry: O2.5 reprice up risk", "+3c", "bad", "+2c", "bad"),
+        new("15'", "muted", "Still 0-0 · low xG window", "Decay path intact, hedge live", "-2c", "good", "-1c", "good"),
+        new("12'", "muted", "POR corner, headed over", "Neutral, marginal tempo", "+1c", "neutral", "0c", "neutral"),
+        new("9'", "good", "VAR check waved away", "Sticky premium eases", "-2c", "good", "-1c", "good"),
+        new("5'", "bad", "POR goal disallowed · offside", "Sticky premium up, Over decay delayed", "+4c", "bad", "+3c", "bad")
+    ];
+
+    private static IReadOnlyList<PlaybookRow> Playbook =>
+    [
+        new("GO", "good", "0-0 after 10', quiet", "Buy O2.5 on the ladder as it prints 44c and below. Path is intact."),
+        new("HOLD", "warn", "0-0 but dangerous", "Expect sticky premium. Do not assume theoretical decay. Wait for a calmer window."),
+        new("WAIT", "warn", "Early goal (1-0)", "Do not lift O2.5 if it locks a loss. Wait for post-goal decay unless game stays chaotic."),
+        new("ABORT", "bad", "2nd goal before 30'", "Position severely damaged. Recalculate. Do not average blindly into a lost box.")
+    ];
+
+    private static IReadOnlyList<LadderRow> Ladder =>
+    [
+        new("46c", "100%", "50 · FILLED", "good"),
+        new("45c", "100%", "100 · FILLED", "good"),
+        new("44c", "62%", "100 · 62 done", "neutral"),
+        new("43c", "0%", "100 · WORKING", "muted"),
+        new("42c", "0%", "50 · WORKING", "muted")
+    ];
+
+    private static IReadOnlyList<HedgeRow> HedgeRows =>
+    [
+        new("46c", "100%", "50 / 50 sh", "FILLED", "good", "good"),
+        new("45c", "100%", "100 / 100 sh", "FILLED", "good", "good"),
+        new("44c", "62%", "62 / 100 sh", "PARTIAL", "neutral", "warn"),
+        new("43c", "0%", "0 / 100 sh", "QUEUED", "muted", "muted"),
+        new("42c", "0%", "0 / 50 sh", "QUEUED", "muted", "muted")
+    ];
+
+    private static IReadOnlyList<ScenarioRow> Scenarios =>
+    [
+        new("150 filled now", "+$140.50", "-$109.50", "EXPOSED", "good", "bad", "bad"),
+        new("312 filled", "+$72.40", "-$15.10", "THIN", "good", "bad", "warn"),
+        new("400 filled", "+$32.00", "+$32.00", "BOXED", "good", "good", "good")
+    ];
+
+    private static IReadOnlyList<BlotterRow> Blotter =>
+    [
+        new("selected", "POR-COD", "O/U 2.5", "U 400", "@48.0", "O 150", "@45.3", "$259.50", "+$140.50", "-$109.50", "-$109.50", "EXPOSED", "250", "good", "bad", "bad", "bad"),
+        new("", "BRA-COL", "BTTS", "No 250", "@43.0", "Yes 250", "@54.0", "$242.50", "+$7.50", "+$7.50", "+$7.50", "BOXED", "0", "good", "good", "good", "good"),
+        new("", "ESP-GER", "O/U 3.5", "U 200", "@38.0", "O 210", "@60.0", "$202.00", "-$2.00", "+$8.00", "-$2.00", "NO-LOSS", "10", "bad", "good", "bad", "warn"),
+        new("", "ARG-MEX", "SPREAD", "+1.5 300", "@49.0", "-1.5 120", "@44.0", "$199.80", "+$100.20", "-$79.80", "-$79.80", "PARTIAL", "180", "good", "bad", "bad", "warn")
+    ];
+
+    private IReadOnlyList<BookRow> AskRows => BuildBookRows(ask: true);
+    private IReadOnlyList<BookRow> BidRows => BuildBookRows(ask: false);
+
+    private IReadOnlyList<TapeRow> TapeRows => Enumerable.Range(0, 14).Select(i =>
+    {
+        var seed = _tick - i;
+        var side = Randomish(seed * 3 + 1) > .46 ? "buy" : "sell";
+        var px = Math.Round(ActualC(Math.Max(0, CurrentMinute - i / 3)) + (Randomish(seed * 7 + 2) - .5) * 1.6);
+        var size = Math.Round(6 + Math.Pow(Randomish(seed * 5 + 3), 2) * 240);
+        var flash = Math.Max(0, .46 - i * .085);
+        var rgb = side == "buy" ? "38,166,154" : "242,54,69";
+        var style = $"display:grid;grid-template-columns:1fr 1fr 1fr;height:18px;align-items:center;padding:0 8px;border-radius:1px;background:rgba({rgb},{flash:0.000});";
+        return new TapeRow($"{Math.Max(0, MatchSeconds - i * 6) / 60}:{Math.Max(0, MatchSeconds - i * 6) % 60:00}", $"{px:0}c", size.ToString("N0"), side == "buy" ? "good" : "bad", style);
+    }).ToList();
+
+    private IReadOnlyList<BookRow> BuildBookRows(bool ask)
+    {
+        var rows = new List<(int Px, int Size, int Cum, bool Mine)>();
+        var last = (int)LastCents;
+        var cumulative = 0;
+        if (ask)
+        {
+            for (var i = 5; i >= 1; i--)
+            {
+                var px = last + i;
+                var size = (int)Math.Round(20 + Randomish(_tick + px) * 260);
+                cumulative += size;
+                rows.Insert(0, (px, size, cumulative, false));
+            }
+
+            var running = 0;
+            for (var i = rows.Count - 1; i >= 0; i--)
+            {
+                running += rows[i].Size;
+                rows[i] = (rows[i].Px, rows[i].Size, running, rows[i].Mine);
+            }
+        }
+        else
+        {
+            for (var i = 1; i <= 6; i++)
+            {
+                var px = last - i;
+                var size = (int)Math.Round(20 + Randomish(_tick + px * 2) * 260);
+                cumulative += size;
+                rows.Add((px, size, cumulative, px is 44 or 43));
+            }
+        }
+
+        var max = Math.Max(1, rows.Max(row => row.Cum));
+        return rows.Select(row => new BookRow($"{row.Px}c", row.Size.ToString("N0"), row.Cum.ToString("N0"), $"{row.Cum * 100 / max}%", row.Mine)).ToList();
+    }
+
+    private static double Randomish(double n)
+    {
+        var x = Math.Sin(n * 127.1 + 311.7) * 43758.5453;
+        return x - Math.Floor(x);
+    }
+
+    private static double PoissonP3(double lambda) => 1 - Math.Exp(-lambda) * (1 + lambda + lambda * lambda / 2);
+    private static double NormalC(int minute) => PoissonP3(2.7 * (90 - minute) / 90) * 100;
+    private static double DangerC(int minute) => PoissonP3(3.45 * (90 - minute) / 90) * 100;
+    private static double QuietC(int minute) => PoissonP3(2.05 * (90 - minute) / 90) * 100;
+    private double ActualC(int minute) => NormalC(minute) + Math.Max(1.4, 5.2 - minute * .16) + (minute >= 5 && minute < 9 ? 1.8 : 0) + .6 * Math.Sin(minute / 3.2);
+    private static double XFor(int minute) => 42 + minute * 6;
+    private static double YFor(double cents) => 14 + (58 - cents) / 40 * 192;
+    private static string F(double value) => value.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
+    private static MarkupString SvgText(string x, string y, string label, string anchor, string? cssClass = null)
+    {
+        var classPart = string.IsNullOrWhiteSpace(cssClass) ? "" : $" class=\"{cssClass}\"";
+        return (MarkupString)$"<text x=\"{x}\" y=\"{y}\" text-anchor=\"{anchor}\"{classPart}>{label}</text>";
+    }
+
+    private static string Polyline(Func<int, double> valueForMinute, int maxMinute = 90, int step = 3)
+    {
+        var points = new List<string>();
+        for (var minute = 0; minute <= maxMinute; minute += step)
+            points.Add($"{F(XFor(minute))},{F(YFor(valueForMinute(minute)))}");
+        return string.Join(' ', points);
+    }
+
+    private sealed record AlertRow(string Tag, string Tone, string Text);
+    private sealed record EventRow(string Minute, string Tone, string Text, string Effect, string ExpectedMove, string ExpectedTone, string ActualMove, string ActualTone);
+    private sealed record PlaybookRow(string Tag, string Tone, string Condition, string Action);
+    private sealed record LadderRow(string Price, string FillWidth, string SizeLabel, string Tone);
+    private sealed record HedgeRow(string Price, string FillWidth, string SizeLabel, string State, string Tone, string StateTone);
+    private sealed record ScenarioRow(string State, string EntryWins, string HedgeWins, string Flag, string EntryTone, string HedgeTone, string FlagTone);
+    private sealed record BlotterRow(string RowTone, string Position, string Market, string SideA, string AvgA, string SideB, string AvgB, string Cost, string PnlA, string PnlB, string MinPnl, string Status, string ToEqualize, string PnlATone, string PnlBTone, string MinTone, string StatusTone);
+    private sealed record BookRow(string Price, string Size, string Total, string DepthWidth, bool Mine);
+    private sealed record TapeRow(string Time, string Price, string Size, string Tone, string Style);
+}

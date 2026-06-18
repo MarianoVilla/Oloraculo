@@ -1,0 +1,164 @@
+# Project-scoped Codex configuration for Oloraculo.
+# Keep real credentials out of this file. Optional MCPs should read secrets from
+# the parent environment and stay disabled unless explicitly needed.
+
+project_doc_max_bytes = 65536
+project_doc_fallback_filenames = ["AGENTS.md"]
+
+[mcp_servers.oloraculo-context]
+command = "python"
+args = ["tools/mcp/oloraculo_context_server.py"]
+cwd = "."
+startup_timeout_sec = 10
+tool_timeout_sec = 30
+enabled = true
+
+[mcp_servers.context7]
+url = "https://mcp.context7.com/mcp"
+startup_timeout_sec = 10
+tool_timeout_sec = 60
+enabled = true
+
+[mcp_servers.chrome-devtools]
+command = "npx"
+args = [
+  "-y",
+  "chrome-devtools-mcp@latest",
+  "--isolated",
+  "--headless",
+  "--no-usage-statistics",
+  "--no-performance-crux",
+  "--redactNetworkHeaders",
+]
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+enabled = true
+
+[mcp_servers.playwright]
+command = "npx"
+args = [
+  "-y",
+  "@playwright/mcp@latest",
+  "--isolated",
+  "--browser=chromium",
+  "--headless",
+  "--block-service-workers",
+  "--allowed-origins=http://localhost:*;https://localhost:*",
+]
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+enabled = true
+
+[mcp_servers.serena]
+command = "C:\\Users\\gianz\\.local\\bin\\serena.exe"
+args = [
+  "start-mcp-server",
+  "--context",
+  "ide",
+  "--language-backend",
+  "LSP",
+  "--project-from-cwd",
+]
+cwd = "."
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+enabled = true
+
+[mcp_servers.serena.env]
+PYTHONIOENCODING = "utf-8"
+PYTHONUTF8 = "1"
+
+[mcp_servers.firecrawl-research]
+command = "npx"
+args = ["-y", "firecrawl-mcp"]
+env_vars = ["FIRECRAWL_API_KEY"]
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+enabled = false
+
+[mcp_servers.dbhub-oloraculo]
+command = "npx"
+args = [
+  "-y",
+  "@bytebase/dbhub@latest",
+  "--transport",
+  "stdio",
+  "--config",
+  "tools/mcp/dbhub.local.toml",
+]
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+enabled = false
+
+[mcp_servers.github-readonly]
+command = "docker"
+args = [
+  "run",
+  "-i",
+  "--rm",
+  "-e",
+  "GITHUB_PERSONAL_ACCESS_TOKEN",
+  "-e",
+  "GITHUB_TOOLSETS=repos,issues,pull_requests,actions,code_security",
+  "ghcr.io/github/github-mcp-server",
+  "--read-only",
+]
+env_vars = ["GITHUB_PERSONAL_ACCESS_TOKEN"]
+startup_timeout_sec = 30
+tool_timeout_sec = 60
+enabled = false
+
+[mcp_servers.grafana-readonly]
+command = "uvx"
+args = [
+  "mcp-grafana",
+  "--disable-write",
+  "--disable-admin",
+  "--disable-incident",
+  "--disable-oncall",
+  "--disable-sift",
+  "--disable-snapshot",
+  "--disable-alerting",
+]
+env_vars = ["GRAFANA_URL", "GRAFANA_SERVICE_ACCOUNT_TOKEN"]
+startup_timeout_sec = 30
+tool_timeout_sec = 60
+enabled = false
+
+[mcp_servers.prometheus-readonly]
+command = "docker"
+args = [
+  "run",
+  "-i",
+  "--rm",
+  "-e",
+  "PROMETHEUS_URL",
+  "-e",
+  "PROMETHEUS_TOKEN",
+  "-e",
+  "PROMETHEUS_DISABLE_LINKS=True",
+  "-e",
+  "PROMETHEUS_REQUEST_TIMEOUT=30",
+  "ghcr.io/pab1it0/prometheus-mcp-server:latest",
+]
+env_vars = ["PROMETHEUS_URL", "PROMETHEUS_TOKEN"]
+startup_timeout_sec = 30
+tool_timeout_sec = 60
+enabled = false
+
+[mcp_servers.sentry-readonly]
+url = "https://mcp.sentry.dev/mcp"
+startup_timeout_sec = 10
+tool_timeout_sec = 60
+enabled = false
+
+[mcp_servers.aws-docs]
+command = "uvx"
+args = ["awslabs.aws-documentation-mcp-server@latest"]
+startup_timeout_sec = 30
+tool_timeout_sec = 60
+enabled = false
+
+[mcp_servers.aws-docs.env]
+FASTMCP_LOG_LEVEL = "ERROR"
+AWS_DOCUMENTATION_PARTITION = "aws"

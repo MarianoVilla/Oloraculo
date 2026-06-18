@@ -44,11 +44,11 @@ namespace Oloraculo.Web.Services
                 fifaRows = rows.Count;
                 fifaDate = DateOnly.ParseExact(rows[0].RankingDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
                 updatedFiles.Add(OloraculoDataFiles.FifaRankingsCsv);
-                notes.Add($"Rankings FIFA actualizados: {fifaRows} filas con fecha {fifaDate:yyyy-MM-dd}.");
+                notes.Add($"FIFA rankings updated: {fifaRows} rows dated {fifaDate:yyyy-MM-dd}.");
             }
             catch (Exception ex)
             {
-                errors.Add($"No se pudieron actualizar los rankings FIFA: {ex.Message}");
+                errors.Add($"Could not update FIFA rankings: {ex.Message}");
             }
 
             var lookbackDays = Math.Max(0, _config.EloRefreshMaxLookbackDays);
@@ -68,7 +68,7 @@ namespace Oloraculo.Web.Services
                     eloRows = rows.Count;
                     eloDate = date;
                     updatedFiles.Add(OloraculoDataFiles.EloCsv);
-                    notes.Add($"Rankings Elo actualizados: {eloRows} filas con fecha {eloDate:yyyy-MM-dd}.");
+                    notes.Add($"Elo rankings updated: {eloRows} rows dated {eloDate:yyyy-MM-dd}.");
                     break;
                 }
                 catch (Exception ex)
@@ -79,8 +79,8 @@ namespace Oloraculo.Web.Services
 
             if (eloRows == 0)
             {
-                var sample = eloFailures.Count == 0 ? "No se intentó ninguna fecha." : string.Join(" | ", eloFailures.Take(3));
-                errors.Add($"No se pudieron actualizar los rankings Elo después de {lookbackDays + 1} intentos de fecha. {sample}");
+                var sample = eloFailures.Count == 0 ? "No dates were attempted." : string.Join(" | ", eloFailures.Take(3));
+                errors.Add($"Could not refresh Elo rankings after {lookbackDays + 1} date attempts. {sample}");
             }
 
             return new RankingRefreshReport
@@ -116,7 +116,7 @@ namespace Oloraculo.Web.Services
                 .ToList();
 
             if (rows.Count == 0)
-                throw new InvalidOperationException("No se pudo parsear ninguna fila de ranking FIFA. El formato de la fuente puede haber cambiado.");
+                throw new InvalidOperationException("Could not parse any FIFA ranking rows. The source format may have changed.");
 
             return rows;
         }
@@ -126,7 +126,7 @@ namespace Oloraculo.Web.Services
             var text = HtmlToPlainText(html);
             var headingIndex = text.IndexOf("World football Elo ratings as on", StringComparison.OrdinalIgnoreCase);
             if (headingIndex < 0)
-                throw new InvalidOperationException("No se encontró el encabezado de ratings Elo. El formato de la fuente puede haber cambiado.");
+                throw new InvalidOperationException("Could not find the Elo rating header. The source format may have changed.");
 
             var relevantText = text[headingIndex..];
             var footerIndex = relevantText.IndexOf("About International-football.net", StringComparison.OrdinalIgnoreCase);
@@ -154,7 +154,7 @@ namespace Oloraculo.Web.Services
                 .ToList();
 
             if (rows.Count == 0)
-                throw new InvalidOperationException("No se pudo parsear ninguna fila de ranking Elo. El formato de la fuente puede haber cambiado.");
+                throw new InvalidOperationException("Could not parse any Elo ranking rows. The source format may have changed.");
 
             return rows;
         }
@@ -223,7 +223,7 @@ namespace Oloraculo.Web.Services
                 RegexOptions.IgnoreCase);
 
             if (!match.Success)
-                throw new InvalidOperationException("No se pudo parsear la fecha de actualización del ranking FIFA.");
+                throw new InvalidOperationException("Could not parse the FIFA ranking update date.");
 
             var day = int.Parse(match.Groups["day"].Value, CultureInfo.InvariantCulture);
             var month = DateTime.ParseExact(match.Groups["month"].Value, "MMMM", CultureInfo.InvariantCulture).Month;

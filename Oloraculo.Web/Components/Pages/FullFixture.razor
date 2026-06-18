@@ -5,24 +5,24 @@
 @inject SnapshotService Snapshots
 @inject ISnackbar Snackbar
 
-<PageTitle>Fixture completo</PageTitle>
+<PageTitle>Full Fixture</PageTitle>
 
 <MudStack Spacing="3">
     <div class="page-head">
-        <MudText Typo="Typo.h3">Fixture completo</MudText>
-        <MudText Typo="Typo.body1" Color="Color.Secondary">Predicción masiva de todos los partidos de la fase de grupos.</MudText>
+        <MudText Typo="Typo.h3">Full Fixture</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">Bulk prediction for every group-stage match.</MudText>
     </div>
 
     <MudPaper Class="surface-card" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="action-row fixture-action-row">
-            <BusyButton Text="Predecir fixture completo"
-                        BusyText="Prediciendo fixture"
+            <BusyButton Text="Predict full fixture"
+                        BusyText="Predicting fixture"
                         IsBusy="_predicting"
                         Disabled="@(!_loaded || _fixtures.Count == 0 || _saving)"
                         Icon="@Icons.Material.Filled.AutoAwesome"
                         OnClick="PredictAll" />
-            <BusyButton Text="Guardar snapshots"
-                        BusyText="Guardando snapshots"
+            <BusyButton Text="Save snapshots"
+                        BusyText="Saving snapshots"
                         IsBusy="_saving"
                         Disabled="@(!CanSaveFullFixture || _predicting || _loadingSnapshot)"
                         Variant="Variant.Outlined"
@@ -39,15 +39,15 @@
                     <MudSelectItem T="int" Value="@snapshot.Id" Disabled="@(!snapshot.IsValid)">@FullFixtureSnapshotText(snapshot)</MudSelectItem>
                 }
             </MudSelect>
-            <BusyButton Text="Cargar snapshot"
-                        BusyText="Cargando"
+            <BusyButton Text="Load snapshot"
+                        BusyText="Loading"
                         IsBusy="_loadingSnapshot"
                         Disabled="@(_selectedFullFixtureSnapshotId == 0 || _predicting || _saving)"
                         Variant="Variant.Outlined"
                         Color="Color.Secondary"
                         Icon="@Icons.Material.Filled.History"
                         OnClick="LoadSelectedFullFixtureSnapshot" />
-            <MudTooltip Text="Actualizar snapshots">
+            <MudTooltip Text="Refresh snapshots">
                 <MudIconButton Icon="@Icons.Material.Filled.Refresh"
                                Color="Color.Secondary"
                                Disabled="@(_predicting || _saving || _loadingSnapshot)"
@@ -70,7 +70,7 @@
     @if (_predictionErrors.Count > 0)
     {
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
-            @_predictionErrors.Count partido(s) no pudieron predecirse. Los demás resultados disponibles se mantienen en la grilla.
+            @_predictionErrors.Count match(es) could not be predicted. Other available results remain on the grid.
         </MudAlert>
     }
 
@@ -92,7 +92,7 @@
     }
     else if (_fixtures.Count == 0)
     {
-        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">No hay partidos de grupo cargados todavía.</MudAlert>
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">No group-stage matches are loaded yet.</MudAlert>
     }
     else
     {
@@ -101,8 +101,8 @@
             {
                 <MudPaper Class="surface-card fixture-group-card" Elevation="0">
                     <div class="fixture-group-head">
-                        <MudText Typo="Typo.h6">Grupo @group.Key</MudText>
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary">@group.Count() partidos</MudChip>
+                        <MudText Typo="Typo.h6">Group @group.Key</MudText>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary">@group.Count() matches</MudChip>
                     </div>
 
                     <div class="fixture-card-list">
@@ -146,12 +146,12 @@
                                 else if (hasError)
                                 {
                                     <MudTooltip Text="@predictionError">
-                                        <MudText Typo="Typo.caption" Color="Color.Warning">Predicción no disponible</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Warning">Prediction unavailable</MudText>
                                     </MudTooltip>
                                 }
                                 else
                                 {
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Pendiente de predicción</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Prediction pending</MudText>
                                 }
                             </div>
                         }
@@ -210,12 +210,12 @@
             var results = await Predictor.PredictFixturesAsync(OrderedFixtures(_fixtures));
             _predictions = results.ToDictionary(result => result.Fixture.Id, StringComparer.Ordinal);
             _predictedAt = DateTimeOffset.Now;
-            Snackbar.Add($"Fixture completo predicho: {_predictions.Count} partidos.", Severity.Success);
+            Snackbar.Add($"Full fixture predicted: {_predictions.Count} matches.", Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo completar la predicción masiva.", Severity.Error);
+            Snackbar.Add("Could not complete the bulk prediction.", Severity.Error);
             await PredictIndividually();
         }
         finally
@@ -242,7 +242,7 @@
         if (_predictions.Count > 0)
         {
             _predictedAt = DateTimeOffset.Now;
-            Snackbar.Add($"Predicción parcial lista: {_predictions.Count} partidos.", Severity.Warning);
+            Snackbar.Add($"Partial prediction ready: {_predictions.Count} matches.", Severity.Warning);
         }
     }
 
@@ -250,7 +250,7 @@
     {
         if (!CanSaveFullFixture)
         {
-            Snackbar.Add("El fixture completo solo se puede guardar cuando todos los partidos tienen predicción.", Severity.Warning);
+            Snackbar.Add("The full fixture can only be saved when every match has a prediction.", Severity.Warning);
             return;
         }
 
@@ -263,12 +263,12 @@
             _activeFullFixtureSnapshotId = snapshot.Id;
             await RefreshFullFixtureSnapshots();
             _selectedFullFixtureSnapshotId = snapshot.Id;
-            Snackbar.Add($"{_savedCount} predicciones guardadas como fixture completo.", Severity.Success);
+            Snackbar.Add($"{_savedCount} predictions saved as a full fixture.", Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudieron guardar los snapshots.", Severity.Error);
+            Snackbar.Add("Could not save the snapshots.", Severity.Error);
         }
         finally
         {
@@ -288,7 +288,7 @@
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudieron cargar los snapshots de fixture completo.", Severity.Error);
+            Snackbar.Add("Could not load full-fixture snapshots.", Severity.Error);
         }
         finally
         {
@@ -309,7 +309,7 @@
     {
         if (!snapshot.IsValid)
         {
-            Snackbar.Add(snapshot.Error ?? "El snapshot no está disponible.", Severity.Warning);
+            Snackbar.Add(snapshot.Error ?? "The snapshot is not available.", Severity.Warning);
             return;
         }
 
@@ -320,7 +320,7 @@
             var result = await Snapshots.LoadFullFixtureSnapshotAsync(snapshot.Id);
             if (!result.IsValid)
             {
-                _error = result.Error ?? "No se pudo leer el snapshot.";
+                _error = result.Error ?? "Could not read the snapshot.";
                 Snackbar.Add(_error, Severity.Error);
                 return;
             }
@@ -332,12 +332,12 @@
             _activeFullFixtureSnapshotId = snapshot.Id;
             _selectedFullFixtureSnapshotId = snapshot.Id;
             if (showToast)
-                Snackbar.Add("Snapshot de fixture completo cargado.", Severity.Success);
+                Snackbar.Add("Full-fixture snapshot loaded.", Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo cargar el snapshot de fixture completo.", Severity.Error);
+            Snackbar.Add("Could not load the full-fixture snapshot.", Severity.Error);
         }
         finally
         {
@@ -374,17 +374,17 @@
 
     private string StatusText => _predictions.Count switch
     {
-        > 0 when _activeFullFixtureSnapshotId is not null && _predictedAt is not null => $"{_predictions.Count} predicciones cargadas {_predictedAt.Value:g}",
-        > 0 when _savedCount > 0 => $"{_predictions.Count} predicciones | fixture completo guardado",
-        > 0 when _predictedAt is not null => $"{_predictions.Count} predicciones generadas {_predictedAt.Value:t}",
-        _ when _loaded => $"{_fixtures.Count} partidos de grupo",
-        _ => "Cargando fixture"
+        > 0 when _activeFullFixtureSnapshotId is not null && _predictedAt is not null => $"{_predictions.Count} predictions loaded {_predictedAt.Value:g}",
+        > 0 when _savedCount > 0 => $"{_predictions.Count} predictions | full fixture saved",
+        > 0 when _predictedAt is not null => $"{_predictions.Count} predictions generated {_predictedAt.Value:t}",
+        _ when _loaded => $"{_fixtures.Count} group-stage matches",
+        _ => "Loading fixture"
     };
 
     private string DateText(Fixture fixture)
     {
         if (fixture.KickoffUtc is null)
-            return "Fecha pendiente";
+            return "Date pending";
 
         var local = fixture.KickoffUtc.Value.ToLocalTime();
         return string.IsNullOrWhiteSpace(fixture.Venue)
@@ -412,11 +412,11 @@
     private static string SegmentStyle(double value) => $"width:{Math.Max(value * 100, 0):0.###}%";
 
     private static string ProbabilityLabel(MatchPredictionResult prediction) =>
-        $"{prediction.HomeTeamName} {prediction.BestPrediction.Outcome.HomeWin:P0}, empate {prediction.BestPrediction.Outcome.Draw:P0}, {prediction.AwayTeamName} {prediction.BestPrediction.Outcome.AwayWin:P0}";
+        $"{prediction.HomeTeamName} {prediction.BestPrediction.Outcome.HomeWin:P0}, draw {prediction.BestPrediction.Outcome.Draw:P0}, {prediction.AwayTeamName} {prediction.BestPrediction.Outcome.AwayWin:P0}";
 
     private static string FullFixtureSnapshotText(FullFixtureSnapshotSummary snapshot)
     {
-        var status = snapshot.IsValid ? $"{snapshot.FixtureCount} partidos" : "no disponible";
+        var status = snapshot.IsValid ? $"{snapshot.FixtureCount} matches" : "not available";
         return $"{snapshot.CreatedAt.ToLocalTime():g} · {status}";
     }
 }

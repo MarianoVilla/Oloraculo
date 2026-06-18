@@ -8,12 +8,12 @@
 @inject AvailabilityNewsService Availability
 @inject ISnackbar Snackbar
 
-<PageTitle>Partidos</PageTitle>
+<PageTitle>Matches</PageTitle>
 
 <MudStack Spacing="3">
     <div class="page-head">
-        <MudText Typo="Typo.h3">Partidos</MudText>
-        <MudText Typo="Typo.body1" Color="Color.Secondary">Partidos de grupo, snapshots, contexto de API y carga de resultados.</MudText>
+        <MudText Typo="Typo.h3">Matches</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">Group-stage matches, snapshots, API context, and result loading.</MudText>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(_error))
@@ -24,7 +24,7 @@
     <MudGrid Spacing="2">
         <MudItem xs="12" lg="5">
             <MudPaper Class="surface-card fixture-list" Elevation="0">
-                <MudText Typo="Typo.h6">Partidos</MudText>
+                <MudText Typo="Typo.h6">Matches</MudText>
                 @if (!_loaded)
                 {
                     <MudSkeleton Height="34px" Class="skeleton-row" />
@@ -35,7 +35,7 @@
                 {
                     @foreach (var group in _fixtures.GroupBy(f => f.Group).OrderBy(g => g.Key))
                     {
-                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="group-label">Grupo @group.Key</MudText>
+                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="group-label">Group @group.Key</MudText>
                         @foreach (var fixture in group)
                         {
                             <div class="fixture-row @SelectedClass(fixture)">
@@ -45,7 +45,7 @@
                                            Disabled="@_busy"
                                            OnClick="() => Select(fixture)"
                                            StartIcon="@Icons.Material.Filled.Visibility">
-                                    Ver
+                                    View
                                 </MudButton>
                                 <MudText Typo="Typo.body2">
                                     <span class="matchup-label">
@@ -92,14 +92,14 @@
                             <MudText Typo="Typo.caption" Color="Color.Secondary">@_selected.KickoffUtc?.ToString("yyyy-MM-dd HH:mm 'UTC'") @_selected.Venue @_selected.Status</MudText>
                         }
                         <MudStack Row="true" Spacing="1" Class="action-row mt-2">
-                            <BusyButton Text="Predecir ahora"
-                                        BusyText="Prediciendo"
+                            <BusyButton Text="Predict now"
+                                        BusyText="Predicting"
                                         IsBusy="_predicting"
                                         Disabled="@(_loadingSnapshot || _saving || _refreshing)"
                                         Icon="@Icons.Material.Filled.AutoAwesome"
                                         OnClick="PredictSelected" />
-                            <BusyButton Text="Última guardada"
-                                        BusyText="Cargando"
+                            <BusyButton Text="Latest saved"
+                                        BusyText="Loading"
                                         IsBusy="_loadingSnapshot"
                                         Disabled="@(_matchSnapshots.Count == 0 || _predicting || _saving || _refreshing)"
                                         Variant="Variant.Outlined"
@@ -117,8 +117,8 @@
                                     <MudSelectItem T="int" Value="@snapshot.Id" Disabled="@(!snapshot.IsValid)">@MatchSnapshotText(snapshot)</MudSelectItem>
                                 }
                             </MudSelect>
-                            <BusyButton Text="Cargar"
-                                        BusyText="Cargando"
+                            <BusyButton Text="Load"
+                                        BusyText="Loading"
                                         IsBusy="_loadingSnapshot"
                                         Disabled="@(_selectedMatchSnapshotId == 0 || _predicting || _saving || _refreshing)"
                                         Variant="Variant.Outlined"
@@ -136,11 +136,11 @@
                         }
                         else
                         {
-                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-2">No hay predicción cargada para este partido.</MudAlert>
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-2">No prediction is loaded for this match.</MudAlert>
                         }
                         <MudStack Row="true" Spacing="1" Class="action-row">
-                            <BusyButton Text="@(_saved ? "Snapshot guardado" : "Guardar predicción")" BusyText="Guardando" IsBusy="_saving" Disabled="@(_saved || _result is null)" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Save" OnClick="SaveSnapshot" />
-                            <BusyButton Text="Actualizar contexto API" BusyText="Actualizando" IsBusy="_refreshing" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.Sync" OnClick="RefreshContext" />
+                            <BusyButton Text="@(_saved ? "Snapshot saved" : "Save prediction")" BusyText="Saving" IsBusy="_saving" Disabled="@(_saved || _result is null)" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Save" OnClick="SaveSnapshot" />
+                            <BusyButton Text="Refresh API context" BusyText="Refreshing" IsBusy="_refreshing" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.Sync" OnClick="RefreshContext" />
                         </MudStack>
                         @if (_refreshing || _loadingSnapshot)
                         {
@@ -156,29 +156,29 @@
                     @if (_availabilityClaims.Count > 0)
                     {
                         <MudPaper Class="surface-card" Elevation="0">
-                            <MudText Typo="Typo.h6">Disponibilidad verificada</MudText>
+                            <MudText Typo="Typo.h6">Verified availability</MudText>
                             <MudTable Items="_availabilityClaims" Dense="true" Hover="true" Elevation="0" Class="dense-table">
                                 <HeaderContent>
-                                    <MudTh>Jugador</MudTh>
-                                    <MudTh>Equipo</MudTh>
-                                    <MudTh>Rol</MudTh>
-                                    <MudTh>Impacto</MudTh>
-                                    <MudTh>Estado</MudTh>
-                                    <MudTh>Fuente</MudTh>
+                                    <MudTh>Player</MudTh>
+                                    <MudTh>Team</MudTh>
+                                    <MudTh>Role</MudTh>
+                                    <MudTh>Impact</MudTh>
+                                    <MudTh>Status</MudTh>
+                                    <MudTh>Source</MudTh>
                                 </HeaderContent>
                                 <RowTemplate>
-                                    <MudTd DataLabel="Jugador">@context.Player</MudTd>
-                                    <MudTd DataLabel="Equipo"><TeamLabel TeamId="@context.TeamId" Name="@context.TeamName" Compact="true" /></MudTd>
-                                    <MudTd DataLabel="Rol">@context.Position</MudTd>
-                                    <MudTd DataLabel="Impacto">@ImpactText(context)</MudTd>
-                                    <MudTd DataLabel="Estado">
+                                    <MudTd DataLabel="Player">@context.Player</MudTd>
+                                    <MudTd DataLabel="Team"><TeamLabel TeamId="@context.TeamId" Name="@context.TeamName" Compact="true" /></MudTd>
+                                    <MudTd DataLabel="Role">@context.Position</MudTd>
+                                    <MudTd DataLabel="Impact">@ImpactText(context)</MudTd>
+                                    <MudTd DataLabel="Status">
                                         <MudChip T="string" Size="Size.Small" Color="@(context.AffectsPrediction ? Color.Warning : Color.Default)" Variant="Variant.Outlined">@StatusText(context)</MudChip>
                                         @if (!string.IsNullOrWhiteSpace(context.Reason))
                                         {
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Reason</MudText>
                                         }
                                     </MudTd>
-                                    <MudTd DataLabel="Fuente">
+                                    <MudTd DataLabel="Source">
                                         <MudLink Href="@context.SourceUrl" Target="_blank">@SourceText(context)</MudLink>
                                     </MudTd>
                                 </RowTemplate>
@@ -187,14 +187,14 @@
                     }
 
                     <MudPaper Class="surface-card" Elevation="0">
-                        <MudText Typo="Typo.h6">Resultado</MudText>
+                        <MudText Typo="Typo.h6">Result</MudText>
                         <MudGrid Spacing="2" Class="control-grid">
                             <MudItem xs="12" md="3"><MudText Typo="Typo.body2"><TeamLabel TeamId="@_selected.HomeTeamId" Name="@Name(_selected.HomeTeamId)" /></MudText></MudItem>
                             <MudItem xs="5" md="2"><MudNumericField T="int" @bind-Value="_homeGoals" Min="0" Variant="Variant.Outlined" /></MudItem>
                             <MudItem xs="2" md="1" Class="score-separator"><MudText Typo="Typo.body1">-</MudText></MudItem>
                             <MudItem xs="5" md="2"><MudNumericField T="int" @bind-Value="_awayGoals" Min="0" Variant="Variant.Outlined" /></MudItem>
                             <MudItem xs="12" md="4"><MudText Typo="Typo.body2"><TeamLabel TeamId="@_selected.AwayTeamId" Name="@Name(_selected.AwayTeamId)" /></MudText></MudItem>
-                            <MudItem xs="12"><BusyButton Text="Evaluar snapshot" BusyText="Evaluando" IsBusy="_applying" Icon="@Icons.Material.Filled.FactCheck" OnClick="ApplyResult" /></MudItem>
+                            <MudItem xs="12"><BusyButton Text="Evaluate snapshot" BusyText="Evaluating" IsBusy="_applying" Icon="@Icons.Material.Filled.FactCheck" OnClick="ApplyResult" /></MudItem>
                         </MudGrid>
                         @if (!string.IsNullOrWhiteSpace(_note))
                         {
@@ -205,7 +205,7 @@
             }
             else
             {
-                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Seleccioná un partido.</MudAlert>
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Select a match.</MudAlert>
             }
         </MudItem>
     </MudGrid>
@@ -264,7 +264,7 @@
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo cargar el partido.", Severity.Error);
+            Snackbar.Add("Could not load the match.", Severity.Error);
         }
         finally
         {
@@ -285,20 +285,20 @@
             _result = await Predictor.PredictFixtureAsync(_selected.Id);
             if (_result is null)
             {
-                Snackbar.Add("No se pudo generar la predicción.", Severity.Warning);
+                Snackbar.Add("Could not generate the prediction.", Severity.Warning);
                 return;
             }
 
             _saved = false;
             _activeMatchSnapshotId = null;
             _selectedMatchSnapshotId = 0;
-            _resultSource = "Predicción generada ahora";
+            _resultSource = "Prediction generated now";
             _availabilityClaims = (await Availability.ClaimsForFixtureAsync(_selected.Id)).ToList();
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo generar la predicción.", Severity.Error);
+            Snackbar.Add("Could not generate the prediction.", Severity.Error);
         }
         finally
         {
@@ -311,7 +311,7 @@
         var latest = _matchSnapshots.FirstOrDefault(snapshot => snapshot.IsValid);
         if (latest is null)
         {
-            Snackbar.Add("No hay snapshots guardados para este partido.", Severity.Warning);
+            Snackbar.Add("No saved snapshots are available for this match.", Severity.Warning);
             return;
         }
 
@@ -331,7 +331,7 @@
     {
         if (!snapshot.IsValid)
         {
-            Snackbar.Add(snapshot.Error ?? "El snapshot no está disponible.", Severity.Warning);
+            Snackbar.Add(snapshot.Error ?? "The snapshot is not available.", Severity.Warning);
             return;
         }
 
@@ -342,7 +342,7 @@
             var result = await Snapshots.LoadMatchSnapshotAsync(snapshot.Id);
             if (!result.IsValid || result.Prediction is null)
             {
-                _error = result.Error ?? "No se pudo leer el snapshot.";
+                _error = result.Error ?? "Could not read the snapshot.";
                 Snackbar.Add(_error, Severity.Error);
                 return;
             }
@@ -351,14 +351,14 @@
             _saved = true;
             _activeMatchSnapshotId = snapshot.Id;
             _selectedMatchSnapshotId = snapshot.Id;
-            _resultSource = $"Snapshot guardado {snapshot.CreatedAt.ToLocalTime():g}";
+            _resultSource = $"Saved snapshot {snapshot.CreatedAt.ToLocalTime():g}";
             if (showToast)
-                Snackbar.Add("Snapshot de partido cargado.", Severity.Success);
+                Snackbar.Add("Match snapshot loaded.", Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo cargar el snapshot de partido.", Severity.Error);
+            Snackbar.Add("Could not load the match snapshot.", Severity.Error);
         }
         finally
         {
@@ -379,13 +379,13 @@
             _activeMatchSnapshotId = snapshot.Id;
             await RefreshMatchSnapshotsForSelected();
             _selectedMatchSnapshotId = snapshot.Id;
-            _resultSource = $"Snapshot guardado {snapshot.CreatedAt.ToLocalTime():g}";
-            Snackbar.Add("Snapshot de predicción guardado.", Severity.Success);
+            _resultSource = $"Saved snapshot {snapshot.CreatedAt.ToLocalTime():g}";
+            Snackbar.Add("Prediction snapshot saved.", Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo guardar el snapshot.", Severity.Error);
+            Snackbar.Add("Could not save the snapshot.", Severity.Error);
         }
         finally
         {
@@ -414,14 +414,14 @@
             _saved = false;
             _activeMatchSnapshotId = null;
             _selectedMatchSnapshotId = 0;
-            _resultSource = "Predicción generada con contexto actualizado";
+            _resultSource = "Prediction generated with refreshed context";
             _availabilityClaims = (await Availability.ClaimsForFixtureAsync(_selected.Id)).ToList();
-            Snackbar.Add(report.Errors.Count > 0 ? "La actualización de API terminó con advertencias." : "Contexto API actualizado.", report.Errors.Count > 0 ? Severity.Warning : Severity.Success);
+            Snackbar.Add(report.Errors.Count > 0 ? "API refresh completed with warnings." : "API context refreshed.", report.Errors.Count > 0 ? Severity.Warning : Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo actualizar el contexto API.", Severity.Error);
+            Snackbar.Add("Could not refresh API context.", Severity.Error);
         }
         finally
         {
@@ -438,14 +438,14 @@
         try
         {
             var count = await Evaluation.EvaluateLatestSnapshotAsync(_selected, _homeGoals, _awayGoals);
-            _note = count == 0 ? "No se encontró un snapshot previo guardado para este partido." : "Resultado guardado y último snapshot evaluado.";
+            _note = count == 0 ? "No previously saved snapshot was found for this match." : "Result saved and latest snapshot evaluated.";
             await LoadFixtures();
             Snackbar.Add(_note, count == 0 ? Severity.Warning : Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo evaluar el snapshot.", Severity.Error);
+            Snackbar.Add("Could not evaluate the snapshot.", Severity.Error);
         }
         finally
         {
@@ -470,7 +470,7 @@
     private string Name(string id) => _names.TryGetValue(id, out var name) ? name : id;
     private string SelectedClass(Fixture fixture) => _selected?.Id == fixture.Id ? "selected" : "";
     private static string SourceText(AvailabilityClaim claim) => string.IsNullOrWhiteSpace(claim.Publisher) ? claim.SourceUrl : claim.Publisher;
-    private static string StatusText(AvailabilityClaim claim) => claim.AffectsPrediction ? $"{claim.Status} · impacta" : claim.Status.ToString();
+    private static string StatusText(AvailabilityClaim claim) => claim.AffectsPrediction ? $"{claim.Status} · impacts" : claim.Status.ToString();
     private static string ImpactText(AvailabilityClaim claim)
     {
         if (!claim.AttackImpact.HasValue && !claim.DefenseImpact.HasValue)
@@ -480,8 +480,8 @@
     }
     private static string MatchSnapshotText(MatchSnapshotSummary snapshot)
     {
-        var source = snapshot.BatchId.HasValue ? "fixture completo" : "partido";
-        var status = snapshot.IsValid ? source : "no disponible";
+        var source = snapshot.BatchId.HasValue ? "full fixture" : "match";
+        var status = snapshot.IsValid ? source : "not available";
         return $"{snapshot.CreatedAt.ToLocalTime():g} · {status}";
     }
 }

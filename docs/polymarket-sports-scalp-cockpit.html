@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Polymarket Sports Scalp Cockpit Source Of Truth</title>
+  <style>
+    :root { --bg:#07111f; --panel:#0f1d33; --panel2:#13243d; --ink:#e5edf7; --muted:#9fb0c7; --line:#2b3d57; --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --info:#38bdf8; --accent:#a78bfa; --code:#020817; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.55; color:var(--ink); background:radial-gradient(circle at 20% 0%, #17365f 0, var(--bg) 34rem); }
+    header, main { max-width:1220px; margin:0 auto; padding:1.25rem; }
+    header { padding-top:2.2rem; }
+    h1 { font-size:clamp(2rem,4vw,3.4rem); line-height:1.05; margin:0 0 .6rem; letter-spacing:-.04em; }
+    h2 { margin:2rem 0 .7rem; font-size:1.45rem; }
+    h3 { margin:1rem 0 .45rem; font-size:1.05rem; }
+    p, li { color:#d5e0ee; }
+    .subtitle { color:var(--muted); font-size:1.08rem; max-width:900px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:1rem; }
+    .card { background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02)),var(--panel); border:1px solid var(--line); border-radius:16px; padding:1rem; box-shadow:0 15px 45px rgba(0,0,0,.22); }
+    .card h3 { margin-top:0; }
+    .pill { display:inline-flex; align-items:center; gap:.35rem; padding:.18rem .55rem; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:.78rem; white-space:nowrap; margin:.12rem .12rem .12rem 0; }
+    .good { color:var(--good); border-color:rgba(34,197,94,.45); }
+    .warn { color:var(--warn); border-color:rgba(245,158,11,.45); }
+    .bad { color:var(--bad); border-color:rgba(239,68,68,.45); }
+    .info { color:var(--info); border-color:rgba(56,189,248,.45); }
+    .accent { color:var(--accent); border-color:rgba(167,139,250,.45); }
+    table { width:100%; border-collapse:collapse; margin:.8rem 0 1.2rem; font-size:.92rem; }
+    th,td { border-bottom:1px solid var(--line); padding:.65rem .55rem; vertical-align:top; }
+    th { text-align:left; color:#cbd5e1; background:rgba(255,255,255,.04); }
+    tr:hover td { background:rgba(255,255,255,.025); }
+    code, pre { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace; background:var(--code); color:#d1fae5; border:1px solid #1f2937; border-radius:8px; }
+    code { padding:.08rem .28rem; }
+    pre { overflow-x:auto; padding:.85rem; }
+    .callout { border-left:4px solid var(--info); background:rgba(56,189,248,.08); padding:.9rem 1rem; border-radius:10px; }
+    .danger { border-left-color:var(--bad); background:rgba(239,68,68,.08); }
+    .toc a { color:#93c5fd; text-decoration:none; }
+    .small { color:var(--muted); font-size:.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="pill info">Source of truth</span>
+    <span class="pill warn">Read-only cockpit</span>
+    <span class="pill bad">No live orders</span>
+    <h1>Polymarket Sports Scalp Cockpit</h1>
+    <p class="subtitle">Canonical operating spec for all-sports and World-Cup-priority binary-market scalping: buy one side, buy the opposite side later, and lock the matched pair below $1.</p>
+  </header>
+  <main>
+    <section class="grid">
+      <div class="card"><h3>Core objective</h3><pre>entry side + hedge side &lt; 1.00
+profit/share = 1 - entry - hedge
+ROI = profit / (entry + hedge)</pre></div>
+      <div class="card"><h3>Required hedge price</h3><pre>required_hedge = 1 / (1 + target_roi) - entry_price</pre><p class="small">Example: U2.5 @ 0.48 targeting 8.7% ROI needs O2.5 at about 0.44.</p></div>
+      <div class="card"><h3>Default unit</h3><p>All ladders default to <strong>400 shares</strong> unless the operator specifies another size.</p><span class="pill accent">400-share ladders</span></div>
+      <div class="card"><h3>Execution correction</h3><p>Bid/ask and visible depth matter. Last price and midpoint are not enough for a trade recommendation.</p><span class="pill bad">No executable depth = blocker</span></div>
+    </section>
+
+    <h2>Non-negotiable rules</h2>
+    <div class="card"><ol>
+      <li>Every trade is a two-leg inventory trade unless explicitly marked as final directional exposure.</li>
+      <li>Always name the opposite hedge side.</li>
+      <li>Always compute breakeven, 2%, 5%, 8%, 10%, and 12% hedge prices.</li>
+      <li>Do not recommend an entry unless the opposite side can realistically decay or reprice.</li>
+      <li>Bad events require a plan: wait, cut, average, partial hedge, or abandon. Do not blindly lock losses.</li>
+      <li>Separate scalp path from gun-to-head final-score prediction.</li>
+      <li>Operator screenshots override stale web data.</li>
+    </ol></div>
+
+    <h2>Market board</h2>
+    <table><thead><tr><th>Family</th><th>Required fields</th><th>Scalp use</th></tr></thead><tbody>
+      <tr><td>Totals</td><td>O/U 0.5, 1.5, 2.5, 3.5, 4.5; bid/ask/depth</td><td>Under decay, Over event hedge</td></tr>
+      <tr><td>BTTS</td><td>Yes/No bid/ask/depth, team defensive profile</td><td>No decay, Yes hedge</td></tr>
+      <tr><td>Spreads</td><td>+1.5/-1.5 and other handicaps</td><td>Underdog anti-blowout or favorite event scalp</td></tr>
+      <tr><td>Team totals</td><td>Line, team, period, executable prices</td><td>Team-specific decay/event paths</td></tr>
+      <tr><td>ML/draw</td><td>All outcomes, normalized implieds</td><td>Context and occasional hedge structure</td></tr>
+      <tr><td>Correct score / first goal</td><td>Only if liquid and useful</td><td>Context, not default scalp entry</td></tr>
+    </tbody></table>
+
+    <h2>Hedge target table</h2>
+    <table><thead><tr><th>Target</th><th>Formula</th><th>If entry = 0.48</th></tr></thead><tbody>
+      <tr><td>Breakeven</td><td><code>1 - entry</code></td><td>0.5200</td></tr>
+      <tr><td>2% ROI</td><td><code>1 / 1.02 - entry</code></td><td>0.5004</td></tr>
+      <tr><td>5% ROI</td><td><code>1 / 1.05 - entry</code></td><td>0.4724</td></tr>
+      <tr><td>8% ROI</td><td><code>1 / 1.08 - entry</code></td><td>0.4459</td></tr>
+      <tr><td>10% ROI</td><td><code>1 / 1.10 - entry</code></td><td>0.4291</td></tr>
+      <tr><td>12% ROI</td><td><code>1 / 1.12 - entry</code></td><td>0.4129</td></tr>
+    </tbody></table>
+
+    <h2>Primary scalp types</h2>
+    <div class="grid">
+      <div class="card"><h3>Under 2.5 decay scalp</h3><p>Buy U2.5, hedge O2.5 later. Needs quiet first 10-15 minutes and no sticky live danger.</p></div>
+      <div class="card"><h3>BTTS No decay scalp</h3><p>Buy BTTS No, hedge BTTS Yes later. Often survives a 1-0 favorite lead better than U2.5.</p></div>
+      <div class="card"><h3>Underdog +1.5</h3><p>Buy dog +1.5, hedge favorite -1.5 later. Anti-blowout path; requires compact underdog start.</p></div>
+      <div class="card"><h3>Favorite -1.5 event</h3><p>Buy favorite -1.5 only when an event path exists: early goal, red card, or overwhelming pressure.</p></div>
+      <div class="card"><h3>Under 3.5 safer scalp</h3><p>Lower ROI, better survival after one goal.</p></div>
+      <div class="card"><h3>Under 1.5 fragile scalp</h3><p>Usually avoid. One early goal destroys the path.</p></div>
+    </div>
+
+    <h2>Dashboard requirements</h2>
+    <div class="card"><ul>
+      <li>Auto-refresh constantly; no manual-refresh dependency.</li>
+      <li>World Cup priority sorting across all active sports events.</li>
+      <li>Read-only status, refresh interval, scan duration, last error, last-good snapshot.</li>
+      <li>Market board with executable bid/ask/depth and normalized pairs.</li>
+      <li>Candidate rows with entry, opposite hedge, hedge target grid, 400-share ladder, lockable depth, and failure plan.</li>
+      <li>Visible blockers: no token, no book, stale book, thin depth, no timing, unclassified rules, no realistic hedge path.</li>
+    </ul></div>
+
+    <h2>Position screenshot math</h2>
+    <pre>total_cost = cost_side_A + cost_side_B
+
+if side A wins: profit = shares_A - total_cost
+if side B wins: profit = shares_B - total_cost
+
+if same shares both sides:
+  guaranteed_profit = shares - total_cost
+else:
+  minimum_guaranteed_profit = min(shares_A, shares_B) - total_cost</pre>
+
+    <h2>Safety boundary</h2>
+    <div class="callout danger"><strong>No execution path.</strong> This cockpit never reads secrets, wallet keys, API keys, or live-control files. It never submits, cancels, arms, approves, or simulates live orders. Existing Rust NativePM/polytrade services are donor evidence only; any future live path must be Oloraculo-owned, disabled by default, and separately gated.</div>
+  </main>
+</body>
+</html>

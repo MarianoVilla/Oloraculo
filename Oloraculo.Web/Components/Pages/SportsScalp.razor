@@ -1,0 +1,424 @@
+@page "/sports-scalp"
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@inject SportsScalpScannerService ScalpScanner
+@inject FeedStatusService FeedStatus
+@inject ISnackbar Snackbar
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment Env
+
+<PageTitle>Sports Scalp</PageTitle>
+
+<MudStack Spacing="3">
+    <div class="page-head">
+        <MudText Typo="Typo.h3">Sports Scalp Cockpit</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">Auto-refreshing read-only scanner for Polymarket-style two-leg inventory scalps. World Cup events are prioritized; every row must identify the opposite hedge side and the hedge price needed to lock profit.</MudText>
+    </div>
+
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        WATCH_ONLY_PUBLIC_READS. This page does not place orders, cancel orders, approve orders, read secrets, or mutate live-control files. It is a scalp planning board only.
+    </MudAlert>
+
+    @if (!string.IsNullOrWhiteSpace(_lastError))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">@_lastError</MudAlert>
+    }
+
+    <MudPaper Class="surface-card" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="action-row" Spacing="1">
+            <BusyButton Text="Refresh now" BusyText="Scanning" IsBusy="_scanBusy" Icon="@Icons.Material.Filled.Refresh" OnClick="ManualRefresh" />
+            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">AUTO_REFRESH @_refreshInterval.TotalSeconds.ToString("0")s</MudChip>
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">400-share default</MudChip>
+            <MudSpacer />
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Source of truth: docs/source-of-truth/POLYMARKET_SPORTS_SCALP_COCKPIT.md</MudText>
+        </MudStack>
+        @if (_scanBusy)
+        {
+            <MudProgressLinear Class="inline-progress" Color="Color.Primary" Indeterminate="true" />
+        }
+        <div class="monitor-strip">
+            <div><span class="monitor-k">mode</span><span class="monitor-v safe">@(_snapshot?.Mode ?? "WATCH_ONLY_PUBLIC_READS")</span></div>
+            <div><span class="monitor-k">orders</span><span class="monitor-v danger">NO_ORDER_PATH</span></div>
+            <div><span class="monitor-k">now_utc</span><span class="monitor-v">@(_snapshot?.AsOfUtc.ToString("HH:mm:ss 'UTC'") ?? "n/a")</span></div>
+            <div><span class="monitor-k">near start</span><span class="monitor-v">@(_snapshot?.NearWindowStartUtc.ToString("HH:mm 'UTC'") ?? "n/a")</span></div>
+            <div><span class="monitor-k">near end</span><span class="monitor-v">@(_snapshot?.NearWindowEndUtc.ToString("HH:mm 'UTC'") ?? "n/a")</span></div>
+            <div><span class="monitor-k">last refresh</span><span class="monitor-v">@LastRefreshText</span></div>
+            <div><span class="monitor-k">universe refresh</span><span class="monitor-v">@UniverseRefreshText</span></div>
+            <div><span class="monitor-k">orderbook refresh</span><span class="monitor-v">@OrderbookRefreshText</span></div>
+            <div><span class="monitor-k">data age</span><span class="monitor-v">@DataAgeText</span></div>
+            <div><span class="monitor-k">next refresh</span><span class="monitor-v">@NextRefreshText</span></div>
+            <div><span class="monitor-k">events</span><span class="monitor-v">@(_snapshot?.EventCount.ToString("N0") ?? "0")</span></div>
+            <div><span class="monitor-k">candidates</span><span class="monitor-v">@(_snapshot?.CandidateCount.ToString("N0") ?? "0")</span></div>
+            <div><span class="monitor-k">active fetched</span><span class="monitor-v">@(_snapshot?.Diagnostics.ActiveEventsFetched.ToString("N0") ?? "0")</span></div>
+            <div><span class="monitor-k">near found</span><span class="monitor-v safe">@(_snapshot?.Diagnostics.NearEventsCount.ToString("N0") ?? "0")</span></div>
+            <div><span class="monitor-k">world cup</span><span class="monitor-v safe">@(_snapshot?.Diagnostics.WorldCupEventsIncluded.ToString("N0") ?? "0")</span></div>
+            <div><span class="monitor-k">CLOB hydrated</span><span class="monitor-v safe">@(_snapshot?.Diagnostics.ClobBooksHydrated.ToString("N0") ?? "0")</span></div>
+            <div><span class="monitor-k">trade now</span><span class="monitor-v safe">@(_snapshot?.TradeNowCount.ToString("N0") ?? "0")</span></div>
+            <div><span class="monitor-k">watch</span><span class="monitor-v warn">@(_snapshot?.WatchCount.ToString("N0") ?? "0")</span></div>
+            <div><span class="monitor-k">blocked</span><span class="monitor-v danger">@(_snapshot?.BlockedCount.ToString("N0") ?? "0")</span></div>
+            <div><span class="monitor-k">oldest quote age</span><span class="monitor-v @QuoteAgeCss">@QuoteAgeText</span></div>
+            <div><span class="monitor-k">scan duration</span><span class="monitor-v">@(_snapshot is null ? "n/a" : $"{_snapshot.ScanDuration.TotalSeconds:0.0}s")</span></div>
+            <div><span class="monitor-k">skipped refreshes</span><span class="monitor-v">@_skippedRefreshes</span></div>
+            <div><span class="monitor-k">depth storage</span><span class="monitor-v safe">IN_MEMORY_HOT_ONLY</span></div>
+            <div><span class="monitor-k">archive target</span><span class="monitor-v warn">R2_PARQUET_PLAN</span></div>
+        </div>
+    </MudPaper>
+
+    <MudGrid Spacing="2">
+        <MudItem xs="12" lg="8">
+            <MudPaper Class="surface-card" Elevation="0">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="action-row">
+                    <div>
+                        <MudText Typo="Typo.h6">Ranked two-leg scalp candidates</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Rows are ranked by current executable pair math first, then World Cup priority. `TRADE_NOW` still means analysis-only; no order path exists here.</MudText>
+                    </div>
+                    <MudSpacer />
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">FILL DEPENDS ON BID/ASK DEPTH</MudChip>
+                </MudStack>
+                @if (_snapshot is null)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Scanner has not loaded yet.</MudText>
+                }
+                else
+                {
+                    <MudTable Items="_snapshot.Candidates" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                        <HeaderContent>
+                            <MudTh>Verdict</MudTh>
+                            <MudTh>Event / market</MudTh>
+                            <MudTh>Entry → hedge</MudTh>
+                            <MudTh Class="num">Now</MudTh>
+                            <MudTh>Hedge targets</MudTh>
+                            <MudTh>400-share ladder</MudTh>
+                            <MudTh>Trigger / failure</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Verdict"><MudChip T="string" Size="Size.Small" Color="@VerdictColor(context.Verdict)" Variant="Variant.Filled">@context.Verdict</MudChip><div class="combo-market-meta">@context.EventPriority</div></MudTd>
+                            <MudTd DataLabel="Event / market">
+                                <div class="combo-market-title">@context.EventTitle</div>
+                                <div class="combo-market-meta">@context.MarketFamily @LineText(context.Line) · @context.MarketQuestion</div>
+                                <div class="combo-market-meta">@EventStateText(context)</div>
+                            </MudTd>
+                            <MudTd DataLabel="Entry → hedge">
+                                <div class="combo-market-title">Buy @context.EntryOutcome VWAP @PriceText(context.EntryVwap)</div>
+                                <div class="combo-market-meta">token @ShortToken(context.EntryTokenId) · book @context.EntryBookStatus · best ask @PriceText(context.EntryAsk) · worst 400 @PriceText(context.EntryWorstAsk) · fillable @SizeText(context.EntryFillableShares)</div>
+                                <div class="combo-market-title">hedge: buy @context.HedgeOutcome VWAP @PriceText(context.HedgeVwapNow)</div>
+                                <div class="combo-market-meta">token @ShortToken(context.HedgeTokenId) · book @context.HedgeBookStatus · best ask @PriceText(context.HedgeAskNow) · worst 400 @PriceText(context.HedgeWorstAskNow) · fillable @SizeText(context.HedgeFillableShares)</div>
+                            </MudTd>
+                            <MudTd DataLabel="Now" Class="num">
+                                <div>@PairCostText(context.PairCostNow)</div>
+                                <div class="combo-market-meta">@ProfitText(context.LockedProfitNow)</div>
+                                <div class="combo-market-meta">ROI @PercentText(context.RoiNow)</div>
+                            </MudTd>
+                            <MudTd DataLabel="Hedge targets">
+                                <div class="scalp-target-grid">
+                                    <span>BE @PriceText(context.HedgeTargets.Breakeven)</span>
+                                    <span>2% @PriceText(context.HedgeTargets.Roi2)</span>
+                                    <span>5% @PriceText(context.HedgeTargets.Roi5)</span>
+                                    <span>8% @PriceText(context.HedgeTargets.Roi8)</span>
+                                    <span>10% @PriceText(context.HedgeTargets.Roi10)</span>
+                                    <span>12% @PriceText(context.HedgeTargets.Roi12)</span>
+                                </div>
+                            </MudTd>
+                            <MudTd DataLabel="400-share ladder">
+                                @if (context.SuggestedHedgeLadder.Count == 0)
+                                {
+                                    <span class="combo-market-meta">No entry ask.</span>
+                                }
+                                else
+                                {
+                                    <div class="scalp-ladder">
+                                        @foreach (var level in context.SuggestedHedgeLadder)
+                                        {
+                                            <div>@($"{level.Shares:0} @{PriceText(level.Price)}")</div>
+                                        }
+                                    </div>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="Trigger / failure">
+                                <div class="combo-market-title">@context.Trigger</div>
+                                <div class="combo-market-meta">@context.FailurePlan</div>
+                                @if (!string.IsNullOrWhiteSpace(context.Blocker))
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">@context.Blocker</MudChip>
+                                }
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">No supported paired sports scalp candidates in the current scan. Check blockers and event universe.</MudText>
+                        </NoRecordsContent>
+                    </MudTable>
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" lg="4">
+            <MudStack Spacing="2">
+                <MudPaper Class="surface-card" Elevation="0">
+                    <MudText Typo="Typo.h6">Blockers</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Red blockers stay visible; no row is promoted without executable opposite-side math.</MudText>
+                    @if (_snapshot?.BlockerCounts.Count > 0)
+                    {
+                        <MudStack Row="true" Class="action-row mt-2" Spacing="1">
+                            @foreach (var blocker in _snapshot.BlockerCounts)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">@blocker.Blocker: @blocker.Count</MudChip>
+                            }
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">No blockers in latest snapshot.</MudText>
+                    }
+                </MudPaper>
+
+                <MudPaper Class="surface-card" Elevation="0">
+                    <MudText Typo="Typo.h6">Cross-venue feed plan</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Sanitized status surface only. Secrets stay in env/secret material and are never displayed here. Current mode: @(_feedStatus?.Mode ?? "SANITIZED_STATUS_ONLY")</MudText>
+                    <div class="monitor-strip mini">
+                        <div><span class="monitor-k">ready</span><span class="monitor-v safe">@(_feedStatus?.ReadyCount ?? 0)</span></div>
+                        <div><span class="monitor-k">planned</span><span class="monitor-v warn">@(_feedStatus?.PlannedCount ?? 0)</span></div>
+                        <div><span class="monitor-k">missing config</span><span class="monitor-v danger">@(_feedStatus?.MissingConfigCount ?? 0)</span></div>
+                        <div><span class="monitor-k">not implemented</span><span class="monitor-v danger">@(_feedStatus?.NotImplementedCount ?? 0)</span></div>
+                        <div><span class="monitor-k">as of</span><span class="monitor-v">@(_feedStatus?.AsOfUtc.ToString("HH:mm:ss 'UTC'") ?? "n/a")</span></div>
+                    </div>
+                    <MudTable Items="FeedRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table mt-2">
+                        <HeaderContent>
+                            <MudTh>Source</MudTh>
+                            <MudTh>Status</MudTh>
+                            <MudTh>Auth</MudTh>
+                            <MudTh>Blocker</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Source"><div class="combo-market-title">@context.Source</div><div class="combo-market-meta">@context.Role</div></MudTd>
+                            <MudTd DataLabel="Status"><MudChip T="string" Size="Size.Small" Color="@FeedReadinessColor(context.Readiness)" Variant="Variant.Outlined">@context.Readiness</MudChip><div class="combo-market-meta">@context.SecretPolicy</div></MudTd>
+                            <MudTd DataLabel="Auth"><span class="combo-market-meta">@AuthText(context.AuthPresent)</span></MudTd>
+                            <MudTd DataLabel="Blocker"><div class="combo-market-title">@context.Blocker</div><div class="combo-market-meta">@context.Detail</div></MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Feed rows expose only presence/status/freshness contract fields. No raw tokens, key prefixes, signed URLs, or secret values are rendered.</MudText>
+                </MudPaper>
+
+                <MudPaper Class="surface-card" Elevation="0">
+                    <MudText Typo="Typo.h6">Event universe</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Polymarket Gamma active events are the tradable universe. External sports data is enrichment only and cannot add or remove tradable events.</MudText>
+                    <MudTable Items="EventRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table mt-2">
+                        <HeaderContent>
+                            <MudTh>Event</MudTh>
+                            <MudTh>Tradable state</MudTh>
+                            <MudTh>Markets / tokens</MudTh>
+                            <MudTh>Liquidity</MudTh>
+                            <MudTh>Freshness / diagnostics</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Event">
+                                <div class="combo-market-title">@context.Title</div>
+                                <div class="combo-market-meta">@context.Priority · @context.Slug</div>
+                                <div class="combo-market-meta">kickoff @KickoffText(context.StartTimeUtc)</div>
+                            </MudTd>
+                            <MudTd DataLabel="Tradable state">
+                                <MudChip T="string" Size="Size.Small" Color="@EventStatusColor(context.Status)" Variant="Variant.Outlined">@context.Status</MudChip>
+                                <div class="combo-market-meta">active @BoolText(context.Active) · closed @BoolText(context.Closed) · source @context.Source</div>
+                                <div class="combo-market-meta">@context.IncludeReason · external @context.ExternalMatchStatus</div>
+                            </MudTd>
+                            <MudTd DataLabel="Markets / tokens">
+                                <div class="combo-market-title">@context.MarketCount markets · @context.TokenIdCount token IDs</div>
+                                <div class="combo-market-meta">@context.LiveOrderBookCount live books · @context.CandidateCount candidates</div>
+                            </MudTd>
+                            <MudTd DataLabel="Liquidity">
+                                <div class="combo-market-title">@MoneyText(context.ClobDepth2cUsd) CLOB 2c</div>
+                                <div class="combo-market-meta">@MoneyText(context.ClobDepth5cUsd) CLOB 5c · @MoneyText(context.GammaLiquidityUsd) Gamma liq</div>
+                                <div class="combo-market-meta">@MoneyText(context.GammaVolume24hUsd) 24h vol · @context.LiquiditySource/@context.LiquidityQuality</div>
+                            </MudTd>
+                            <MudTd DataLabel="Freshness / diagnostics">
+                                <div class="combo-market-title">@context.DataAgeSeconds.ToString("0.0")s age</div>
+                                <div class="combo-market-meta">@FlagsText(context.DataQualityFlags)</div>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+
+                @if (IsDevelopment && _snapshot is not null)
+                {
+                    <MudPaper Class="surface-card" Elevation="0">
+                        <MudText Typo="Typo.h6">Diagnostics</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Development-only counts from the Polymarket-first scan. API errors and stale/unknown data stay visible.</MudText>
+                        <div class="monitor-strip mini mt-2">
+                            <div><span class="monitor-k">nowUtc</span><span class="monitor-v">@_snapshot.Diagnostics.NowUtc.ToString("HH:mm:ss 'UTC'")</span></div>
+                            <div><span class="monitor-k">events fetched</span><span class="monitor-v">@_snapshot.Diagnostics.ActiveEventsFetched</span></div>
+                            <div><span class="monitor-k">markets fetched</span><span class="monitor-v">@_snapshot.Diagnostics.ActiveMarketsFetched</span></div>
+                            <div><span class="monitor-k">near</span><span class="monitor-v safe">@_snapshot.Diagnostics.NearEventsCount</span></div>
+                            <div><span class="monitor-k">old excluded</span><span class="monitor-v warn">@_snapshot.Diagnostics.OldEventsExcludedCount</span></div>
+                            <div><span class="monitor-k">missing tokens</span><span class="monitor-v danger">@_snapshot.Diagnostics.MarketsMissingTokenIdsCount</span></div>
+                            <div><span class="monitor-k">books requested</span><span class="monitor-v">@_snapshot.Diagnostics.TokenBooksRequestedCount</span></div>
+                            <div><span class="monitor-k">books ok</span><span class="monitor-v safe">@_snapshot.Diagnostics.TokenBooksOkCount</span></div>
+                            <div><span class="monitor-k">books failed</span><span class="monitor-v danger">@_snapshot.Diagnostics.TokenBooksFailedCount</span></div>
+                            <div><span class="monitor-k">books empty</span><span class="monitor-v warn">@_snapshot.Diagnostics.TokenBooksEmptyCount</span></div>
+                            <div><span class="monitor-k">liq unknown</span><span class="monitor-v warn">@_snapshot.Diagnostics.LiquidityUnknownCount</span></div>
+                            <div><span class="monitor-k">liq zero confirmed</span><span class="monitor-v">@_snapshot.Diagnostics.LiquidityZeroConfirmedCount</span></div>
+                            <div><span class="monitor-k">liq nonzero</span><span class="monitor-v safe">@_snapshot.Diagnostics.LiquidityNonZeroCount</span></div>
+                            <div><span class="monitor-k">api errors</span><span class="monitor-v danger">@ApiErrorsText</span></div>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(_snapshot.Diagnostics.LastError))
+                        {
+                            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-2">@_snapshot.Diagnostics.LastError</MudAlert>
+                        }
+                    </MudPaper>
+                }
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+</MudStack>
+
+@code {
+    private readonly TimeSpan _refreshInterval = TimeSpan.FromSeconds(30);
+    private readonly SportsScalpScanOptions _scanOptions = new() { MaxEvents = 24, MaxTokenBooks = 80, TargetShares = 400m };
+    private CancellationTokenSource? _cts;
+    private Task? _autoRefreshTask;
+    private SportsScalpSnapshot? _snapshot;
+    private FeedStatusSnapshot? _feedStatus;
+    private bool _scanBusy;
+    private string? _lastError;
+    private DateTimeOffset? _lastRefreshUtc;
+    private DateTimeOffset? _nextRefreshUtc;
+    private int _skippedRefreshes;
+
+    protected override Task OnInitializedAsync()
+    {
+        _cts = new CancellationTokenSource();
+        _feedStatus = FeedStatus.Snapshot();
+        _nextRefreshUtc = DateTimeOffset.UtcNow;
+        _autoRefreshTask = RunAutoRefreshAsync(_cts.Token);
+        _ = RefreshSnapshotAsync(_cts.Token);
+        return Task.CompletedTask;
+    }
+
+    private async Task ManualRefresh() => await RefreshSnapshotAsync();
+
+    private async Task RunAutoRefreshAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(_refreshInterval);
+        _nextRefreshUtc = DateTimeOffset.UtcNow.Add(_refreshInterval);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                _nextRefreshUtc = DateTimeOffset.UtcNow.Add(_refreshInterval);
+                await RefreshSnapshotAsync(ct);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Normal page disposal.
+        }
+    }
+
+    private async Task RefreshSnapshotAsync(CancellationToken ct = default)
+    {
+        if (_scanBusy)
+        {
+            _skippedRefreshes++;
+            return;
+        }
+
+        _scanBusy = true;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            _snapshot = await ScalpScanner.ScanAsync(_scanOptions, ct);
+            _feedStatus = FeedStatus.Snapshot();
+            _lastRefreshUtc = DateTimeOffset.UtcNow;
+            _nextRefreshUtc = _lastRefreshUtc.Value.Add(_refreshInterval);
+            _lastError = null;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _lastError = ex.Message;
+            Snackbar.Add($"Sports scalp refresh failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _scanBusy = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_cts is not null)
+        {
+            await _cts.CancelAsync();
+            _cts.Dispose();
+        }
+
+        if (_autoRefreshTask is not null)
+        {
+            try { await _autoRefreshTask; }
+            catch (OperationCanceledException) { }
+        }
+    }
+
+    private string LastRefreshText => _lastRefreshUtc?.ToString("HH:mm:ss 'UTC'") ?? "not loaded";
+    private string UniverseRefreshText => _snapshot?.LastUniverseRefreshUtc.ToString("HH:mm:ss 'UTC'") ?? "n/a";
+    private string OrderbookRefreshText => _snapshot?.LastOrderbookRefreshUtc?.ToString("HH:mm:ss 'UTC'") ?? "n/a";
+    private string DataAgeText => _snapshot is null ? "n/a" : $"{_snapshot.DataAgeSeconds:0.0}s";
+    private string NextRefreshText => _nextRefreshUtc?.ToString("HH:mm:ss 'UTC'") ?? "pending";
+    private IReadOnlyList<SportsScalpEventRow> EventRows => _snapshot?.Events ?? [];
+    private IReadOnlyList<FeedStatusRow> FeedRows => _feedStatus?.Rows ?? [];
+    private string QuoteAgeText => _snapshot is null || _snapshot.OldestQuoteUtc is null ? "n/a" : $"{_snapshot.OldestQuoteAgeSeconds:0.0}s";
+    private string QuoteAgeCss => _snapshot is null || _snapshot.OldestQuoteUtc is null ? "warn" : _snapshot.OldestQuoteAgeSeconds <= 120 ? "safe" : "danger";
+    private bool IsDevelopment => string.Equals(Env.EnvironmentName, "Development", StringComparison.OrdinalIgnoreCase);
+    private string ApiErrorsText => _snapshot is null || _snapshot.Diagnostics.ApiErrorsByEndpoint.Count == 0
+        ? "0"
+        : string.Join(", ", _snapshot.Diagnostics.ApiErrorsByEndpoint.Select(item => $"{item.Key}:{item.Value}"));
+    private static Color VerdictColor(SportsScalpVerdict verdict) => verdict switch
+    {
+        SportsScalpVerdict.TradeNow => Color.Success,
+        SportsScalpVerdict.Watch => Color.Warning,
+        SportsScalpVerdict.Blocked => Color.Error,
+        SportsScalpVerdict.Reject => Color.Default,
+        _ => Color.Default
+    };
+
+    private static Color EventStatusColor(string status) => status switch
+    {
+        "LIVE" => Color.Success,
+        "SCHEDULED" => Color.Info,
+        "NO_TIMING" => Color.Warning,
+        "CLOSED" => Color.Error,
+        _ => Color.Default
+    };
+
+    private static Color FeedReadinessColor(FeedReadiness readiness) => readiness switch
+    {
+        FeedReadiness.Ready => Color.Success,
+        FeedReadiness.Planned => Color.Warning,
+        FeedReadiness.ConfigMissing => Color.Error,
+        FeedReadiness.NotImplemented => Color.Error,
+        FeedReadiness.Blocked => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string AuthText(bool? present) => present switch
+    {
+        true => "present",
+        false => "missing",
+        null => "not required/unknown"
+    };
+
+    private static string PriceText(decimal? value) => value.HasValue ? $"{value.Value:0.000}" : "n/a";
+    private static string SizeText(decimal? value) => value.HasValue ? value.Value.ToString("0") : "n/a";
+    private static string MoneyText(decimal? value) => value.HasValue ? $"${value.Value:N0}" : "N/A";
+    private static string KickoffText(DateTimeOffset? value) => value.HasValue ? value.Value.ToString("yyyy-MM-dd HH:mm 'UTC'") : "missing";
+    private static string BoolText(bool value) => value ? "yes" : "no";
+    private static string ShortToken(string value) => string.IsNullOrWhiteSpace(value) ? "missing" : value.Length <= 10 ? value : $"{value[..6]}…{value[^4..]}";
+    private static string FlagsText(IReadOnlyList<string>? flags) => flags is { Count: > 0 } ? string.Join(", ", flags) : "no flags";
+    private static string PercentText(decimal? value) => value.HasValue ? value.Value.ToString("P2") : "n/a";
+    private static string PairCostText(decimal? value) => value.HasValue ? $"pair {value.Value:0.000}" : "pair n/a";
+    private static string ProfitText(decimal? value) => value.HasValue ? $"400sh {value.Value:+0.00;-0.00;0.00}" : "400sh n/a";
+    private static string LineText(decimal? value) => value.HasValue ? $"line {value.Value:0.##}" : string.Empty;
+    private static string EventStateText(SportsScalpCandidateRow row) => row.EventLive
+        ? $"LIVE {row.Score} {row.Elapsed}".Trim()
+        : row.StartTimeUtc.HasValue ? row.StartTimeUtc.Value.ToString("yyyy-MM-dd HH:mm 'UTC'") : "NO_TIMING";
+}

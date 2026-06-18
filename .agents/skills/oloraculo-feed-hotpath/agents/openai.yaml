@@ -1,0 +1,4 @@
+interface:
+  display_name: "Oloraculo Feed Hotpath"
+  short_description: "Build feed status and Rust hotpath contracts"
+  default_prompt: "Use $oloraculo-feed-hotpath to implement feed status, CLOB, or scanner hotpath work."

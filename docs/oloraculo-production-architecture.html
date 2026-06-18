@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oloraculo Production Architecture</title>
+  <style>
+    :root{--bg:#07111f;--panel:#0f1d33;--ink:#e5edf7;--muted:#9fb0c7;--line:#2b3d57;--good:#22c55e;--warn:#f59e0b;--bad:#ef4444;--info:#38bdf8;--code:#020817}*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,"Segoe UI",sans-serif;background:radial-gradient(circle at 20% 0%,#17365f 0,var(--bg) 34rem);color:var(--ink);line-height:1.55}header,main{max-width:1180px;margin:0 auto;padding:1.25rem}header{padding-top:2rem}h1{font-size:clamp(2rem,4vw,3.2rem);line-height:1.05;margin:.4rem 0;letter-spacing:-.04em}h2{margin:2rem 0 .7rem}.subtitle{color:var(--muted);max-width:850px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:1rem}.card{background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02)),var(--panel);border:1px solid var(--line);border-radius:14px;padding:1rem}.pill{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:.18rem .55rem;margin:.12rem;color:var(--muted);font-size:.78rem}.good{color:var(--good);border-color:rgba(34,197,94,.45)}.warn{color:var(--warn);border-color:rgba(245,158,11,.45)}.bad{color:var(--bad);border-color:rgba(239,68,68,.45)}.info{color:var(--info);border-color:rgba(56,189,248,.45)}table{width:100%;border-collapse:collapse;margin:.8rem 0 1.2rem;font-size:.92rem}th,td{border-bottom:1px solid var(--line);padding:.65rem .55rem;vertical-align:top}th{text-align:left;background:rgba(255,255,255,.04)}code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--code);border:1px solid #1f2937;border-radius:8px;color:#d1fae5}code{padding:.08rem .28rem}pre{overflow:auto;padding:.85rem}.callout{border-left:4px solid var(--info);background:rgba(56,189,248,.08);padding:.9rem 1rem;border-radius:10px}.danger{border-left-color:var(--bad);background:rgba(239,68,68,.08)}li,p{color:#d5e0ee}
+  </style>
+</head>
+<body>
+  <header>
+    <span class="pill good">Oloraculo-owned</span><span class="pill warn">Polytrade donor-only</span><span class="pill bad">No live orders</span>
+    <h1>Oloraculo Production Architecture</h1>
+    <p class="subtitle">Clean production target for the sports two-leg scalp system. Polytrade is a reference library only; the runtime moves to Oloraculo.</p>
+  </header>
+  <main>
+    <section class="callout danger"><strong>Decision:</strong> `prediction/Oloraculo` is the forward production target. Polytrade is read-only donor/reference. Do not run Polytrade as the production dependency.</section>
+    <h2>Production split</h2>
+    <table><thead><tr><th>Layer</th><th>Owner</th><th>Runtime</th><th>Notes</th></tr></thead><tbody>
+      <tr><td>Cockpit/UI</td><td>Oloraculo</td><td>.NET Blazor</td><td>Read-only operator surface.</td></tr>
+      <tr><td>Scanner</td><td>Oloraculo</td><td>Rust-first hotpath</td><td>Full-depth VWAP, hedge targets, blockers.</td></tr>
+      <tr><td>CLOB collectors</td><td>Oloraculo AWS</td><td>Rust-first</td><td>Resident WS books/trades.</td></tr>
+      <tr><td>External feeds</td><td>Oloraculo AWS</td><td>Rust/.NET workers</td><td>Databet, Sofascore, OddsPapi, GRID status.</td></tr>
+      <tr><td>Archive</td><td>Oloraculo AWS → R2</td><td>Rust batchers</td><td>Raw compressed + Parquet/ZSTD.</td></tr>
+      <tr><td>Execution</td><td>Oloraculo AWS</td><td>Rust-first</td><td>Disabled until exact gate exists.</td></tr>
+    </tbody></table>
+    <h2>Rules</h2>
+    <div class="grid">
+      <div class="card"><h3>Polytrade</h3><p>Read docs/code/tests only. Extract ideas, not runtime dependencies.</p></div>
+      <div class="card"><h3>AWS</h3><p>Use a clean Oloraculo-owned stack with SSM ops. Measure p50/p90/p99 before latency claims.</p></div>
+      <div class="card"><h3>Storage</h3><p>Local disk is hot cache only. History goes to R2/S3-compatible object storage.</p></div>
+      <div class="card"><h3>Execution</h3><p>No live order path until Oloraculo has its own approval, WAL, reconciliation, and risk gates.</p></div>
+    </div>
+    <h2>Core scalp formula</h2>
+    <pre>entry side + hedge side &lt; 1.00
+profit/share = 1 - entry - hedge
+roi = profit / (entry + hedge)
+required_hedge = 1 / (1 + target_roi) - entry</pre>
+    <h2>Backlog</h2>
+    <ol>
+      <li>Keep SportsScalp cockpit read-only and auto-refreshing.</li>
+      <li>Add Oloraculo-owned Rust hotpath crate.</li>
+      <li>Add sanitized feed status contracts.</li>
+      <li>Add R2 archive writer and verified local prune.</li>
+      <li>Add Parquet/ZSTD materialization for research.</li>
+      <li>Deploy Oloraculo-owned AWS services via SSM.</li>
+      <li>Measure latency before claiming improvement.</li>
+      <li>Only then design live execution gates.</li>
+    </ol>
+  </main>
+</body>
+</html>
