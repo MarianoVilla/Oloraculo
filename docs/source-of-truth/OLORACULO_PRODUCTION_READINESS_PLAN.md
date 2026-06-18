@@ -35,7 +35,7 @@ Oloraculo is production ready only when all of these are true:
 
 | Area | Current assets | Production-readiness state |
 | --- | --- | --- |
-| Governance | `docs/source-of-truth/*`, `AGENTS.md`, `CLAUDE.md`, Codex agents, Codex skills, `oloraculo-context` MCP | Strong local operating layer, but most assets are currently untracked and must be reviewed before release. |
+| Governance | `docs/source-of-truth/*`, `AGENTS.md`, Codex agents, Codex skills, `oloraculo-context` MCP | Strong local operating layer, but most assets are currently untracked and must be reviewed before release. |
 | Application | .NET 9 Blazor Server app, prediction services, probability models, data import/export, test suite | Mature for World Cup prediction workflows; not yet a deployed trading runtime. |
 | Sports scalp UI | `SportsScalp.razor`, auto-refresh, no-order banners, Gamma/CLOB public-read scanner display | Useful local cockpit; still directly fetches Gamma/CLOB and needs AWS snapshot mode. |
 | Scalp math | Full-depth 400-share VWAP, hedge targets, ROI blockers, tests | Good core math; missing partial hedge/equalization and stronger stale/crossed/no-timing blockers. |
@@ -45,7 +45,7 @@ Oloraculo is production ready only when all of these are true:
 | R2/S3 archive | `S3ObjectArchiveService`, manifest sidecar, SHA256/size metadata verification, optional evidence checkpoint archive | Upload primitive exists; no compressed raw batcher, retry queue, durable manifest table, retention/prune job, or Parquet layers. |
 | AWS deployment | `Dockerfile`, `deploy/aws/README.md`, env example, `/healthz`, `/snapshot.json` | Container skeleton exists; no IaC, pinned service units, SSM scripts, rollback drill, or deployed proof. |
 | Security boundary | Secret ignore rules, redaction helpers, no-order UI language, disabled credential-backed MCPs by default | Strong analysis-only posture. Needs CI secret scan and regression tests on every release. |
-| Verification | `dotnet test`, Rust unit tests, MCP smoke, Codex/OpenCode health scripts, local container smoke | Local gates exist, but CI does not yet run the full stack and screenshot gates are missing. |
+| Verification | `dotnet test`, Rust unit tests, MCP smoke, Codex health, release-scope check, local container smoke | Local gates exist, but CI does not yet run the full stack and screenshot gates are missing. |
 | Live-path donor evidence | Read-only AWS inventory of NativePM/Polytrade live router, executor, private websocket, order heartbeat, open-order snapshot, paper/shadow, evidence, and monitor services | Useful donor concepts, but not Oloraculo production dependency; see `docs/source-of-truth/OLORACULO_LIVE_PATH_DONOR_AUDIT.md`. |
 
 ## What We Need
@@ -53,7 +53,7 @@ Oloraculo is production ready only when all of these are true:
 | Area | Required work | Why it matters | Acceptance evidence |
 | --- | --- | --- | --- |
 | Release baseline | Reconcile dirty/untracked files, decide release scope, track the production layer intentionally | Untracked source-of-truth, CI, tooling, and deploy files cannot be production evidence | Clean reviewed diff, CI passes from tracked files only |
-| CI and security gates | Add .NET, Rust, MCP smoke, Codex/OpenCode health, Docker build, browser screenshots, and secret scanning | Production readiness must be repeatable without this session | CI run with all gates green and artifacts retained |
+| CI and security gates | Add .NET, Rust, MCP smoke, Codex health, release-scope, Docker build, browser screenshots, and secret scanning | Production readiness must be repeatable without this session | CI run with all gates green and artifacts retained |
 | Feed contract | Freeze canonical schema across .NET, Rust, UI, `/snapshot.json`: `schema_version`, `present`, `latest_recv_ts`, `age_ms`, `rows_last_minute`, `join_coverage`, `last_error_redacted`, readiness, blockers | Config presence is not source health | Contract tests for missing, down, stale, empty, parse-error, not-implemented, and redacted-error states |
 | Source adapters | Add Databet sportsbook/widgets, OddsPapi/Pinnacle, GRID, and Polymarket CLOB status adapters; keep SofaScore deprecated unless a future source decision reactivates it | Operators need honest feed health and entitlement state | Fake adapter tests plus optional live smoke with env/SSM credentials |
 | CLOB hotpath | Promote Polymarket CLOB to resident collector/status source with token/book counts, freshness, crossed/thin/no-book blockers, and scanner coverage | Direct REST polling is not production collector-grade | Rust/.NET compatibility tests and snapshot fixture replay |
@@ -74,7 +74,7 @@ Oloraculo is production ready only when all of these are true:
 ### P0 - Stabilize The Release Boundary
 
 1. Reconcile the dirty worktree and make the production/tooling layer tracked.
-2. Add or enforce CI for `.NET`, Rust, MCP smoke, Codex/OpenCode health, Docker
+2. Add or enforce CI for `.NET`, Rust, MCP smoke, Codex health, release-scope, Docker
    build, secret scanning, and no-order static scans.
 3. Keep live-order capability under veto. Assert `WATCH_ONLY`,
    `NO_ORDER_PATH`, and `LiveOrderPath=none` across UI, checkpoints, snapshots,
@@ -152,7 +152,7 @@ Until then, Oloraculo remains analysis-only even when it says `TRADE_NOW`.
 
 | Slice | Deliverables | Primary owners | Required tests |
 | --- | --- | --- | --- |
-| 0. Release baseline | Reviewed tracked production layer, CI expansion, secret scan, no-order scan | `release-verification-lead`, `security-risk-sentinel` | `dotnet test`, `cargo test`, MCP smoke, Codex/OpenCode checks, Docker build, secret scan |
+| 0. Release baseline | Reviewed tracked production layer, CI expansion, secret scan, no-order scan | `release-verification-lead`, `security-risk-sentinel` | `dotnet test`, `cargo test`, MCP smoke, Codex health, release-scope, Docker build, secret scan |
 | 1. Feed contracts | Canonical schema, `.NET`/Rust/UI compatibility, generic adapter-state mapping | `feed-status-integrator`, `rust-hotpath-engineer` | Contract fixtures, redaction tests, `/snapshot.json` schema tests |
 | 2. CLOB collector status | Resident CLOB status model, freshness/blockers, scanner source contract | `rust-hotpath-engineer`, `feed-status-integrator` | Fake CLOB book tests, stale/crossed/thin blockers, snapshot compatibility |
 | 3. R2 archive | Raw batcher, manifest store, retry, verify/prune, retention | `r2-archive-lake-engineer`, `aws-runtime-operator` | Fake S3/R2 tests, test-bucket upload/hash/prune failure tests |
@@ -186,8 +186,7 @@ Before calling any milestone production ready, collect these artifacts:
 - `cargo test` for the Rust workspace.
 - `python tools/mcp/test_oloraculo_context_server.py`.
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/codex/check-oloraculo-codex.ps1`.
-- `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/opencode/check-oloraculo-opencode.ps1`
-  while compatibility mirrors remain.
+- `pwsh -NoProfile -ExecutionPolicy Bypass -File tools/release/check-release-scope.ps1`.
 - Docker build and local container run with `/healthz` and `/snapshot.json`
   smoke checks.
 - Secret scan over committed files, plus verification that ignored local secret
@@ -229,7 +228,7 @@ Before calling any milestone production ready, collect these artifacts:
 1. Make the production/tooling layer reviewable: track or intentionally exclude
    `.agents/`, `.codex/`, `.github/`, `docs/`, `deploy/`, `rust/`, `tools/`,
    `Dockerfile`, and `.dockerignore`.
-2. Add the production-readiness CI gates: Rust, MCP, Codex/OpenCode health,
+2. Add the production-readiness CI gates: Rust, MCP, Codex health, release-scope,
    Docker build, secret scan, and screenshot smoke.
 3. Add source-specific feed adapters and fake/live status tests.
 4. Promote Polymarket CLOB status from planned/public read to measured

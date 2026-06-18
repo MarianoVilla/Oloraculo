@@ -21,8 +21,8 @@ cargo test
 python tools\mcp\test_oloraculo_context_server.py
 pwsh -NoProfile -ExecutionPolicy Bypass -File tools\security\check-no-raw-secrets.ps1
 pwsh -NoProfile -ExecutionPolicy Bypass -File tools\security\check-no-live-order-path.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File tools\release\check-release-scope.ps1
 pwsh -NoProfile -ExecutionPolicy Bypass -File tools\codex\check-oloraculo-codex.ps1
-pwsh -NoProfile -ExecutionPolicy Bypass -File tools\opencode\check-oloraculo-opencode.ps1
 pwsh -NoProfile -ExecutionPolicy Bypass -File tools\release\test-container-smoke.ps1
 ```
 
@@ -70,15 +70,6 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File tools/codex/check-oloraculo-codex.
 ```
 
 Use this after changing Codex agents, skills, config, or MCP context files.
-
-## OpenCode Compatibility Health
-
-```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File tools/opencode/check-oloraculo-opencode.ps1
-```
-
-Use this after changing compatibility mirror files while `.opencode/*` remains
-available.
 
 ## Combo Lab Workflow Commands
 

@@ -13,7 +13,6 @@ It turns the repo's plans into a concrete implementation route.
 ## Required Reads
 
 - `AGENTS.md`
-- `CLAUDE.md`
 - `docs/source-of-truth/ACTIVE.md`
 - `docs/source-of-truth/COMMANDS.md`
 - `docs/source-of-truth/OLORACULO_PRODUCTION_ARCHITECTURE.md`

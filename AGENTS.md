@@ -30,7 +30,6 @@ dotnet run --project Oloraculo.Web -- --export-readme-snapshots
 python tooling\goal_strength_calibration.py
 python tools\mcp\test_oloraculo_context_server.py
 pwsh -NoProfile -ExecutionPolicy Bypass -File tools/codex/check-oloraculo-codex.ps1
-pwsh -NoProfile -ExecutionPolicy Bypass -File tools/opencode/check-oloraculo-opencode.ps1
 ```
 
 ## Side-Effect Map
@@ -64,7 +63,7 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File tools/opencode/check-oloraculo-ope
 - Use `quant-evidence-scientist` for probability, payoff masks, combo EV, hedge math, markouts, backtests, and PnL evidence.
 - Use `security-risk-sentinel` for secrets, local config, side-effect review, live-order boundaries, and risk vetoes.
 - Use `release-verification-lead` for build/test gates, CI, config validation, screenshots, MCP validation, and done claims.
-- Use `mcp-toolsmith` for Codex MCP servers, `.codex/config.toml`, `.codex/agents`, `.agents/skills`, compatibility mirrors, and tooling health.
+- Use `mcp-toolsmith` for Codex MCP servers, `.codex/config.toml`, `.codex/agents`, `.agents/skills`, and tooling health.
 
 ## Polymarket Combo Lab Boundary
 

@@ -39,7 +39,7 @@ Owners:
 | [x] | Create production-readiness plan | The repo needed one concrete source of truth for production gaps and priorities | `docs/source-of-truth/OLORACULO_PRODUCTION_READINESS_PLAN.md`; MCP smoke passes |
 | [x] | Create executable TODO board | The plan needs a working queue that agents can use without re-auditing | This file exists and is exposed through `oloraculo-context` |
 | [x] | Reconcile dirty/untracked worktree | Production evidence must be tracked, reviewable, and reproducible | First-release scope staged; deferred donor/reference folders ignored; `tools/release/check-release-scope.ps1` now fails on ambiguous untracked files |
-| [x] | Make health scripts repo-relative and fail on failed checks | CI must run the same checks on Linux that pass locally on Windows | Codex/OpenCode health scripts pass locally; CI run still pending |
+| [x] | Make health scripts repo-relative and fail on failed checks | CI must run the same checks on Linux that pass locally on Windows | Codex health and release-scope checks pass locally; CI run still pending |
 | [x] | Add committed/unignored-file secret scan | P0 requires a repeatable guard against raw tokens, private keys, and wallet material | `tools/security/check-no-raw-secrets.ps1` passes locally; CI run still pending |
 | [ ] | Expand CI beyond .NET | Production baseline needs Rust, MCP, tooling health, secret scan, no-order scan, and container smoke | `.github/workflows/dotnet.yml` is patched and local equivalents pass; actual CI run still pending |
 | [x] | Add no-order static scan | `WATCH_ONLY` and `NO_ORDER_PATH` must remain guarded while Phase 7 is incomplete | `tools/security/check-no-live-order-path.ps1` passes locally |
@@ -53,7 +53,7 @@ Latest local validation:
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File tools\security\check-no-raw-secrets.ps1` passed.
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File tools\security\check-no-live-order-path.ps1` passed.
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File tools\codex\check-oloraculo-codex.ps1` passed.
-- `pwsh -NoProfile -ExecutionPolicy Bypass -File tools\opencode\check-oloraculo-opencode.ps1` passed.
+- `pwsh -NoProfile -ExecutionPolicy Bypass -File tools\release\check-release-scope.ps1` passed with Codex-only tooling requirements and non-Codex mirror paths blocked.
 - `cargo test` passed: 12/12 Rust tests.
 - `dotnet test Oloraculo.sln` passed: 346/346 .NET tests.
 - `pwsh -NoProfile -ExecutionPolicy Bypass -File tools\release\test-container-smoke.ps1` passed after fixing typed-HTTP-client constructor ambiguity and enforcing secret-safe `/snapshot.json` checks.

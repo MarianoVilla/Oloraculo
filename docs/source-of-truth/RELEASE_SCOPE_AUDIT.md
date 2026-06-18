@@ -17,8 +17,6 @@ Date: 2026-06-18
 - `.agents/skills`
 - `.codex/agents`
 - `.codex/config.toml`
-- `.opencode`
-- `.claude` compatibility docs/agents/skills, kept only so non-Codex users land on the same Oloraculo source-of-truth
 - `.github/workflows/dotnet.yml`
 - `.dockerignore`
 - `.editorconfig`
@@ -42,7 +40,6 @@ Date: 2026-06-18
 - `tools/codex`
 - `tools/docs`
 - `tools/mcp`
-- `tools/opencode`
 - `tools/release`
 - `tools/security`
 - Release-scope note: `tools/release` is currently blocked by the broad `[Rr]elease/` ignore rule and needs an explicit allow-list or ignore-rule adjustment before it can be tracked.
@@ -60,12 +57,17 @@ Date: 2026-06-18
 - `oloraculo-dev.out.log`
 - `oloraculo-dev.err.log`
 - `.serena/`
+- `.opencode/`
+- `.claude/`
 - `.pytest_cache/`
 - `**/__pycache__/`
 - `polytrade-agent/`
 - `tools/c123-market-archive/`
 - `tools/c123-market-validation/`
 - `tools/c123-sports-scout-reference/`
+- `tools/opencode/`
+- `CLAUDE.md`
+- `opencode.json`
 - Local runtime databases and hot-cache files already covered by `.gitignore`.
 - Current evidence: `oloraculo-dev.out.log` and `oloraculo-dev.err.log` were tracked runtime logs and need explicit removal from release scope plus ignore-rule coverage.
 - Current decision: deferred donor/reference folders are preserved on disk but excluded from the first production release by `.gitignore`; `tools/release/check-release-scope.ps1` fails if they are tracked.

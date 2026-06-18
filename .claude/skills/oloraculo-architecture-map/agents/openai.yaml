@@ -1,4 +1,0 @@
-interface:
-  display_name: "Oloraculo Architecture Map"
-  short_description: "Route Oloraculo work from source of truth"
-  default_prompt: "Use $oloraculo-architecture-map to audit the current roadmap and route the next implementation slice."

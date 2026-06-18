@@ -1,4 +1,0 @@
-interface:
-  display_name: "Oloraculo Quant Evidence"
-  short_description: "Price candidates with evidence and risk math"
-  default_prompt: "Use $oloraculo-quant-evidence to evaluate combo EV, hedge math, markouts, or PnL evidence."

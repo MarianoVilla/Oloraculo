@@ -20,7 +20,6 @@ disclosure, unsafe side effects, or accidental trading.
 - `.codex/config.toml`
 - `.codex/agents/`
 - `.agents/skills/`
-- `opencode.json` when maintaining compatibility mirrors
 - `.mcp.json.example`
 
 ## Secret Handling

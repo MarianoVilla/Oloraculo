@@ -1,4 +1,0 @@
-interface:
-  display_name: "Oloraculo Release Gate"
-  short_description: "Run build, test, config, and readiness gates"
-  default_prompt: "Use $oloraculo-release-gate to verify an Oloraculo change before calling it done."

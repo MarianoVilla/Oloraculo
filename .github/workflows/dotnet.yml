@@ -51,13 +51,13 @@ jobs:
         shell: pwsh
         run: ./tools/security/check-no-live-order-path.ps1
 
+      - name: Release scope
+        shell: pwsh
+        run: ./tools/release/check-release-scope.ps1
+
       - name: Codex health
         shell: pwsh
         run: ./tools/codex/check-oloraculo-codex.ps1
-
-      - name: OpenCode compatibility health
-        shell: pwsh
-        run: ./tools/opencode/check-oloraculo-opencode.ps1
 
       - name: Container smoke
         shell: pwsh

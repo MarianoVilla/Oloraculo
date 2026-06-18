@@ -1,4 +1,0 @@
-interface:
-  display_name: "Oloraculo Security Boundary"
-  short_description: "Protect secrets, side effects, and live-order gates"
-  default_prompt: "Use $oloraculo-security-boundary to review secrets, unsafe side effects, or live-order boundaries."

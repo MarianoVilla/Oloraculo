@@ -12,8 +12,7 @@ Codex reads the project MCP profile from:
 .codex/config.toml
 ```
 
-`opencode.json` mirrors the same intent for OpenCode compatibility, but Codex
-should use `.codex/config.toml`.
+Codex is the only active AI client profile for this repo.
 
 ## Always-On MCPs
 
@@ -60,7 +59,7 @@ These are disabled in `.codex/config.toml` until explicitly configured:
 
 ## DBHub
 
-`.codex/config.toml` and `opencode.json` point disabled `dbhub-oloraculo` at:
+`.codex/config.toml` points disabled `dbhub-oloraculo` at:
 
 ```text
 tools/mcp/dbhub.local.toml

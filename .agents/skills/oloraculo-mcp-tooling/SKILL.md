@@ -1,6 +1,6 @@
 ---
 name: oloraculo-mcp-tooling
-description: Maintain Oloraculo Codex MCP servers, MCP profiles, project config, custom subagents, repo skills, compatibility mirrors, and validation tooling. Use when adding or editing .codex/config.toml, .codex/agents, .agents/skills, custom MCP servers, skill metadata, or orchestration health checks.
+description: Maintain Oloraculo Codex MCP servers, MCP profiles, project config, custom subagents, repo skills, and validation tooling. Use when adding or editing .codex/config.toml, .codex/agents, .agents/skills, custom MCP servers, skill metadata, or orchestration health checks.
 ---
 
 # Oloraculo MCP Tooling
@@ -17,12 +17,8 @@ and documentation cleanup.
 - `.codex/agents/`
 - `.agents/skills/`
 - `.mcp.json.example`
-- `opencode.json` when maintaining compatibility mirrors
-- `.opencode/README.md`
-- `.claude/README.md`
 - `tools/mcp/README.md`
 - `tools/codex/check-oloraculo-codex.ps1`
-- `tools/opencode/check-oloraculo-opencode.ps1`
 - `docs/source-of-truth/DATA_AND_SECRETS.md`
 
 ## MCP Policy
@@ -37,14 +33,13 @@ and documentation cleanup.
 
 ## Procedure
 
-1. Update `.codex/config.toml` first; update `opencode.json` and `.mcp.json.example` only as compatibility mirrors.
+1. Update `.codex/config.toml` first; update `.mcp.json.example` only when the placeholder example must stay aligned.
 2. Add or update `tools/mcp/README.md` with enablement notes.
 3. Validate TOML and JSON syntax.
 4. Run custom MCP smoke tests.
 5. Run skill validation for every new or changed skill.
 6. Run `tools/codex/check-oloraculo-codex.ps1`.
-7. Run `tools/opencode/check-oloraculo-opencode.ps1` if compatibility mirrors changed.
-8. Search for stale names with `rg`.
+7. Search for stale names with `rg`.
 
 ## Evidence
 

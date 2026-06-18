@@ -1,6 +1,6 @@
 ---
 name: oloraculo-release-gate
-description: Verify Oloraculo changes before done or ready claims. Use for build/test gates, Rust tests, UI screenshot evidence, Codex config and skill validation, MCP validation, compatibility mirror checks, CI checks, coverage, and final release-readiness summaries.
+description: Verify Oloraculo changes before done or ready claims. Use for build/test gates, Rust tests, UI screenshot evidence, Codex config and skill validation, MCP validation, CI checks, coverage, and final release-readiness summaries.
 ---
 
 # Oloraculo Release Gate
@@ -14,7 +14,6 @@ visually correct, or production-shaped.
 
 - `docs/source-of-truth/COMMANDS.md`
 - `tools/codex/check-oloraculo-codex.ps1`
-- `tools/opencode/check-oloraculo-opencode.ps1`
 - Changed files and matching tests
 
 ## Default Gates

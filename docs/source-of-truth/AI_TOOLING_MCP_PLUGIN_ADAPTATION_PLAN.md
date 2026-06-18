@@ -51,7 +51,7 @@ Primary editor/tool:
 
 - Codex is the primary AI work surface.
 - `.codex/config.toml`, `.codex/agents`, `.agents/skills`, and `tools/mcp` are canonical.
-- `.claude/*` and `.opencode/*` are compatibility mirrors.
+- OpenCode/Claude mirrors are not active release-scope tooling.
 
 Target user:
 
@@ -75,7 +75,7 @@ Current automation surfaces:
 | --- | --- | --- | --- |
 | Project MCP | `tools/mcp/oloraculo_context_server.py` | Canonical for read-only docs/routing | Keep and extend narrowly |
 | MCP profile | `.codex/config.toml` | Canonical Codex MCP config | Keep Codex-first |
-| MCP mirror | `.mcp.json.example`, `opencode.json` | Compatibility/reference | Keep placeholder-only |
+| MCP example | `.mcp.json.example` | Placeholder reference for Codex-compatible MCP setup | Keep placeholder-only |
 | Agent skills | `.agents/skills/*` | Canonical Codex repo skills | Keep validated |
 | Custom agents | `.codex/agents/*.toml` | Canonical Codex subagents | Keep validated |
 | Build/test | `dotnet`, `cargo test`, xUnit | Authoritative verification | Prefer over MCP mutation |
@@ -215,13 +215,12 @@ Purpose:
 
 Users:
 
-- Codex and compatibility clients that consume the project MCP profile.
+- Codex as the active project MCP client.
 - Human operator/developer reviewing returned guardrails and plans.
 
 Host/client:
 
-- Codex as primary MCP host/client.
-- OpenCode/Claude mirrors remain compatibility only.
+- Codex as the project MCP host/client.
 
 Transport if MCP:
 
@@ -335,7 +334,7 @@ Allowed with confirmation:
 
 Requires explicit approval:
 
-- `.codex/config.toml`, `.codex/agents`, `.agents/skills`, `.mcp.json.example`, `opencode.json`, `.claude/*`, `.opencode/*`.
+- `.codex/config.toml`, `.codex/agents`, `.agents/skills`, and `.mcp.json.example`.
 - CI workflow changes.
 - Dockerfile/deploy changes.
 - AWS/SSM/R2 configuration or scripts.
@@ -359,7 +358,6 @@ Path allowlist:
 
 - `AGENTS.md`
 - `README.md`
-- `CLAUDE.md`
 - `docs/source-of-truth/*.md`
 - `docs/superpowers/plans/*.md`
 - `tools/mcp/README.md`

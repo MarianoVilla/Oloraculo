@@ -152,8 +152,28 @@ try {
   Status "Release scope check run" $false $_.Exception.Message
 }
 
+try {
+  $tracked = & git -C $Root ls-files 2>&1
+  $blockedTracked = @()
+  foreach ($path in $tracked) {
+    $normalized = $path -replace "\\", "/"
+    if (
+      $normalized -eq "CLAUDE.md" -or
+      $normalized -eq "opencode.json" -or
+      $normalized.StartsWith(".claude/", [System.StringComparison]::OrdinalIgnoreCase) -or
+      $normalized.StartsWith(".opencode/", [System.StringComparison]::OrdinalIgnoreCase) -or
+      $normalized.StartsWith("tools/opencode/", [System.StringComparison]::OrdinalIgnoreCase)
+    ) {
+      $blockedTracked += $normalized
+    }
+  }
+  Status "No tracked non-Codex tooling" ($blockedTracked.Count -eq 0) (($blockedTracked | Sort-Object) -join " | ")
+} catch {
+  Status "No tracked non-Codex tooling" $false $_.Exception.Message
+}
+
 if (Get-Command rg -ErrorAction SilentlyContinue) {
-  $stale = & rg "\.claude/skills|\.opencode/agents|opencode default agent|Claude-only" -n .agents .codex AGENTS.md CLAUDE.md tools --glob "!tools/codex/check-oloraculo-codex.ps1" 2>$null
+  $stale = & rg "\.claude/skills|\.opencode/agents|opencode default agent|Claude-only|compatibility mirrors" -n .agents .codex AGENTS.md tools --glob "!tools/codex/check-oloraculo-codex.ps1" 2>$null
   Status "Codex-native docs avoid compatibility-only routing" ([string]::IsNullOrWhiteSpace(($stale -join "`n"))) (($stale -join " | "))
 }
 

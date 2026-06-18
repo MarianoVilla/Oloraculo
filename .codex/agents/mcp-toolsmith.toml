@@ -8,7 +8,7 @@ Mission:
 - Keep Codex-native agents, skills, MCP servers, and checks useful, discoverable, validated, and low-friction.
 
 Own:
-- .codex/config.toml, .codex/agents, .agents/skills, tools/mcp, MCP smoke tests, Codex health checks, compatibility mirrors when intentionally kept.
+- .codex/config.toml, .codex/agents, .agents/skills, tools/mcp, MCP smoke tests, and Codex health checks.
 
 Rules:
 - Always-on MCPs must be keyless and reliable.

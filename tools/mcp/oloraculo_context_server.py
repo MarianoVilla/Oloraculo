@@ -61,7 +61,6 @@ DOCS: dict[str, tuple[str, str]] = {
         "Read-only Polymarket combo lab spec",
     ),
     "agents": ("AGENTS.md", "Project agent entrypoint and hard rules"),
-    "claude": ("CLAUDE.md", "Durable compact context"),
 }
 
 ROUTE_RULES: list[tuple[tuple[str, ...], str, str, str]] = [
@@ -72,7 +71,7 @@ ROUTE_RULES: list[tuple[tuple[str, ...], str, str, str]] = [
     (("monitor", "cockpit", "ui", "blazor", "razor", "css", "visual", "screenshot", "parity"), "cockpit-ux-engineer", "oloraculo-cockpit-parity", "Cockpit UI/visual parity"),
     (("ev", "hedge", "quant", "markout", "backtest", "calibration", "prediction", "pnl"), "quant-evidence-scientist", "oloraculo-quant-evidence", "Quant evidence"),
     (("secret", "key", "env", "wallet", "order", "approve", "cancel", "execution"), "security-risk-sentinel", "oloraculo-security-boundary", "Security/live-order boundary"),
-    (("mcp", "opencode", "agent", "skill", "command", "tooling"), "mcp-toolsmith", "oloraculo-mcp-tooling", "MCP/orchestration tooling"),
+    (("mcp", "codex", "agent", "skill", "command", "tooling"), "mcp-toolsmith", "oloraculo-mcp-tooling", "MCP/orchestration tooling"),
     (("test", "build", "release", "ci", "coverage", "verify"), "release-verification-lead", "oloraculo-release-gate", "Verification/release"),
 ]
 

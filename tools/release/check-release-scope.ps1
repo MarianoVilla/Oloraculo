@@ -50,7 +50,6 @@ $requiredTrackedFiles = @(
   ".github/workflows/dotnet.yml",
   ".mcp.json.example",
   "AGENTS.md",
-  "CLAUDE.md",
   "Cargo.lock",
   "Cargo.toml",
   "Dockerfile",
@@ -76,7 +75,6 @@ foreach ($path in $requiredTrackedFiles) {
 $requiredTrackedPrefixes = @(
   ".agents/skills/",
   ".codex/agents/",
-  ".opencode/",
   "deploy/aws/",
   "docs/source-of-truth/",
   "docs/superpowers/plans/",
@@ -92,7 +90,6 @@ $requiredTrackedPrefixes = @(
   "tools/codex/",
   "tools/docs/",
   "tools/mcp/",
-  "tools/opencode/",
   "tools/release/",
   "tools/security/"
 )
@@ -106,6 +103,8 @@ foreach ($prefix in $requiredTrackedPrefixes) {
 $blockedSuffixes = @(".env", ".out.log", ".err.log", ".log")
 $blockedPrefixes = @(
   ".serena/",
+  ".claude/",
+  ".opencode/",
   ".pytest_cache/",
   "docs/reference/c123/",
   "docs/vendor/polymarket-docs/",
@@ -113,9 +112,10 @@ $blockedPrefixes = @(
   "tools/c123-market-archive/",
   "tools/c123-market-validation/",
   "tools/c123-sports-scout-reference/",
+  "tools/opencode/",
   "tools/polyfill-rs/"
 )
-$blockedExactPaths = @(".env", "pmkey.txt")
+$blockedExactPaths = @(".env", "pmkey.txt", "CLAUDE.md", "opencode.json")
 
 foreach ($path in $normalizedTrackedPaths) {
   if ($path -match '(^|/)\.env' -and $path -notmatch '(^|/)\.env\.example$') {

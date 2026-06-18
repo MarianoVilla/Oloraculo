@@ -6,7 +6,7 @@ This file is the short source-of-truth checkpoint for current project operation.
 
 - World Cup Edge Lab is a .NET 9 Blazor Server app for 2026 FIFA World Cup predictions.
 - The app has working xUnit coverage for probability, predictors, services, imports, snapshots, rankings, availability, and README export.
-- The repo now has a Codex-native AI operating layer: `AGENTS.md`, `CLAUDE.md`, `.agents/skills`, `.codex/agents`, `.codex/config.toml`, `tools/codex/check-oloraculo-codex.ps1`, and the custom `oloraculo-context` MCP under `tools/mcp`. `.claude/*` and `.opencode/*` remain compatibility mirrors only.
+- The repo now has a Codex-native AI operating layer: `AGENTS.md`, `.agents/skills`, `.codex/agents`, `.codex/config.toml`, `tools/codex/check-oloraculo-codex.ps1`, and the custom `oloraculo-context` MCP under `tools/mcp`. OpenCode/Claude mirrors are not part of the active release scope.
 - The Polymarket Combo Lab is analysis-only and tracked in `docs/source-of-truth/POLYMARKET_COMBO_LAB.md`.
 - The official Polymarket docs snapshot lives under `docs/vendor/polymarket-docs`; use `docs/source-of-truth/POLYMARKET_DOCS_REFERENCE_MAP.md` first for fast lookup.
 - The canonical feed/archive status contract is `docs/source-of-truth/FEED_STATUS_CONTRACT.md`; `/snapshot.json` is sanitized status-only, not a live monitor snapshot or order authority.
