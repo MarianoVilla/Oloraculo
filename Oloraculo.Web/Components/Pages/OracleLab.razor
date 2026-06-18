@@ -4,19 +4,19 @@
 @inject PredictionService Predictor
 @inject ISnackbar Snackbar
 
-<PageTitle>Laboratorio</PageTitle>
+<PageTitle>Lab</PageTitle>
 
 <MudStack Spacing="3">
     <div class="page-head">
-        <MudText Typo="Typo.h3">Laboratorio</MudText>
-        <MudText Typo="Typo.body1" Color="Color.Secondary">Compará dos equipos en toda la escalera de predicción.</MudText>
+        <MudText Typo="Typo.h3">Lab</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">Compare two teams across the full prediction ladder.</MudText>
     </div>
 
     <MudPaper Class="surface-card" Elevation="0">
         <MudGrid Spacing="2" Class="control-grid">
             <MudItem xs="12" md="5">
                 <MudAutocomplete T="Team"
-                                 Label="Equipo A"
+                                  Label="Team A"
                                  Value="_homeTeam"
                                  ValueChanged="OnHomeTeamChanged"
                                  SearchFunc="SearchTeams"
@@ -34,7 +34,7 @@
             </MudItem>
             <MudItem xs="12" md="5">
                 <MudAutocomplete T="Team"
-                                 Label="Equipo B"
+                                  Label="Team B"
                                  Value="_awayTeam"
                                  ValueChanged="OnAwayTeamChanged"
                                  SearchFunc="SearchTeams"
@@ -51,7 +51,7 @@
                 </MudAutocomplete>
             </MudItem>
             <MudItem xs="12" md="2" Class="action-cell">
-                <BusyButton Text="Predecir" BusyText="Prediciendo" IsBusy="_busy" Disabled="@(_homeTeam is null || _awayTeam is null || _homeTeam.Id == _awayTeam.Id)" Icon="@Icons.Material.Filled.AutoAwesome" OnClick="Predict" />
+                <BusyButton Text="Predict" BusyText="Predicting" IsBusy="_busy" Disabled="@(_homeTeam is null || _awayTeam is null || _homeTeam.Id == _awayTeam.Id)" Icon="@Icons.Material.Filled.AutoAwesome" OnClick="Predict" />
             </MudItem>
         </MudGrid>
         @if (_busy)
@@ -123,12 +123,12 @@
         try
         {
             _result = await Predictor.PredictPairAsync(_homeTeam.Id, _awayTeam.Id);
-            Snackbar.Add("Predicción completa.", Severity.Success);
+            Snackbar.Add("Prediction complete.", Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo generar la predicción.", Severity.Error);
+            Snackbar.Add("Could not generate the prediction.", Severity.Error);
         }
         finally
         {

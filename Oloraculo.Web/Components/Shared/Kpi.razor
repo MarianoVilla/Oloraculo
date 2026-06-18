@@ -1,0 +1,10 @@
+<div class="boxr-kpi">
+    <span>@Label</span>
+    <strong class="@Tone">@Value</strong>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public string Value { get; set; } = string.Empty;
+    [Parameter] public string Tone { get; set; } = string.Empty;
+}

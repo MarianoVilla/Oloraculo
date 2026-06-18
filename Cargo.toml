@@ -1,0 +1,4 @@
+[workspace]
+members = ["rust/oloraculo_hotpath"]
+exclude = ["tools/polyfill-rs"]
+resolver = "2"

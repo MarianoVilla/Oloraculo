@@ -30,7 +30,7 @@ namespace Oloraculo.Web.Services
         public async Task<ApiFootballRefreshReport> RefreshFixtureContextAsync(string fixtureId, CancellationToken ct = default)
         {
             if (!IsConfigured)
-                return new ApiFootballRefreshReport { IsConfigured = false, Notes = ["La clave de API-Football no está configurada."] };
+                return new ApiFootballRefreshReport { IsConfigured = false, Notes = ["API-Football key is not configured."] };
 
             var errors = new List<string>();
             var notes = new List<string>();
@@ -38,7 +38,7 @@ namespace Oloraculo.Web.Services
             {
                 var fixture = await _db.Fixtures.FindAsync([fixtureId], ct);
                 if (fixture is null)
-                    return new ApiFootballRefreshReport { IsConfigured = true, Errors = [$"No se encontró el partido {fixtureId}."] };
+                    return new ApiFootballRefreshReport { IsConfigured = true, Errors = [$"Match {fixtureId} was not found."] };
 
                 var mapping = await _db.ApiMappings.SingleOrDefaultAsync(m => m.LocalFixtureId == fixtureId, ct);
                 if (mapping is null)
@@ -46,7 +46,7 @@ namespace Oloraculo.Web.Services
                     var refresh = await RefreshFixturesAsync(ct);
                     mapping = await _db.ApiMappings.SingleOrDefaultAsync(m => m.LocalFixtureId == fixtureId, ct);
                     if (mapping is null)
-                        return new ApiFootballRefreshReport { IsConfigured = true, Notes = refresh.Notes, Errors = ["No se encontró un mapeo de API para este partido local."] };
+                        return new ApiFootballRefreshReport { IsConfigured = true, Notes = refresh.Notes, Errors = ["No API mapping was found for this local match."] };
                 }
 
                 var coverage = await GetApiAsync<ApiLeagueResponse>(
@@ -56,11 +56,11 @@ namespace Oloraculo.Web.Services
                     ct);
                 var coverageInfo = coverage?.Response.FirstOrDefault()?.League.Coverage;
                 if (coverageInfo is not null)
-                    notes.Add($"La cobertura indica lesiones={coverageInfo.Injuries}, cuotas={coverageInfo.Odds}, alineaciones={coverageInfo.Fixtures.Lineups}.");
+                    notes.Add($"Coverage reports injuries={coverageInfo.Injuries}, odds={coverageInfo.Odds}, lineups={coverageInfo.Fixtures.Lineups}.");
 
                 var fixtureInjuries = await GetApiAsync<ApiInjuryResponse>(
                     ApiFootballEndpoints.FixtureInjuries(mapping.ExternalFixtureId),
-                    "lesiones del partido",
+                    "match injuries",
                     errors,
                     ct);
                 var leagueInjuries = await GetApiAsync<ApiInjuryResponse>(
@@ -70,17 +70,17 @@ namespace Oloraculo.Web.Services
                     ct);
                 var lineups = await GetApiAsync<ApiLineupResponse>(
                     ApiFootballEndpoints.FixtureLineups(mapping.ExternalFixtureId),
-                    "alineaciones",
+                    "lineups",
                     errors,
                     ct);
                 var preMatchOdds = await GetApiAsync<ApiOddsResponse>(
                     ApiFootballEndpoints.PreMatchOdds(mapping.ExternalFixtureId),
-                    "cuotas previas",
+                    "pre-match odds",
                     errors,
                     ct);
                 var liveOdds = await GetApiAsync<ApiOddsResponse>(
                     ApiFootballEndpoints.LiveOdds(mapping.ExternalFixtureId),
-                    "cuotas en vivo",
+                    "live odds",
                     errors,
                     ct);
 
@@ -124,22 +124,22 @@ namespace Oloraculo.Web.Services
 
                 context.HasLineups = lineupRows > 0;
                 context.HasOdds = preMatchOddsRows > 0 || liveOddsRows > 0;
-                context.Notes = $"Actualizado desde API-Football. lesiones del partido={fixtureInjuryRows}; lesiones de la liga={leagueInjuryRows}; noticias confirmadas={newsClaims.Count}; roles noticias matcheados={newsClaims.Count(c => c.Position != PlayerPositions.Unknown)}; roles noticias desconocidos={newsClaims.Count(c => c.Position == PlayerPositions.Unknown)}; impactos API enriquecidos={externalUnavailablePlayers.Count(p => !PlayerImpactSources.IsFallback(p.ImpactSource))}; alineaciones={lineupRows}; cuotas previas={preMatchOddsRows}; cuotas en vivo={liveOddsRows}.";
+                context.Notes = $"Updated from API-Football. match injuries={fixtureInjuryRows}; league injuries={leagueInjuryRows}; confirmed news claims={newsClaims.Count}; matched news roles={newsClaims.Count(c => c.Position != PlayerPositions.Unknown)}; unknown news roles={newsClaims.Count(c => c.Position == PlayerPositions.Unknown)}; API-enriched impacts={externalUnavailablePlayers.Count(p => !PlayerImpactSources.IsFallback(p.ImpactSource))}; lineups={lineupRows}; pre-match odds={preMatchOddsRows}; live odds={liveOddsRows}.";
                 context.UpdatedAt = DateTimeOffset.UtcNow;
                 await _db.SaveChangesAsync(ct);
 
-                notes.Add($"Filas de lesiones del partido: {fixtureInjuryRows}. Filas de lesiones de liga/temporada: {leagueInjuryRows}. Bajas o dudas relevantes guardadas: equipo A {context.UnavailableHomePlayers}, equipo B {context.UnavailableAwayPlayers}.");
+                notes.Add($"Match injury rows: {fixtureInjuryRows}. League/season injury rows: {leagueInjuryRows}. Relevant out/doubtful claims saved: Team A {context.UnavailableHomePlayers}, Team B {context.UnavailableAwayPlayers}.");
                 if (newsClaims.Count > 0)
                     notes.Add($"Noticias confirmadas incluidas en el contexto: {newsClaims.Count}.");
                 if (externalUnavailablePlayers.Count > 0)
-                    notes.Add($"Lesiones API-Football con impacto enriquecido: {externalUnavailablePlayers.Count(p => !PlayerImpactSources.IsFallback(p.ImpactSource))}/{externalUnavailablePlayers.Count}.");
-                notes.Add($"Filas de alineaciones: {lineupRows}. Filas de cuotas previas: {preMatchOddsRows}. Filas de cuotas en vivo: {liveOddsRows}.");
+                    notes.Add($"API-Football injuries with enriched impact: {externalUnavailablePlayers.Count(p => !PlayerImpactSources.IsFallback(p.ImpactSource))}/{externalUnavailablePlayers.Count}.");
+                notes.Add($"Lineup rows: {lineupRows}. Pre-match odds rows: {preMatchOddsRows}. Live odds rows: {liveOddsRows}.");
                 if (fixtureInjuryRows == 0 && leagueInjuryRows == 0)
-                    notes.Add("No llegaron filas de lesiones. API-Football puede soportar lesiones para la competencia, pero todavía no tener bajas asociadas.");
+                    notes.Add("No injury rows arrived. API-Football may support injuries for the competition but not yet have associated absences.");
                 if (preMatchOddsRows == 0)
-                    notes.Add("No llegaron cuotas previas. API-Football documenta las cuotas previas como limitadas a los últimos 7 días.");
+                    notes.Add("No pre-match odds arrived. API-Football documents pre-match odds as limited to the last 7 days.");
                 if (liveOddsRows == 0)
-                    notes.Add("No llegaron cuotas en vivo. Es esperable salvo que el partido esté cerca de empezar, en vivo o recién terminado.");
+                    notes.Add("No live odds arrived. This is expected unless the match is near kickoff, live, or recently finished.");
 
                 return new ApiFootballRefreshReport
                 {
@@ -165,7 +165,7 @@ namespace Oloraculo.Web.Services
         public async Task<ApiFootballRefreshReport> RefreshFixturesAsync(CancellationToken ct = default)
         {
             if (!IsConfigured)
-                return new ApiFootballRefreshReport { IsConfigured = false, Notes = ["La clave de API-Football no está configurada. Los datos CSV siguen funcionando."] };
+                return new ApiFootballRefreshReport { IsConfigured = false, Notes = ["API-Football key is not configured. CSV data still works."] };
 
             var errors = new List<string>();
             var notes = new List<string>();
@@ -220,9 +220,9 @@ namespace Oloraculo.Web.Services
                 }
 
                 await _db.SaveChangesAsync(ct);
-                notes.Add($"Se obtuvieron {items.Count} filas de partidos y se matchearon {matched} partidos locales de fase de grupos.");
+                notes.Add($"Fetched {items.Count} match rows and matched {matched} local group-stage matches.");
                 if (unmatchedPairs.Count > 0)
-                    notes.Add($"No se matchearon {unmatchedPairs.Count} filas API contra partidos locales: {string.Join("; ", unmatchedPairs.Take(10))}{(unmatchedPairs.Count > 10 ? "; ..." : "")}");
+                    notes.Add($"Could not match {unmatchedPairs.Count} API rows to local matches: {string.Join("; ", unmatchedPairs.Take(10))}{(unmatchedPairs.Count > 10 ? "; ..." : "")}");
                 return new ApiFootballRefreshReport { IsConfigured = true, FixturesFetched = items.Count, FixturesMatched = matched, Notes = notes };
             }
             catch (Exception ex)
@@ -235,7 +235,7 @@ namespace Oloraculo.Web.Services
         public async Task<AvailabilityRefreshReport> EnrichAvailabilityRolesAsync(CancellationToken ct = default)
         {
             if (!IsConfigured)
-                return new AvailabilityRefreshReport { IsConfigured = false, Notes = ["La clave de API-Football no está configurada. No se pueden resolver roles."] };
+                return new AvailabilityRefreshReport { IsConfigured = false, Notes = ["API-Football key is not configured. Roles cannot be resolved."] };
 
             var errors = new List<string>();
             var notes = new List<string>();
@@ -244,11 +244,11 @@ namespace Oloraculo.Web.Services
                 .ToListAsync(ct);
 
             if (claims.Count == 0)
-                return new AvailabilityRefreshReport { IsConfigured = true, Notes = ["No hay reclamos de disponibilidad para enriquecer con roles."] };
+                return new AvailabilityRefreshReport { IsConfigured = true, Notes = ["No availability claims need role enrichment."] };
 
             var apiTeams = await GetApiAsync<ApiTeamListResponse>(
                 ApiFootballEndpoints.Teams(_config.ApiFootballLeagueId, _config.ApiFootballSeason),
-                "equipos API-Football",
+                "API-Football teams",
                 errors,
                 ct);
             var teamMap = (apiTeams?.Response ?? [])

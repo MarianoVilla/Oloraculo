@@ -183,7 +183,14 @@ public abstract class TestFixtures
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var uri = request.RequestUri?.ToString() ?? "";
-            if (!responses.TryGetValue(uri, out var content))
+            var body = request.Content is null
+                ? string.Empty
+                : request.Content.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult();
+            var methodKey = string.IsNullOrWhiteSpace(body)
+                ? $"{request.Method.Method} {uri}"
+                : $"{request.Method.Method} {uri}\n{body}";
+
+            if (!responses.TryGetValue(methodKey, out var content) && !responses.TryGetValue(uri, out content))
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
 
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)

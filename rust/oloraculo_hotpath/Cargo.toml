@@ -1,0 +1,11 @@
+[package]
+name = "oloraculo_hotpath"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "Read-only Oloraculo sports scalp hotpath primitives"
+license = "UNLICENSED"
+
+[lib]
+name = "oloraculo_hotpath"
+path = "src/lib.rs"

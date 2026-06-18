@@ -1,0 +1,19 @@
+<section class="boxr-panel">
+    <div class="boxr-panel-head">
+        <span class="boxr-panel-dot"></span>
+        <span class="boxr-panel-title">@Title</span>
+        @if (!string.IsNullOrWhiteSpace(Meta))
+        {
+            <span class="boxr-panel-meta">@Meta</span>
+        }
+    </div>
+    <div class="boxr-panel-body">
+        @ChildContent
+    </div>
+</section>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Meta { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

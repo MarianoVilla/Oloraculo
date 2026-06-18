@@ -32,7 +32,7 @@ public class EvaluationServiceTests : TestFixtures
         {
             Kind = "match",
             FixtureId = "f1",
-            ModelName = "Oráculo final",
+            ModelName = "Final edge model",
             InputSummaryHash = "hash",
             PayloadJson = "{}",
             Explanation = "test",
@@ -144,7 +144,7 @@ public class EvaluationServiceTests : TestFixtures
     {
         Kind = "match",
         FixtureId = fixtureId,
-        ModelName = "Oráculo final",
+        ModelName = "Final edge model",
         CreatedAt = createdAt ?? DateTimeOffset.UtcNow,
         InputSummaryHash = "hash",
         PayloadJson = "{}",
@@ -156,7 +156,7 @@ public class EvaluationServiceTests : TestFixtures
 
     private static PredictionEvaluation Evaluation(string fixtureId) => new()
     {
-        ModelName = "Oráculo final",
+        ModelName = "Final edge model",
         FixtureId = fixtureId,
         HomeTeamId = "a",
         AwayTeamId = "b",

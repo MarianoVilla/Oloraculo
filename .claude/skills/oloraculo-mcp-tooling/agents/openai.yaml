@@ -1,0 +1,4 @@
+interface:
+  display_name: "Oloraculo MCP Tooling"
+  short_description: "Maintain MCP servers, profiles, and checks"
+  default_prompt: "Use $oloraculo-mcp-tooling to add or verify Oloraculo MCP tooling."

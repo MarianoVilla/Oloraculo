@@ -7,7 +7,7 @@ namespace Oloraculo.Web.Predictors
     {
         private const double RankingBiasWeight = 0.15;
         private const string EloPredictorName = "Elo";
-        private const string FifaPredictorName = "Ranking FIFA";
+        private const string FifaPredictorName = "FIFA ranking";
 
         public static MatchPrediction Select(IReadOnlyList<MatchPrediction> ladder)
         {
@@ -24,14 +24,14 @@ namespace Oloraculo.Web.Predictors
 
             var drivers = new List<string>
             {
-                $"Seleccionó {selected.PredictorName} como el escalón usable más alto."
+                $"Selected {selected.PredictorName} as the highest usable ladder rung."
             };
-            drivers.AddRange(skippedHigher.Select(p => $"Omitió {p.PredictorName}: {Reason(p)}"));
+            drivers.AddRange(skippedHigher.Select(p => $"Skipped {p.PredictorName}: {Reason(p)}"));
             drivers.AddRange(selected.Drivers);
             if (rankingBias is not null)
             {
                 drivers.Add(
-                    $"Aplicó una calibración Elo/FIFA de {RankingBiasWeight:P0} hacia {OutcomeLabel(rankingBias.ConsensusTopPick)} porque ambos modelos de ranking coincidieron contra {selected.PredictorName}.");
+                    $"Applied a {RankingBiasWeight:P0} Elo/FIFA calibration toward {OutcomeLabel(rankingBias.ConsensusTopPick)} because both ranking models agreed against {selected.PredictorName}.");
             }
 
             var sources = selected.Sources
@@ -40,18 +40,24 @@ namespace Oloraculo.Web.Predictors
                 .Distinct()
                 .ToList();
 
+            var finalOutcome = rankingBias?.Outcome ?? selected.Outcome;
+            var finalScoreline = rankingBias is not null && selected.Scoreline is not null
+                ? selected.Scoreline.ReweightToOutcome(finalOutcome)
+                : selected.Scoreline;
+            var finalExpectedGoals = finalScoreline?.ExpectedGoals();
+
             return new MatchPrediction
             {
-                PredictorName = "Oráculo final",
+                PredictorName = "Final edge model",
                 PredictorPriority = selected.PredictorPriority,
                 FixtureId = selected.FixtureId,
                 HomeTeamId = selected.HomeTeamId,
                 AwayTeamId = selected.AwayTeamId,
-                Outcome = rankingBias?.Outcome ?? selected.Outcome,
-                ExpectedHomeGoals = selected.ExpectedHomeGoals,
-                ExpectedAwayGoals = selected.ExpectedAwayGoals,
-                Scoreline = selected.Scoreline,
-                MostLikelyScore = selected.MostLikelyScore,
+                Outcome = finalOutcome,
+                ExpectedHomeGoals = finalExpectedGoals is null ? selected.ExpectedHomeGoals : Math.Round(finalExpectedGoals.Value.Home, 2),
+                ExpectedAwayGoals = finalExpectedGoals is null ? selected.ExpectedAwayGoals : Math.Round(finalExpectedGoals.Value.Away, 2),
+                Scoreline = finalScoreline,
+                MostLikelyScore = finalScoreline?.MostLikelyScoreline() ?? selected.MostLikelyScore,
                 Explanation = BuildExplanation(selected, skippedHigher, rankingBias),
                 Drivers = drivers,
                 FeaturesUsed = selected.FeaturesUsed,
@@ -96,41 +102,40 @@ namespace Oloraculo.Web.Predictors
         {
             var rankingSentence = rankingBias is null
                 ? ""
-                : $" Aplicó una calibración Elo/FIFA de {RankingBiasWeight:P0} hacia {OutcomeLabel(rankingBias.ConsensusTopPick)}.";
+                : $" Applied a {RankingBiasWeight:P0} Elo/FIFA calibration toward {OutcomeLabel(rankingBias.ConsensusTopPick)}.";
 
             if (skippedHigher.Count == 0)
-                return $"El Oráculo final seleccionó {selected.PredictorName}, el escalón usable más alto. {selected.Explanation}{rankingSentence}";
+                return $"The final edge model selected {selected.PredictorName}, the highest usable ladder rung. {selected.Explanation}{rankingSentence}";
 
             var skipped = string.Join("; ", skippedHigher.Select(p => $"{p.PredictorName} {Reason(p)}"));
-            return $"El Oráculo final seleccionó {selected.PredictorName} porque {skipped}. {selected.Explanation}{rankingSentence}";
+            return $"The final edge model selected {selected.PredictorName} because {skipped}. {selected.Explanation}{rankingSentence}";
         }
 
         private static string Reason(MatchPrediction prediction)
         {
             if (prediction.FeaturesMissing.Count == 0)
-                return "no era usable";
+                return "was not usable";
 
-            var missingVerb = prediction.FeaturesMissing.Count == 1 ? "faltaba" : "faltaban";
-            return $"no era usable: {missingVerb} {string.Join(", ", prediction.FeaturesMissing)}";
+            return $"was not usable: missing {string.Join(", ", prediction.FeaturesMissing)}";
         }
 
         private static MatchPrediction EmptyFinal() => new()
         {
-            PredictorName = "Oráculo final",
+            PredictorName = "Final edge model",
             PredictorPriority = 0,
             Outcome = OutcomeProbabilities.Uniform,
-            Explanation = "El Oráculo final no tenía predicciones de la escalera, así que devolvió la base.",
-            Drivers = ["No había predicciones disponibles en la escalera."],
-            FeaturesMissing = ["predicciones de la escalera"],
+            Explanation = "The final edge model had no ladder predictions, so it returned the baseline.",
+            Drivers = ["No ladder predictions were available."],
+            FeaturesMissing = ["ladder predictions"],
             Sources = [new SourceMetadata("model ladder", "derived")],
             Degraded = true
         };
 
         private static string OutcomeLabel(string outcome) => outcome switch
         {
-            "Home" => "equipo A",
-            "Away" => "equipo B",
-            "Draw" => "empate",
+            "Home" => "Team A",
+            "Away" => "Team B",
+            "Draw" => "draw",
             _ => outcome
         };
 

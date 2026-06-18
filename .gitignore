@@ -3,6 +3,8 @@
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
+!/tools/release/
+!/tools/release/*.ps1
 bin/
 obj/
 x64/
@@ -15,6 +17,9 @@ bld/
 [Oo]ut/
 [Ll]og/
 [Ll]ogs/
+*.log
+*.out.log
+*.err.log
 
 ## Visual Studio / Rider
 .vs/
@@ -28,6 +33,20 @@ bld/
 ## Codex
 /.codex-tmp/
 
+## Local tools / caches
+.serena/
+.pytest_cache/
+**/__pycache__/
+
+## Deferred donor/reference material kept outside the first production release
+/docs/reference/c123/
+/docs/vendor/polymarket-docs/
+/polytrade-agent/
+/tools/c123-market-archive/
+/tools/c123-market-validation/
+/tools/c123-sports-scout-reference/
+/tools/polyfill-rs/
+
 ## Local automation
 /publish-readme-snapshot.bat
 
@@ -35,6 +54,7 @@ bld/
 project.lock.json
 project.fragment.lock.json
 artifacts/
+/target/
 *.nupkg
 *.snupkg
 
@@ -52,11 +72,33 @@ coverage*.info
 *.db
 *.db-shm
 *.db-wal
+/Oloraculo.Web/Data/combo_lab_evidence_ledger.jsonl
+
+## Market-data hot cache / bulk archives (never commit raw books locally)
+/data/
+/Oloraculo.Web/Data/hot/
+/Oloraculo.Web/Data/raw/
+/Oloraculo.Web/Data/bronze/
+/Oloraculo.Web/Data/silver/
+/Oloraculo.Web/Data/gold/
 
 ## Local secrets and environment-specific settings
 **/appsettings.Development.json
+.mcp.json
+pmkey.txt
+.env
+.env.*
+!.env.example
 *.env
 secrets.json
+dbhub.local.toml
+tools/mcp/dbhub.local.toml
+*.pem
+*.key
+*.pfx
+*.crt
+*.cert
+*.kubeconfig
 
 ## OS files
 .DS_Store

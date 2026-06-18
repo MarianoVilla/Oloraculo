@@ -5,29 +5,29 @@
 @inject IOptions<OloraculoConfig> Options
 @inject ISnackbar Snackbar
 
-<PageTitle>Torneo</PageTitle>
+<PageTitle>Tournament</PageTitle>
 
 <MudStack Spacing="3">
     <div class="page-head">
-        <MudText Typo="Typo.h3">Torneo</MudText>
-        <MudText Typo="Typo.body1" Color="Color.Secondary">Proyección Monte Carlo con la estructura oficial de grupos y eliminación directa de 2026.</MudText>
+        <MudText Typo="Typo.h3">Tournament</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">Monte Carlo projection using the official 2026 group and knockout structure.</MudText>
     </div>
 
     <MudPaper Class="surface-card" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="action-row">
-            <BusyButton Text="Correr simulación" BusyText="Simulando torneo" IsBusy="_busy" Icon="@Icons.Material.Filled.PlayArrow" OnClick="Run" />
-            <MudButton Href="tournament/snapshots" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.History">Ver snapshots</MudButton>
+            <BusyButton Text="Run simulation" BusyText="Simulating tournament" IsBusy="_busy" Icon="@Icons.Material.Filled.PlayArrow" OnClick="Run" />
+            <MudButton Href="tournament/snapshots" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.History">View snapshots</MudButton>
             <MudSpacer />
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@Options.Value.SimulationCount.ToString("N0") simulaciones configuradas</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@Options.Value.SimulationCount.ToString("N0") configured simulations</MudText>
         </MudStack>
         @if (_busy)
         {
             <MudProgressLinear Class="inline-progress" Color="Color.Primary" Indeterminate="true" />
-            <MudText Typo="Typo.caption" Color="Color.Secondary">Corriendo @Options.Value.SimulationCount.ToString("N0") simulaciones configuradas...</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Running @Options.Value.SimulationCount.ToString("N0") configured simulations...</MudText>
         }
         @if (_projection is not null)
         {
-            <MudText Typo="Typo.caption" Color="Color.Secondary">@_projection.Simulations.ToString("N0") simulaciones | @_projection.InputSummaryHash</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@_projection.Simulations.ToString("N0") simulations | @_projection.InputSummaryHash</MudText>
         }
     </MudPaper>
 
@@ -39,25 +39,25 @@
     @if (_projection is not null)
     {
         <MudPaper Class="surface-card" Elevation="0">
-            <MudText Typo="Typo.h6">Probabilidad de campeón</MudText>
+            <MudText Typo="Typo.h6">Championship probability</MudText>
             <MudTable Items="_projection.Teams.Take(32)" Dense="true" Hover="true" Elevation="0" Class="dense-table">
                 <HeaderContent>
-                    <MudTh>Equipo</MudTh>
-                    <MudTh Class="num">Clasifica</MudTh>
-                    <MudTh Class="num">16avos</MudTh>
-                    <MudTh Class="num">4tos</MudTh>
+                    <MudTh>Team</MudTh>
+                    <MudTh Class="num">Qualify</MudTh>
+                    <MudTh Class="num">R32</MudTh>
+                    <MudTh Class="num">QF</MudTh>
                     <MudTh Class="num">Semis</MudTh>
                     <MudTh Class="num">Final</MudTh>
-                    <MudTh Class="num">Campeón</MudTh>
+                    <MudTh Class="num">Champion</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Equipo"><TeamLabel TeamId="@context.TeamId" Name="@Name(context.TeamId)" /></MudTd>
-                    <MudTd DataLabel="Clasifica" Class="num">@context.Qualify.ToString("P0")</MudTd>
-                    <MudTd DataLabel="16avos" Class="num">@context.ReachRoundOf16.ToString("P0")</MudTd>
-                    <MudTd DataLabel="4tos" Class="num">@context.ReachQuarterFinal.ToString("P0")</MudTd>
+                    <MudTd DataLabel="Team"><TeamLabel TeamId="@context.TeamId" Name="@Name(context.TeamId)" /></MudTd>
+                    <MudTd DataLabel="Qualify" Class="num">@context.Qualify.ToString("P0")</MudTd>
+                    <MudTd DataLabel="R32" Class="num">@context.ReachRoundOf16.ToString("P0")</MudTd>
+                    <MudTd DataLabel="QF" Class="num">@context.ReachQuarterFinal.ToString("P0")</MudTd>
                     <MudTd DataLabel="Semis" Class="num">@context.ReachSemiFinal.ToString("P0")</MudTd>
                     <MudTd DataLabel="Final" Class="num">@context.ReachFinal.ToString("P0")</MudTd>
-                    <MudTd DataLabel="Campeón" Class="num"><strong>@context.WinTournament.ToString("P1")</strong></MudTd>
+                    <MudTd DataLabel="Champion" Class="num"><strong>@context.WinTournament.ToString("P1")</strong></MudTd>
                 </RowTemplate>
             </MudTable>
         </MudPaper>
@@ -82,12 +82,12 @@
         try
         {
             _projection = await Simulator.RunAsync(Options.Value.SimulationCount);
-            Snackbar.Add("Simulación completa.", Severity.Success);
+            Snackbar.Add("Simulation complete.", Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo correr la simulación.", Severity.Error);
+            Snackbar.Add("Could not run the simulation.", Severity.Error);
         }
         finally
         {

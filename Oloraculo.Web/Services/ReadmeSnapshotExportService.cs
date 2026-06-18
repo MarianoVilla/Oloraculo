@@ -156,13 +156,13 @@ namespace Oloraculo.Web.Services
             IReadOnlyDictionary<string, IReadOnlyList<AvailabilityClaim>>? availabilityClaimsByFixture = null)
         {
             var builder = new StringBuilder();
-            builder.AppendLine("## Predicciones más recientes");
-            builder.AppendLine("_A medida que se recibe nueva información y se juegan partidos reales, " +
-                "el Oloráculo ajusta sus predicciones y las publica acá. A continuación vas a encontrar las más recientes._");
+            builder.AppendLine("## Latest Predictions");
+            builder.AppendLine("_As new information arrives and real matches are played, " +
+                "World Cup Edge Lab updates its predictions and publishes the latest snapshot here._");
             builder.AppendLine();
-            builder.AppendLine("### Torneo");
+            builder.AppendLine("### Tournament");
             builder.AppendLine();
-            builder.AppendLine($"_Generado {generatedAt.UtcDateTime:yyyy-MM-dd HH:mm} UTC a través de {projection.Simulations.ToString("N0", CultureInfo.InvariantCulture)} simulaciones._");
+            builder.AppendLine($"_Generated {generatedAt.UtcDateTime:yyyy-MM-dd HH:mm} UTC using {projection.Simulations.ToString("N0", CultureInfo.InvariantCulture)} simulations._");
             builder.AppendLine();
             builder.AppendLine("| Team | Group | Qualify | QF | SF | Final | Champion |");
             builder.AppendLine("| --- | --- | ---: | ---: | ---: | ---: | ---: |");
@@ -173,7 +173,7 @@ namespace Oloraculo.Web.Services
             }
 
             builder.AppendLine();
-            builder.AppendLine("### Grupos");
+            builder.AppendLine("### Groups");
             builder.AppendLine();
 
             foreach (var group in predictionRows.GroupBy(p => p.Result.Fixture.Group).OrderBy(g => g.Key))
@@ -398,7 +398,7 @@ namespace Oloraculo.Web.Services
 
             var availability = AvailabilityText(fixtureId, availabilityClaimsByFixture);
             if (!string.IsNullOrWhiteSpace(availability))
-                lines.Add($"Bajas: {availability}");
+                lines.Add($"Absences: {availability}");
 
             return string.Join("<br>", lines.Select(line => SanitizeCellSegment(line, maxLength: 220)));
         }
@@ -425,7 +425,7 @@ namespace Oloraculo.Web.Services
             var signals = new List<string>();
             signals.AddRange(prediction.FeaturesUsed);
             if (prediction.MostLikelyScore is { } score)
-                signals.Add($"Marcador más probable: {score.Home}-{score.Away}");
+                signals.Add($"Most likely score: {score.Home}-{score.Away}");
             signals.AddRange(prediction.Drivers.Where(IsSignalDriver));
             return LimitedList(signals, maxItems: 4, maxItemLength: 90);
         }
@@ -435,9 +435,9 @@ namespace Oloraculo.Web.Services
         {
             var normalized = FlattenWhitespace(driver);
             return !string.IsNullOrWhiteSpace(normalized) &&
-                !normalized.StartsWith("Seleccionó ", StringComparison.OrdinalIgnoreCase) &&
-                !normalized.StartsWith("Omitió ", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(normalized, "No se aplicó ajuste de contexto", StringComparison.OrdinalIgnoreCase);
+                !normalized.StartsWith("Selected ", StringComparison.OrdinalIgnoreCase) &&
+                !normalized.StartsWith("Skipped ", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(normalized, "No context adjustment applied", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string AvailabilityText(

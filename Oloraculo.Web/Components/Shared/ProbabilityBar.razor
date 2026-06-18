@@ -18,5 +18,5 @@
 
     private static string Pct(double value) => $"{Math.Max(value * 100, 0):0.###}%";
     private static string Label(double value) => value >= .08 ? value.ToString("P0") : "";
-    private string AriaLabel => $"{HomeLabel} {Outcome.HomeWin:P0}, empate {Outcome.Draw:P0}, {AwayLabel} {Outcome.AwayWin:P0}";
+    private string AriaLabel => $"{HomeLabel} {Outcome.HomeWin:P0}, draw {Outcome.Draw:P0}, {AwayLabel} {Outcome.AwayWin:P0}";
 }

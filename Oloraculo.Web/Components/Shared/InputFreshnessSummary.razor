@@ -1,0 +1,47 @@
+@using Oloraculo.Web.ComboLab.Monitor
+
+<div class="monitor-strip mini freshness-summary">
+    <div><span class="monitor-k">@StatusLabel</span><span class="monitor-v @FreshnessCss(Freshness.Status)">@Freshness.Status</span></div>
+    <div><span class="monitor-k">max input age</span><span class="monitor-v @FreshnessCss(Freshness.Status)">@FreshnessAgeText(Freshness)</span></div>
+    <div><span class="monitor-k">input count</span><span class="monitor-v">@Freshness.InputCount</span></div>
+    <div><span class="monitor-k">gamma inputs</span><span class="monitor-v">@Freshness.GammaInputCount</span></div>
+    <div><span class="monitor-k">clob books</span><span class="monitor-v">@Freshness.ClobBookInputCount</span></div>
+    <div><span class="monitor-k">capture span</span><span class="monitor-v">@FreshnessSpanText(Freshness)</span></div>
+</div>
+<div class="combo-market-meta">@SummaryLabel: @Freshness.Detail · oldest/newest @FreshnessWindowText(Freshness)</div>
+
+@code {
+    [Parameter] public LiveComplementaryInputFreshness Freshness { get; set; } = new(
+        "NO_INPUTS",
+        InputCount: 0,
+        GammaInputCount: 0,
+        ClobBookInputCount: 0,
+        OldestFetchedAtUtc: null,
+        NewestFetchedAtUtc: null,
+        MaxAgeSeconds: 0,
+        SpanSeconds: 0,
+        "no public input hashes captured");
+
+    [Parameter] public string StatusLabel { get; set; } = "input freshness";
+    [Parameter] public string SummaryLabel { get; set; } = "Input freshness summary";
+
+    private static string FreshnessCss(string status) => status switch
+    {
+        "FRESH" => "safe",
+        "STALE" => "danger",
+        "NO_INPUTS" => "warn",
+        _ => "warn"
+    };
+
+    private static string FreshnessAgeText(LiveComplementaryInputFreshness freshness) => freshness.InputCount == 0
+        ? "n/a"
+        : $"{freshness.MaxAgeSeconds:0.0}s";
+
+    private static string FreshnessSpanText(LiveComplementaryInputFreshness freshness) => freshness.InputCount == 0
+        ? "n/a"
+        : $"{freshness.SpanSeconds:0.0}s";
+
+    private static string FreshnessWindowText(LiveComplementaryInputFreshness freshness) => freshness.OldestFetchedAtUtc is null || freshness.NewestFetchedAtUtc is null
+        ? "n/a"
+        : $"{freshness.OldestFetchedAtUtc.Value:HH:mm:ss}–{freshness.NewestFetchedAtUtc.Value:HH:mm:ss} UTC";
+}

@@ -65,7 +65,7 @@ namespace Oloraculo.Web.Services.Simulation
         public static IReadOnlyDictionary<int, string> AssignThirdPlaceGroups(IReadOnlyCollection<string> qualifiedThirdGroups)
         {
             if (qualifiedThirdGroups.Count != 8)
-                throw new InvalidOperationException($"El cuadro 2026 requiere exactamente ocho grupos con terceros clasificados, pero recibió {qualifiedThirdGroups.Count}.");
+                throw new InvalidOperationException($"The 2026 bracket requires exactly eight qualified third-place groups, but received {qualifiedThirdGroups.Count}.");
 
             var qualified = qualifiedThirdGroups.ToHashSet(StringComparer.OrdinalIgnoreCase);
             var slots = RoundOf32
@@ -78,7 +78,7 @@ namespace Oloraculo.Web.Services.Simulation
             var assigned = new Dictionary<int, string>();
             var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (!TryAssign(0))
-                throw new InvalidOperationException($"No se pudieron asignar los grupos de terceros {string.Join(",", qualifiedThirdGroups.Order())} a los cruces oficiales de 2026.");
+                throw new InvalidOperationException($"Could not assign third-place groups {string.Join(",", qualifiedThirdGroups.Order())} to the official 2026 bracket ties.");
 
             return assigned;
 

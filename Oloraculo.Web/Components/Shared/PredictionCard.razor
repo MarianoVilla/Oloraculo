@@ -15,13 +15,44 @@
     @if (Prediction.ExpectedHomeGoals.HasValue && Prediction.ExpectedAwayGoals.HasValue)
     {
         <MudText Typo="Typo.caption" Color="Color.Secondary">
-            Goles esperados <TeamLabel TeamId="@Prediction.HomeTeamId" Name="@HomeLabel" Compact="true" /> @Prediction.ExpectedHomeGoals.Value.ToString("0.00")
+            Expected goals <TeamLabel TeamId="@Prediction.HomeTeamId" Name="@HomeLabel" Compact="true" /> @Prediction.ExpectedHomeGoals.Value.ToString("0.00")
             - @Prediction.ExpectedAwayGoals.Value.ToString("0.00") <TeamLabel TeamId="@Prediction.AwayTeamId" Name="@AwayLabel" Compact="true" />
             @if (Prediction.MostLikelyScore.HasValue)
             {
                 <span> | probable @Prediction.MostLikelyScore.Value.Home-@Prediction.MostLikelyScore.Value.Away</span>
             }
         </MudText>
+    }
+
+    @if (Prediction.Scoreline is { } scoreline)
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="section-label">Lentes de mercado desde la grilla de marcadores</MudText>
+        <MudStack Row="true" Spacing="1" Class="chip-wrap market-lens">
+            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                <TeamLabel TeamId="@Prediction.HomeTeamId" Name="@HomeLabel" Compact="true" /> U0.5 @Percent(scoreline.TeamNoGoalProbability(homeTeam: true))
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                <TeamLabel TeamId="@Prediction.AwayTeamId" Name="@AwayLabel" Compact="true" /> U0.5 @Percent(scoreline.TeamNoGoalProbability(homeTeam: false))
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Outlined">BTTS @Percent(scoreline.BothTeamsToScoreProbability())</MudChip>
+            <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Outlined">Over 2.5 @Percent(scoreline.TotalGoalsOverProbability(2.5))</MudChip>
+        </MudStack>
+
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="section-label">Same-team win + U0.5 combo</MudText>
+        <MudStack Row="true" Spacing="1" Class="chip-wrap market-lens">
+            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">
+                <TeamLabel TeamId="@Prediction.HomeTeamId" Name="@HomeLabel" Compact="true" /> cubre @Percent(scoreline.TeamWinOrNoGoalProbability(homeTeam: true))
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">
+                agujero @Percent(scoreline.TeamScoresAndDoesNotWinProbability(homeTeam: true))
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">
+                <TeamLabel TeamId="@Prediction.AwayTeamId" Name="@AwayLabel" Compact="true" /> cubre @Percent(scoreline.TeamWinOrNoGoalProbability(homeTeam: false))
+            </MudChip>
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">
+                agujero @Percent(scoreline.TeamScoresAndDoesNotWinProbability(homeTeam: false))
+            </MudChip>
+        </MudStack>
     }
 
     <MudText Typo="Typo.body2" Class="explain">@Prediction.Explanation</MudText>
@@ -75,4 +106,6 @@
     [Parameter] public string HomeLabel { get; set; } = "Local";
     [Parameter] public string AwayLabel { get; set; } = "Visitante";
     [Parameter] public bool ShowDetails { get; set; } = true;
+
+    private static string Percent(double value) => value.ToString("P0");
 }

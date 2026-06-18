@@ -48,13 +48,13 @@ namespace Oloraculo.Web.Services
             await EnsureSnapshotColumnsAsync(ct);
             var predictionList = predictions.ToList();
             if (predictionList.Count == 0)
-                throw new InvalidOperationException("No hay predicciones para guardar.");
+                throw new InvalidOperationException("No predictions are available to save.");
 
             var fixtureIds = predictionList.Select(p => p.FixtureId).ToList();
             if (fixtureIds.Any(string.IsNullOrWhiteSpace))
-                throw new InvalidOperationException("Todas las predicciones deben tener fixture.");
+                throw new InvalidOperationException("Every prediction must have a fixture.");
             if (fixtureIds.Distinct(StringComparer.Ordinal).Count() != fixtureIds.Count)
-                throw new InvalidOperationException("No se puede guardar un fixture completo con partidos duplicados.");
+                throw new InvalidOperationException("Cannot save a full fixture with duplicated matches.");
 
             var now = DateTimeOffset.UtcNow;
             var modelName = predictionList.Select(p => p.PredictorName).Distinct(StringComparer.Ordinal).SingleOrDefault() ?? "Fixture completo";
@@ -73,7 +73,7 @@ namespace Oloraculo.Web.Services
                 CreatedAt = now,
                 InputSummaryHash = CryptoUtil.GetSha256($"full-fixture|{now:O}|{string.Join("|", fixtureIds)}"),
                 PayloadJson = payload,
-                Explanation = $"{predictionList.Count} predicciones de fixture guardadas como lote.",
+                Explanation = $"{predictionList.Count} fixture predictions saved as a batch.",
                 HomeWin = 0,
                 Draw = 0,
                 AwayWin = 0
@@ -166,11 +166,11 @@ namespace Oloraculo.Web.Services
                 .FirstOrDefaultAsync(s => s.Kind == FullFixtureKind && s.Id == id, ct);
 
             if (batch is null)
-                return new FullFixtureSnapshotLoadResult([], "No se encontró el snapshot de fixture completo.");
+                return new FullFixtureSnapshotLoadResult([], "Full-fixture snapshot was not found.");
 
             var payload = DeserializeFullFixturePayload(batch.PayloadJson, out var error);
             if (payload is null)
-                return new FullFixtureSnapshotLoadResult([], error ?? "No se pudo leer el snapshot de fixture completo.");
+                return new FullFixtureSnapshotLoadResult([], error ?? "Could not read the full-fixture snapshot.");
 
             var snapshots = await _db.Snapshots
                 .AsNoTracking()
@@ -178,7 +178,7 @@ namespace Oloraculo.Web.Services
                 .ToListAsync(ct);
 
             if (snapshots.Count != payload.FixtureIds.Count)
-                return new FullFixtureSnapshotLoadResult([], "El snapshot de fixture completo está incompleto.");
+                return new FullFixtureSnapshotLoadResult([], "The full-fixture snapshot is incomplete.");
 
             var order = payload.FixtureIds
                 .Select((fixtureId, index) => new { fixtureId, index })
@@ -189,7 +189,7 @@ namespace Oloraculo.Web.Services
             {
                 var result = await ToMatchPredictionResultAsync(snapshot, ct);
                 if (!result.IsValid || result.Prediction is null)
-                    return new FullFixtureSnapshotLoadResult([], result.Error ?? "No se pudo leer una predicción del lote.");
+                    return new FullFixtureSnapshotLoadResult([], result.Error ?? "Could not read a prediction from the batch.");
 
                 results.Add(result.Prediction);
             }
@@ -219,7 +219,7 @@ namespace Oloraculo.Web.Services
         {
             var latest = (await MatchSnapshotsAsync(fixtureId, ct: ct)).FirstOrDefault(snapshot => snapshot.IsValid);
             return latest is null
-                ? new MatchSnapshotLoadResult(null, "No hay snapshots guardados para este partido.")
+                ? new MatchSnapshotLoadResult(null, "No saved snapshots are available for this match.")
                 : await LoadMatchSnapshotAsync(latest.Id, ct);
         }
 
@@ -246,7 +246,7 @@ namespace Oloraculo.Web.Services
                 .FirstOrDefault();
 
             return snapshot is null
-                ? new MatchSnapshotLoadResult(null, "No hay snapshots guardados para este partido antes del corte.")
+                ? new MatchSnapshotLoadResult(null, "No saved snapshots are available for this match before the cutoff.")
                 : await ToMatchPredictionResultAsync(snapshot, ct);
         }
 
@@ -258,7 +258,7 @@ namespace Oloraculo.Web.Services
                 .FirstOrDefaultAsync(s => s.Kind == MatchKind && s.Id == id, ct);
 
             if (snapshot is null)
-                return new MatchSnapshotLoadResult(null, "No se encontró el snapshot de partido.");
+                return new MatchSnapshotLoadResult(null, "Match snapshot was not found.");
 
             return await ToMatchPredictionResultAsync(snapshot, ct);
         }
@@ -274,7 +274,7 @@ namespace Oloraculo.Web.Services
                 CreatedAt = projection.GeneratedAt,
                 InputSummaryHash = projection.InputSummaryHash,
                 PayloadJson = payload,
-                Explanation = $"{projection.Simulations:N0} simulaciones usando {projection.ModelName}.",
+                Explanation = $"{projection.Simulations:N0} simulations using {projection.ModelName}.",
                 HomeWin = 0,
                 Draw = 0,
                 AwayWin = 0
@@ -310,11 +310,11 @@ namespace Oloraculo.Web.Services
                 .FirstOrDefaultAsync(s => s.Kind == TournamentKind && s.Id == id, ct);
 
             if (snapshot is null)
-                return new TournamentSnapshotLoadResult(null, "No se encontró el snapshot de torneo.");
+                return new TournamentSnapshotLoadResult(null, "Tournament snapshot was not found.");
 
             var projection = DeserializeTournamentProjection(snapshot.PayloadJson, out var error);
             if (projection is null)
-                return new TournamentSnapshotLoadResult(null, error ?? "No se pudo leer el snapshot de torneo.");
+                return new TournamentSnapshotLoadResult(null, error ?? "Could not read the tournament snapshot.");
 
             return new TournamentSnapshotLoadResult(projection, null);
         }
@@ -330,7 +330,7 @@ namespace Oloraculo.Web.Services
             var homeTeamId = FirstNonEmpty(stored.HomeTeamId, fixture?.HomeTeamId);
             var awayTeamId = FirstNonEmpty(stored.AwayTeamId, fixture?.AwayTeamId);
             if (string.IsNullOrWhiteSpace(homeTeamId) || string.IsNullOrWhiteSpace(awayTeamId))
-                return new MatchSnapshotLoadResult(null, "El snapshot no tiene equipos suficientes para reconstruir la predicción.");
+                return new MatchSnapshotLoadResult(null, "The snapshot does not have enough teams to rebuild the prediction.");
 
             fixture ??= new Fixture
             {
@@ -342,7 +342,7 @@ namespace Oloraculo.Web.Services
 
             var outcome = stored.Outcome ?? SnapshotOutcome(snapshot);
             if (outcome is null || !outcome.Value.IsValid)
-                return new MatchSnapshotLoadResult(null, "El snapshot no contiene probabilidades válidas.");
+                return new MatchSnapshotLoadResult(null, "The snapshot does not contain valid probabilities.");
 
             var normalized = outcome.Value.Normalize();
             var prediction = new MatchPrediction
@@ -387,7 +387,7 @@ namespace Oloraculo.Web.Services
             var error = string.IsNullOrWhiteSpace(snapshot.FixtureId)
                 ? "El snapshot no tiene fixture asociado."
                 : SnapshotOutcome(snapshot) is null
-                    ? "El snapshot no contiene probabilidades válidas."
+                    ? "The snapshot does not contain valid probabilities."
                     : null;
 
             return new MatchSnapshotSummary(
@@ -439,7 +439,7 @@ namespace Oloraculo.Web.Services
 
                 if (payload.FixtureIds.Count == 0)
                 {
-                    error = "El snapshot de fixture completo no contiene partidos.";
+                    error = "The full-fixture snapshot does not contain matches.";
                     return null;
                 }
 
@@ -447,7 +447,7 @@ namespace Oloraculo.Web.Services
             }
             catch (JsonException)
             {
-                error = "El snapshot guardado no tiene un formato válido.";
+                error = "The saved snapshot does not have a valid format.";
                 return null;
             }
         }
@@ -461,7 +461,7 @@ namespace Oloraculo.Web.Services
                 var projection = JsonSerializer.Deserialize<TournamentProjection>(payloadJson, JsonOptions);
                 if (projection is null)
                 {
-                    error = "El snapshot no contiene una proyección de torneo.";
+                    error = "The snapshot does not contain a tournament projection.";
                     return null;
                 }
 
@@ -469,7 +469,7 @@ namespace Oloraculo.Web.Services
             }
             catch (JsonException)
             {
-                error = "El snapshot guardado no tiene un formato válido.";
+                error = "The saved snapshot does not have a valid format.";
                 return null;
             }
         }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Oloraculo AWS/R2 Ops"
+  short_description: "Deploy AWS services and R2 archive safely"
+  default_prompt: "Use $oloraculo-aws-r2-ops to plan and verify an AWS/R2 production change."

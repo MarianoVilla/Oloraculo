@@ -4,20 +4,20 @@
 @inject OloraculoDbContext Db
 @inject ISnackbar Snackbar
 
-<PageTitle>Snapshots de torneo</PageTitle>
+<PageTitle>Tournament snapshots</PageTitle>
 
 <MudStack Spacing="3">
     <div class="page-head">
-        <MudText Typo="Typo.h3">Snapshots de torneo</MudText>
-        <MudText Typo="Typo.body1" Color="Color.Secondary">Simulaciones Monte Carlo guardadas para revisar proyecciones anteriores sin volver a correr el torneo.</MudText>
+        <MudText Typo="Typo.h3">Tournament snapshots</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">Saved Monte Carlo simulations for reviewing earlier projections without rerunning the tournament.</MudText>
     </div>
 
     <MudPaper Class="surface-card" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="action-row">
-            <MudText Typo="Typo.h6">Snapshots guardados</MudText>
+            <MudText Typo="Typo.h6">Saved snapshots</MudText>
             <MudSpacer />
-            <MudButton Href="tournament" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.EmojiEvents">Volver al torneo</MudButton>
-            <MudTooltip Text="Actualizar snapshots">
+            <MudButton Href="tournament" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.EmojiEvents">Back to tournament</MudButton>
+            <MudTooltip Text="Refresh snapshots">
                 <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary" Disabled="_loadingSnapshot" OnClick="RefreshSnapshots" />
             </MudTooltip>
         </MudStack>
@@ -28,33 +28,33 @@
         }
         else if (_snapshots.Count == 0)
         {
-            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Todavía no hay snapshots de torneo guardados.</MudAlert>
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">No saved tournament snapshots yet.</MudAlert>
         }
         else
         {
             <MudTable Items="_snapshots" Dense="true" Hover="true" Elevation="0" Class="dense-table">
                 <HeaderContent>
-                    <MudTh>Fecha</MudTh>
-                    <MudTh>Modelo</MudTh>
-                    <MudTh Class="num">Simulaciones</MudTh>
+                    <MudTh>Date</MudTh>
+                    <MudTh>Model</MudTh>
+                    <MudTh Class="num">Simulations</MudTh>
                     <MudTh>Hash</MudTh>
-                    <MudTh>Estado</MudTh>
+                    <MudTh>Status</MudTh>
                     <MudTh></MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Fecha">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
-                    <MudTd DataLabel="Modelo">@context.ModelName</MudTd>
-                    <MudTd DataLabel="Simulaciones" Class="num">@(context.Simulations?.ToString("N0") ?? "-")</MudTd>
+                    <MudTd DataLabel="Date">@context.CreatedAt.ToLocalTime().ToString("g")</MudTd>
+                    <MudTd DataLabel="Model">@context.ModelName</MudTd>
+                    <MudTd DataLabel="Simulations" Class="num">@(context.Simulations?.ToString("N0") ?? "-")</MudTd>
                     <MudTd DataLabel="Hash">@ShortHash(context.InputSummaryHash)</MudTd>
-                    <MudTd DataLabel="Estado">
+                    <MudTd DataLabel="Status">
                         @if (context.IsValid)
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">Listo</MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">Ready</MudChip>
                         }
                         else
                         {
                             <MudTooltip Text="@context.Error">
-                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">No disponible</MudChip>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">Unavailable</MudChip>
                             </MudTooltip>
                         }
                     </MudTd>
@@ -65,7 +65,7 @@
                                    StartIcon="@Icons.Material.Filled.Visibility"
                                    Disabled="_loadingSnapshot || !context.IsValid"
                                    OnClick="@(() => LoadSnapshot(context))">
-                            @(_activeSnapshotId == context.Id ? "Viendo" : "Ver")
+                            @(_activeSnapshotId == context.Id ? "Viewing" : "View")
                         </MudButton>
                     </MudTd>
                 </RowTemplate>
@@ -81,26 +81,26 @@
     @if (_projection is not null)
     {
         <MudPaper Class="surface-card" Elevation="0">
-            <MudText Typo="Typo.h6">Probabilidad de campeón</MudText>
-            <MudText Typo="Typo.caption" Color="Color.Secondary">@_projectionSource | @_projection.Simulations.ToString("N0") simulaciones | @_projection.InputSummaryHash</MudText>
+            <MudText Typo="Typo.h6">Championship probability</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@_projectionSource | @_projection.Simulations.ToString("N0") simulations | @_projection.InputSummaryHash</MudText>
             <MudTable Items="_projection.Teams.Take(32)" Dense="true" Hover="true" Elevation="0" Class="dense-table">
                 <HeaderContent>
-                    <MudTh>Equipo</MudTh>
-                    <MudTh Class="num">Clasifica</MudTh>
-                    <MudTh Class="num">16avos</MudTh>
-                    <MudTh Class="num">4tos</MudTh>
+                    <MudTh>Team</MudTh>
+                    <MudTh Class="num">Qualify</MudTh>
+                    <MudTh Class="num">R32</MudTh>
+                    <MudTh Class="num">QF</MudTh>
                     <MudTh Class="num">Semis</MudTh>
                     <MudTh Class="num">Final</MudTh>
-                    <MudTh Class="num">Campeón</MudTh>
+                    <MudTh Class="num">Champion</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Equipo"><TeamLabel TeamId="@context.TeamId" Name="@Name(context.TeamId)" /></MudTd>
-                    <MudTd DataLabel="Clasifica" Class="num">@context.Qualify.ToString("P0")</MudTd>
-                    <MudTd DataLabel="16avos" Class="num">@context.ReachRoundOf16.ToString("P0")</MudTd>
-                    <MudTd DataLabel="4tos" Class="num">@context.ReachQuarterFinal.ToString("P0")</MudTd>
+                    <MudTd DataLabel="Team"><TeamLabel TeamId="@context.TeamId" Name="@Name(context.TeamId)" /></MudTd>
+                    <MudTd DataLabel="Qualify" Class="num">@context.Qualify.ToString("P0")</MudTd>
+                    <MudTd DataLabel="R32" Class="num">@context.ReachRoundOf16.ToString("P0")</MudTd>
+                    <MudTd DataLabel="QF" Class="num">@context.ReachQuarterFinal.ToString("P0")</MudTd>
                     <MudTd DataLabel="Semis" Class="num">@context.ReachSemiFinal.ToString("P0")</MudTd>
                     <MudTd DataLabel="Final" Class="num">@context.ReachFinal.ToString("P0")</MudTd>
-                    <MudTd DataLabel="Campeón" Class="num"><strong>@context.WinTournament.ToString("P1")</strong></MudTd>
+                    <MudTd DataLabel="Champion" Class="num"><strong>@context.WinTournament.ToString("P1")</strong></MudTd>
                 </RowTemplate>
             </MudTable>
         </MudPaper>
@@ -133,7 +133,7 @@
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudieron cargar los snapshots.", Severity.Error);
+                Snackbar.Add("Could not load snapshots.", Severity.Error);
         }
         finally
         {
@@ -145,7 +145,7 @@
     {
         if (!summary.IsValid)
         {
-            Snackbar.Add(summary.Error ?? "El snapshot no está disponible.", Severity.Warning);
+            Snackbar.Add(summary.Error ?? "The snapshot is not available.", Severity.Warning);
             return;
         }
 
@@ -156,20 +156,20 @@
             var result = await Snapshots.LoadTournamentSnapshotAsync(summary.Id);
             if (!result.IsValid || result.Projection is null)
             {
-                _error = result.Error ?? "No se pudo leer el snapshot.";
+                _error = result.Error ?? "Could not read the snapshot.";
                 Snackbar.Add(_error, Severity.Error);
                 return;
             }
 
             _projection = result.Projection;
-            _projectionSource = $"Snapshot guardado {summary.CreatedAt.ToLocalTime():g}";
+            _projectionSource = $"Saved snapshot {summary.CreatedAt.ToLocalTime():g}";
             _activeSnapshotId = summary.Id;
-            Snackbar.Add("Snapshot cargado.", Severity.Success);
+            Snackbar.Add("Snapshot loaded.", Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo cargar el snapshot.", Severity.Error);
+            Snackbar.Add("Could not load the snapshot.", Severity.Error);
         }
         finally
         {

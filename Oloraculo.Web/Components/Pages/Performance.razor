@@ -3,12 +3,12 @@
 @inject EvaluationService Evaluation
 @inject OloraculoDbContext Db
 
-<PageTitle>Rendimiento</PageTitle>
+<PageTitle>Performance</PageTitle>
 
 <MudStack Spacing="3">
     <div class="page-head">
-        <MudText Typo="Typo.h3">Rendimiento</MudText>
-        <MudText Typo="Typo.body1" Color="Color.Secondary">Predicciones guardadas evaluadas con Brier, RPS, log loss y precisión del favorito.</MudText>
+        <MudText Typo="Typo.h3">Performance</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">Saved predictions evaluated with Brier, RPS, log loss, and favorite accuracy.</MudText>
     </div>
 
     @if (!_loaded)
@@ -22,25 +22,25 @@
     }
     else if (_performance.Count == 0)
     {
-        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Todavía no hay evaluaciones.</MudAlert>
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">No evaluations yet.</MudAlert>
     }
     else
     {
         <MudPaper Class="surface-card" Elevation="0">
-            <MudText Typo="Typo.h6">Puntajes por modelo</MudText>
+            <MudText Typo="Typo.h6">Scores by model</MudText>
             <MudTable Items="_performance" Dense="true" Hover="true" Elevation="0" Class="dense-table">
                 <HeaderContent>
-                    <MudTh>Modelo</MudTh>
+                    <MudTh>Model</MudTh>
                     <MudTh Class="num">N</MudTh>
-                    <MudTh Class="num">Favorito</MudTh>
+                    <MudTh Class="num">Top pick</MudTh>
                     <MudTh Class="num">RPS</MudTh>
                     <MudTh Class="num">Brier</MudTh>
                     <MudTh Class="num">Log loss</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Modelo">@context.ModelName</MudTd>
+                    <MudTd DataLabel="Model">@context.ModelName</MudTd>
                     <MudTd DataLabel="N" Class="num">@context.Count</MudTd>
-                    <MudTd DataLabel="Favorito" Class="num">@context.TopPickAccuracy.ToString("P0")</MudTd>
+                    <MudTd DataLabel="Top pick" Class="num">@context.TopPickAccuracy.ToString("P0")</MudTd>
                     <MudTd DataLabel="RPS" Class="num">@context.MeanRps.ToString("0.000")</MudTd>
                     <MudTd DataLabel="Brier" Class="num">@context.MeanBrier.ToString("0.000")</MudTd>
                     <MudTd DataLabel="Log loss" Class="num">@context.MeanLogLoss.ToString("0.000")</MudTd>
@@ -51,11 +51,11 @@
         <MudGrid Spacing="2">
             <MudItem xs="12" md="6">
                 <MudPaper Class="surface-card" Elevation="0">
-                    <MudText Typo="Typo.h6">Mejores aciertos</MudText>
+                    <MudText Typo="Typo.h6">Best calls</MudText>
                     <MudTable Items="_best" Dense="true" Hover="true" Elevation="0" Class="dense-table">
-                        <HeaderContent><MudTh>Partido</MudTh><MudTh Class="num">RPS</MudTh></HeaderContent>
+                        <HeaderContent><MudTh>Match</MudTh><MudTh Class="num">RPS</MudTh></HeaderContent>
                         <RowTemplate>
-                            <MudTd DataLabel="Partido">
+                            <MudTd DataLabel="Match">
                                 <span class="matchup-label">
                                     <TeamLabel TeamId="@context.HomeTeamId" Name="@Name(context.HomeTeamId)" Compact="true" />
                                     <strong>@context.HomeGoals-@context.AwayGoals</strong>
@@ -69,11 +69,11 @@
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudPaper Class="surface-card" Elevation="0">
-                    <MudText Typo="Typo.h6">Errores con exceso de confianza</MudText>
+                    <MudText Typo="Typo.h6">Overconfident errors</MudText>
                     <MudTable Items="_worst" Dense="true" Hover="true" Elevation="0" Class="dense-table">
-                        <HeaderContent><MudTh>Partido</MudTh><MudTh Class="num">Log loss</MudTh></HeaderContent>
+                        <HeaderContent><MudTh>Match</MudTh><MudTh Class="num">Log loss</MudTh></HeaderContent>
                         <RowTemplate>
-                            <MudTd DataLabel="Partido">
+                            <MudTd DataLabel="Match">
                                 <span class="matchup-label">
                                     <TeamLabel TeamId="@context.HomeTeamId" Name="@Name(context.HomeTeamId)" Compact="true" />
                                     <strong>@context.HomeGoals-@context.AwayGoals</strong>

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Oloraculo Cockpit Parity"
+  short_description: "Ship Blazor cockpit UI with visual evidence"
+  default_prompt: "Use $oloraculo-cockpit-parity to build or verify a monitor/cockpit UI change."

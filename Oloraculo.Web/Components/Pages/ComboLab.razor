@@ -1,0 +1,1243 @@
+@page "/combo-lab"
+@rendermode InteractiveServer
+@inject ComboLabMonitorService Monitor
+@inject LiveComplementaryLockService LiveLocks
+@inject ComboLabEvidenceLedgerService EvidenceLedger
+@inject SimulationService Simulator
+@inject WorldCupBurdenCoverageService Burden
+@inject OloraculoDbContext Db
+@inject IOptions<OloraculoConfig> Options
+@inject ISnackbar Snackbar
+
+<PageTitle>Combo Lab</PageTitle>
+
+<MudStack Spacing="3">
+    <div class="page-head">
+        <MudText Typo="Typo.h3">Combo Lab</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">Read-only monitor for mapping World Cup Polymarket markets, model coverage, simulations, and candidate blockers before believing any edge.</MudText>
+    </div>
+
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        Analysis-only. No wallet, approvals, order endpoints, cancellations, live-control files, or execution paths exist on this page.
+    </MudAlert>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">@_error</MudAlert>
+    }
+
+    <MudPaper Class="surface-card" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="action-row">
+            <BusyButton Text="Refresh PM universe" BusyText="Reading Polymarket" IsBusy="_universeBusy" Icon="@Icons.Material.Filled.TravelExplore" OnClick="RefreshUniverse" />
+            <BusyButton Text="Run simulation" BusyText="Simulating" IsBusy="_simulationBusy" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.PlayArrow" OnClick="RunSimulation" />
+            <MudSpacer />
+            <MudText Typo="Typo.caption" Color="Color.Secondary">WC tag @PolymarketWorldCupMarketSurface.TagId · series @PolymarketWorldCupMarketSurface.SeriesId · sport @PolymarketWorldCupMarketSurface.SportSlug</MudText>
+        </MudStack>
+        @if (_universeBusy || _simulationBusy)
+        {
+            <MudProgressLinear Class="inline-progress" Color="Color.Primary" Indeterminate="true" />
+        }
+        @if (_snapshot is not null)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Universe as-of @_snapshot.AsOfUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") · sports types @_snapshot.RequestedSportsMarketTypes.Count</MudText>
+        }
+        @if (_projection is not null)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Simulation @_projection.Simulations.ToString("N0") runs · hash @_projection.InputSummaryHash · not saved from Combo Lab</MudText>
+        }
+        <div class="monitor-strip">
+            <div><span class="monitor-k">mode</span><span class="monitor-v safe">READ_ONLY</span></div>
+            <div><span class="monitor-k">orders</span><span class="monitor-v danger">NO_ORDER_PATH</span></div>
+            <div><span class="monitor-k">universe</span><span class="monitor-v">@(_snapshot is null ? "not loaded" : _snapshot.Report.Summary.TotalMarkets.ToString("N0"))</span></div>
+            <div><span class="monitor-k">ready</span><span class="monitor-v safe">@(_snapshot?.ReadyForPricing.ToString("N0") ?? "0")</span></div>
+            <div><span class="monitor-k">model gaps</span><span class="monitor-v warn">@(_snapshot?.NeedsModel.ToString("N0") ?? "0")</span></div>
+            <div><span class="monitor-k">sim</span><span class="monitor-v">@(_projection is null ? "not run" : _projection.Simulations.ToString("N0"))</span></div>
+            <div><span class="monitor-k">burden ready</span><span class="monitor-v warn">@(_burden is null ? "not checked" : $"{_burden.BurdenReadyFixtures}/{_burden.TotalFixtures}")</span></div>
+            <div><span class="monitor-k">checkpoint</span><span class="monitor-v">@(_preReg is null ? "not registered" : ShortHash(_preReg.CheckpointHash))</span></div>
+            <div><span class="monitor-k">lock lab</span><span class="monitor-v warn">WATCH_ONLY</span></div>
+        </div>
+    </MudPaper>
+
+    <MudGrid Spacing="2">
+        <MudItem xs="12" lg="6">
+            <MudPaper Class="surface-card" Elevation="0">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="action-row">
+                    <MudText Typo="Typo.h6">Fixture burden gate</MudText>
+                    <MudSpacer />
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">@WorldCupFixtureBurdenCalculator.ModelVersion</MudChip>
+                </MudStack>
+                @if (_burden is null)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Not checked.</MudText>
+                }
+                else
+                {
+                    <div class="monitor-strip mini">
+                        <div><span class="monitor-k">fixtures</span><span class="monitor-v">@_burden.TotalFixtures</span></div>
+                        <div><span class="monitor-k">kickoff</span><span class="monitor-v">@_burden.FixturesWithKickoff</span></div>
+                        <div><span class="monitor-k">venue</span><span class="monitor-v">@_burden.FixturesWithVenue</span></div>
+                        <div><span class="monitor-k">city</span><span class="monitor-v">@_burden.FixturesWithCity</span></div>
+                        <div><span class="monitor-k">ready</span><span class="monitor-v safe">@_burden.BurdenReadyFixtures</span></div>
+                    </div>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Burden model needs kickoff, venue/city, roof/open-air state, WBGT, travel, rest, and altitude before any score can be trusted.</MudText>
+                    @if (_burden.BlockerCounts.Count > 0)
+                    {
+                        <MudStack Row="true" Spacing="1" Class="action-row mt-2">
+                            @foreach (var blocker in _burden.BlockerCounts.OrderByDescending(item => item.Value))
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">@blocker.Key: @blocker.Value</MudChip>
+                            }
+                        </MudStack>
+                    }
+                }
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" lg="6">
+            <MudPaper Class="surface-card" Elevation="0">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="action-row">
+                    <MudText Typo="Typo.h6">Pre-registration checkpoint</MudText>
+                    <MudSpacer />
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled">HOLD</MudChip>
+                </MudStack>
+                @if (_preReg is null)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Run simulation to create an unsaved analysis checkpoint hash.</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2"><strong>@_preReg.Verdict</strong> · @_preReg.GeneratedAtUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")</MudText>
+                    <MudText Typo="Typo.caption" Class="hash-line">@_preReg.CheckpointHash</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Inputs: @_preReg.ModelName · @_preReg.Simulations.ToString("N0") sims · projection @_preReg.ProjectionInputHash · universe @_preReg.UniverseMarkets markets · combo @_preReg.ComboEligibleMarkets · burden @_preReg.BurdenReadyFixtures ready.</MudText>
+                    <MudStack Row="true" Spacing="1" Class="action-row mt-2">
+                        @foreach (var gate in _preReg.RequiredValidationGates)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">@gate</MudChip>
+                        }
+                    </MudStack>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Class="surface-card" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="action-row">
+            <div>
+                <MudText Typo="Typo.h6">Complementary lock sandbox</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Deterministic scoreline examples only. A row is not an edge until live token identity, executable depth, fees/slippage, fill risk, and markouts are proven.</MudText>
+            </div>
+            <MudSpacer />
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">WATCH_ONLY</MudChip>
+        </MudStack>
+        <MudTable Items="_lockRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+            <HeaderContent>
+                <MudTh>Verdict</MudTh>
+                <MudTh>Structure</MudTh>
+                <MudTh>Legs</MudTh>
+                <MudTh Class="num">Cost</MudTh>
+                <MudTh Class="num">Max hedge</MudTh>
+                <MudTh Class="num">Locked PnL</MudTh>
+                <MudTh Class="num">Chance</MudTh>
+                <MudTh Class="num">Gap</MudTh>
+                <MudTh>Blocker</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Verdict"><MudChip T="string" Size="Size.Small" Color="@LockVerdictColor(context.Verdict)" Variant="Variant.Filled">@context.Verdict</MudChip></MudTd>
+                <MudTd DataLabel="Structure">@context.Structure</MudTd>
+                <MudTd DataLabel="Legs"><div class="combo-market-title">@context.FirstLeg</div><div class="combo-market-meta">@context.SecondLeg</div></MudTd>
+                <MudTd DataLabel="Cost" Class="num">@context.NetCost.ToString("0.00")</MudTd>
+                <MudTd DataLabel="Max hedge" Class="num">@context.MaxSecondLegAsk.ToString("0.000")</MudTd>
+                <MudTd DataLabel="Locked PnL" Class="num">@context.LockedProfit.ToString("+0.00;-0.00;0.00")</MudTd>
+                <MudTd DataLabel="Chance" Class="num">@context.ChanceToLock.ToString("P0")</MudTd>
+                <MudTd DataLabel="Gap" Class="num">@context.GapProbability.ToString("P0")</MudTd>
+                <MudTd DataLabel="Blocker"><span class="combo-market-meta">@context.Blocker</span></MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+
+    <MudPaper Class="surface-card" Elevation="0">
+        <MudStack Spacing="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="action-row">
+                <div>
+                    <MudText Typo="Typo.h6">Live read-only lock candidates</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Fetches Gamma event markets and CLOB books with GET requests only. Output remains WATCH_ONLY; it cannot place, approve, cancel, or route orders.</MudText>
+                </div>
+                <MudSpacer />
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">PUBLIC_READS</MudChip>
+            </MudStack>
+            <MudGrid Spacing="2" Class="control-grid">
+                <MudItem xs="12" md="4">
+                    <MudSelect T="string" Label="Local fixture" @bind-Value="_selectedFixtureId" Dense="true" Variant="Variant.Outlined">
+                        @foreach (var fixture in _fixtureOptions)
+                        {
+                            <MudSelectItem T="string" Value="@fixture.Id">@fixture.Label</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudTextField T="string" Label="Polymarket event slug" @bind-Value="_eventSlug" Placeholder="fifwc-arg-alg-2026-06-16" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="2" Class="action-cell">
+                    <BusyButton Text="Find slug" BusyText="Finding" IsBusy="_eventSuggestBusy" Disabled="@(string.IsNullOrWhiteSpace(_selectedFixtureId))" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.Search" OnClick="SuggestEventSlug" />
+                </MudItem>
+                <MudItem xs="12" md="2" Class="action-cell">
+                    <BusyButton Text="Fetch locks" BusyText="Fetching" IsBusy="_liveLockBusy" Disabled="@(string.IsNullOrWhiteSpace(_selectedFixtureId) || string.IsNullOrWhiteSpace(_eventSlug))" Icon="@Icons.Material.Filled.LockOpen" OnClick="RefreshLiveLocks" />
+                </MudItem>
+            </MudGrid>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="action-row">
+                <BusyButton Text="Scan fixtures" BusyText="Scanning" IsBusy="_batchLockBusy" Disabled="@(_fixtureOptions.Count == 0)" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.TravelExplore" OnClick="RefreshBatchLocks" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">All-fixture scan uses one World Cup event discovery pass, public event/book reads, and ranks WATCH_ONLY generalized candidates across fixtures.</MudText>
+            </MudStack>
+            @if (_liveLockBusy || _eventSuggestBusy || _batchLockBusy)
+            {
+                <MudProgressLinear Class="inline-progress" Color="Color.Primary" Indeterminate="true" />
+            }
+            @if (_eventSuggestion is not null)
+            {
+                @if (_eventSuggestion.HasSuggestion)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                        Suggested event slug: <strong>@_eventSuggestion.EventSlug</strong> · @_eventSuggestion.EventTitle · matches @_eventSuggestion.Matches.Count candidates.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                        No unambiguous event slug found. @string.Join(" ", _eventSuggestion.Rejects.Select(reject => reject.Detail))
+                    </MudAlert>
+                }
+            }
+            @if (_liveLockCheckpoint is null)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Live lock checkpoint: generated after a successful Fetch locks run.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Checkpoint export payload: available after a live read-only lock snapshot exists.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Generalized complementary strategy candidates: available after Fetch locks.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Live input hashes: available after Fetch locks. Each Payload hash fingerprints the exact public Gamma/CLOB response string received.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Live input freshness: Input freshness summary is NO_INPUTS until Fetch locks; then FRESH/STALE, max input age, and Fetched UTC rows come from public response receive timestamps.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Time-state phase gate: candidates are labeled PRE_GAME_ONLY or IN_PLAY_COMPATIBLE; live events without parseable score and elapsed time are BLOCKED_IN_PLAY_STATE_MISSING.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Goal decay gate: PRE_GAME_NO_DECAY before kickoff; CURRENT_MINUTE_GOAL_DECAY in play reweights remaining goals by elapsed minute and score; CURRENT_MINUTE_GOAL_DECAY_MARKET_ANCHORED uses paired live O/U mids when present.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Current-score grid gate: PRE_GAME_UNCONDITIONED before kickoff; CURRENT_SCORE_CONDITIONED in play removes terminal scores below the current score.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Generalized cushion view: Ask cost, Cost plus buffer, Max cost, Cushion, Eq/px, LOCK_FLOOR, and UPSIDE_HEDGE columns appear after Fetch locks.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">WATCH_ONLY live rollups: Reject source/detail and Candidate blocker counts appear after Fetch locks.</MudText>
+            }
+            @if (_liveLockSnapshot is not null)
+            {
+                <div class="monitor-strip mini">
+                    <div><span class="monitor-k">as-of</span><span class="monitor-v">@_liveLockSnapshot.AsOfUtc.ToString("HH:mm:ss 'UTC'")</span></div>
+                    <div><span class="monitor-k">fixture</span><span class="monitor-v">@_liveLockSnapshot.FixtureLabel</span></div>
+                    <div><span class="monitor-k">phase</span><span class="monitor-v warn">@_liveLockSnapshot.EventState.TimeMode</span></div>
+                    <div><span class="monitor-k">goal decay</span><span class="monitor-v warn">@_liveLockSnapshot.GoalDecay.Mode</span></div>
+                    <div><span class="monitor-k">score grid</span><span class="monitor-v warn">@_liveLockSnapshot.ScoreConditioning.Mode</span></div>
+                    <div><span class="monitor-k">markets</span><span class="monitor-v">@_liveLockSnapshot.EventMarkets</span></div>
+                    <div><span class="monitor-k">contracts</span><span class="monitor-v">@_liveLockSnapshot.MappedContracts</span></div>
+                    <div><span class="monitor-k">books</span><span class="monitor-v">@_liveLockSnapshot.BooksFetched</span></div>
+                    <div><span class="monitor-k">input hashes</span><span class="monitor-v">@_liveLockSnapshot.InputHashes.Count</span></div>
+                    <div><span class="monitor-k">positive</span><span class="monitor-v safe">@_liveLockSnapshot.PositiveLocks</span></div>
+                    <div><span class="monitor-k">generalized</span><span class="monitor-v safe">@_liveLockSnapshot.GeneralizedCandidates.Count</span></div>
+                    <div><span class="monitor-k">mode</span><span class="monitor-v warn">WATCH_ONLY</span></div>
+                </div>
+                <InputFreshnessSummary Freshness="_liveLockSnapshot.InputFreshness" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Distribution: @_liveLockSnapshot.DistributionSource · Event: @_liveLockSnapshot.EventSlug · @_liveLockSnapshot.EventTitle · State: @_liveLockSnapshot.EventState.Phase @ScoreStateText(_liveLockSnapshot.EventState)</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Goal decay: @_liveLockSnapshot.GoalDecay.Detail</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Score grid: @_liveLockSnapshot.ScoreConditioning.Detail</MudText>
+                <MudText Typo="Typo.subtitle2" Class="mt-2">WATCH_ONLY live rollups</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="6">
+                        <MudTable Items="LiveRejectRollupRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                            <HeaderContent>
+                                <MudTh>Reject source/detail</MudTh>
+                                <MudTh Class="num">Count</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Reject source/detail"><MudChip T="string" Size="Size.Small" Color="@RejectSourceColor(context.Source)" Variant="Variant.Outlined">@context.Source</MudChip><div class="combo-market-meta">@context.Detail</div></MudTd>
+                                <MudTd DataLabel="Count" Class="num">@context.Count</MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent><MudText Typo="Typo.caption" Color="Color.Secondary">No rejects.</MudText></NoRecordsContent>
+                        </MudTable>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTable Items="LiveCandidateBlockerRollupRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                            <HeaderContent>
+                                <MudTh>Candidate blocker</MudTh>
+                                <MudTh Class="num">Count</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Candidate blocker"><span class="combo-market-meta">@context.Blocker</span></MudTd>
+                                <MudTd DataLabel="Count" Class="num">@context.Count</MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent><MudText Typo="Typo.caption" Color="Color.Secondary">No candidate blockers.</MudText></NoRecordsContent>
+                        </MudTable>
+                    </MudItem>
+                </MudGrid>
+                @if (!_liveLockSnapshot.EventState.AllowsCandidatePricing)
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Time-state gate blocked candidates: @_liveLockSnapshot.EventState.Blocker</MudAlert>
+                }
+                @if (_liveLockCheckpoint is not null)
+                {
+                    <MudText Typo="Typo.caption" Class="hash-line">Live lock checkpoint: @_liveLockCheckpoint.Verdict · @_liveLockCheckpoint.SnapshotHash</MudText>
+                    <MudStack Row="true" Spacing="1" Class="action-row mt-2">
+                        @foreach (var gate in _liveLockCheckpoint.RequiredValidationGates)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">@gate</MudChip>
+                        }
+                    </MudStack>
+                    <MudExpansionPanels Elevation="0" Class="mt-2">
+                        <MudExpansionPanel Text="Checkpoint export payload">
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-2">
+                                Manual-copy JSON for an evidence ledger. Public market metadata only; this panel contains no wallet key, signature, approval, order endpoint, or live-control action.
+                            </MudAlert>
+                            <MudTextField T="string" Value="@_liveLockCheckpoint.PayloadJson" Label="Checkpoint payload JSON" Lines="12" ReadOnly="true" Variant="Variant.Outlined" FullWidth="true" />
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                }
+
+                @if (_liveLockSnapshot.Candidates.Count > 0)
+                {
+                    <MudTable Items="_liveLockSnapshot.Candidates" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                        <HeaderContent>
+                            <MudTh>Verdict</MudTh>
+                            <MudTh>Structure</MudTh>
+                            <MudTh>Legs</MudTh>
+                            <MudTh>Time</MudTh>
+                            <MudTh Class="num">Cost</MudTh>
+                            <MudTh Class="num">Max hedge</MudTh>
+                            <MudTh Class="num">Locked PnL</MudTh>
+                            <MudTh Class="num">Expected</MudTh>
+                            <MudTh Class="num">Gap</MudTh>
+                            <MudTh>Blocker</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Verdict"><MudChip T="string" Size="Size.Small" Color="@LockVerdictColor(context.Verdict)" Variant="Variant.Filled">@context.Verdict</MudChip></MudTd>
+                            <MudTd DataLabel="Structure">@context.Structure</MudTd>
+                            <MudTd DataLabel="Legs"><div class="combo-market-title">@context.FirstLeg</div><div class="combo-market-meta">@context.SecondLeg · @context.CoverageScope</div></MudTd>
+                            <MudTd DataLabel="Time"><MudChip T="string" Size="Size.Small" Color="@TimeModeColor(context.TimeMode)" Variant="Variant.Outlined">@context.TimeMode</MudChip><div class="combo-market-meta">@context.TimeGate</div></MudTd>
+                            <MudTd DataLabel="Cost" Class="num">@context.NetCost.ToString("0.00")</MudTd>
+                            <MudTd DataLabel="Max hedge" Class="num">@context.MaxSecondLegAsk.ToString("0.000")</MudTd>
+                            <MudTd DataLabel="Locked PnL" Class="num">@context.LockedProfit.ToString("+0.00;-0.00;0.00")</MudTd>
+                            <MudTd DataLabel="Expected" Class="num">@context.ExpectedProfit.ToString("+0.00;-0.00;0.00")</MudTd>
+                            <MudTd DataLabel="Gap" Class="num">@context.GapProbability.ToString("P0")</MudTd>
+                            <MudTd DataLabel="Blocker"><span class="combo-market-meta">@context.Blocker</span></MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">No live lock candidates survived mapping, book, and coverage gates.</MudAlert>
+                }
+
+                @if (_liveLockSnapshot.GeneralizedCandidates.Count > 0)
+                {
+                    <MudText Typo="Typo.h6" Class="mt-4">Generalized complementary strategy candidates</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">N-leg packages from totals, BTTS/totals, moneyline complements, and exact-score baskets. Ask cost excludes buffer; cost+buffer is the modeled all-in cost. Still WATCH_ONLY: no fees, fills, markouts, or Oloraculo live-order gate.</MudText>
+                    <MudTable Items="_liveLockSnapshot.GeneralizedCandidates" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table mt-2">
+                        <HeaderContent>
+                            <MudTh>Verdict</MudTh>
+                            <MudTh>Kind</MudTh>
+                            <MudTh>Structure</MudTh>
+                            <MudTh>Time</MudTh>
+                            <MudTh Class="num">Ask cost</MudTh>
+                            <MudTh Class="num">Cost plus buffer</MudTh>
+                            <MudTh Class="num">Max cost</MudTh>
+                            <MudTh Class="num">Cushion</MudTh>
+                            <MudTh Class="num">Eq/px</MudTh>
+                            <MudTh>Basis</MudTh>
+                            <MudTh Class="num">Floor</MudTh>
+                            <MudTh Class="num">Expected</MudTh>
+                            <MudTh Class="num">Gap</MudTh>
+                            <MudTh Class="num">Theta</MudTh>
+                            <MudTh Class="num">Goal jump</MudTh>
+                            <MudTh>Blocker</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Verdict"><MudChip T="string" Size="Size.Small" Color="@StrategyVerdictColor(context.Verdict)" Variant="Variant.Filled">@context.Verdict</MudChip></MudTd>
+                            <MudTd DataLabel="Kind">@context.StrategyKind</MudTd>
+                            <MudTd DataLabel="Structure"><div class="combo-market-title">@context.Structure</div><div class="combo-market-meta">@context.Legs · @context.CoverageScope</div></MudTd>
+                            <MudTd DataLabel="Time"><MudChip T="string" Size="Size.Small" Color="@TimeModeColor(context.TimeMode)" Variant="Variant.Outlined">@context.TimeMode</MudChip><div class="combo-market-meta">@context.TimeGate</div></MudTd>
+                            <MudTd DataLabel="Ask cost" Class="num">@context.PackageAskCost.ToString("0.00")</MudTd>
+                            <MudTd DataLabel="Cost plus buffer" Class="num">@context.NetCost.ToString("0.00")</MudTd>
+                            <MudTd DataLabel="Max cost" Class="num">@context.MaxPackageCostBeforeBreak.ToString("0.00")</MudTd>
+                            <MudTd DataLabel="Cushion" Class="num">@context.TotalCushion.ToString("+0.00;-0.00;0.00")</MudTd>
+                            <MudTd DataLabel="Eq/px" Class="num">@context.PerLegEqualPriceCushion.ToString("+0.000;-0.000;0.000")</MudTd>
+                            <MudTd DataLabel="Basis"><MudChip T="string" Size="Size.Small" Color="@BreakBasisColor(context.BreakBasis)" Variant="Variant.Outlined">@context.BreakBasis</MudChip></MudTd>
+                            <MudTd DataLabel="Floor" Class="num">@context.LockedProfit.ToString("+0.00;-0.00;0.00")</MudTd>
+                            <MudTd DataLabel="Expected" Class="num">@context.ExpectedProfit.ToString("+0.00;-0.00;0.00")</MudTd>
+                            <MudTd DataLabel="Gap" Class="num">@context.GapProbability.ToString("P0")</MudTd>
+                            <MudTd DataLabel="Theta" Class="num">@context.ScorelessThetaPerMinute.ToString("+0.000;-0.000;0.000")</MudTd>
+                            <MudTd DataLabel="Goal jump" Class="num">@context.GoalJumpExposure.ToString("+0.000;-0.000;0.000")</MudTd>
+                            <MudTd DataLabel="Blocker"><span class="combo-market-meta">@context.Blocker</span></MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+
+                @if (_liveLockSnapshot.Rejects.Count > 0)
+                {
+                    <MudExpansionPanels Elevation="0" Class="mt-2">
+                        <MudExpansionPanel Text="Live lock rejects" Expanded="!_liveLockSnapshot.HasCandidates">
+                            <MudTable Items="LiveLockRejectRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                                <HeaderContent>
+                                    <MudTh>Source</MudTh>
+                                    <MudTh>Token</MudTh>
+                                    <MudTh>Detail</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Source"><MudChip T="string" Size="Size.Small" Color="@RejectSourceColor(context.Source)" Variant="Variant.Outlined">@context.Source</MudChip></MudTd>
+                                    <MudTd DataLabel="Token"><div class="combo-market-title">@context.Outcome</div><div class="combo-market-meta">@context.TokenId</div></MudTd>
+                                    <MudTd DataLabel="Detail"><div class="combo-market-meta">@context.Detail</div></MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                }
+                @if (_liveLockSnapshot.InputHashes.Count > 0)
+                {
+                    <MudExpansionPanels Elevation="0" Class="mt-2">
+                        <MudExpansionPanel Text="Live input hashes">
+                            <MudTable Items="LiveInputHashRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                                <HeaderContent>
+                                    <MudTh>Source</MudTh>
+                                    <MudTh>Event</MudTh>
+                                    <MudTh>Token</MudTh>
+                                    <MudTh>Fetched UTC</MudTh>
+                                    <MudTh>Payload hash</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Source"><MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">@context.Source</MudChip></MudTd>
+                                    <MudTd DataLabel="Event"><div class="combo-market-title">@context.EventSlug</div><div class="combo-market-meta">@context.EventId</div></MudTd>
+                                    <MudTd DataLabel="Token"><div class="combo-market-title">@context.TokenId</div><div class="combo-market-meta">@context.ConditionId</div></MudTd>
+                                    <MudTd DataLabel="Fetched UTC"><span class="combo-market-meta">@context.FetchedAtUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")</span></MudTd>
+                                    <MudTd DataLabel="Payload hash"><span class="hash-line">@context.PayloadHash</span></MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                }
+            }
+
+            <MudDivider Class="my-2" />
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="action-row">
+                <div>
+                    <MudText Typo="Typo.h6">All-fixture batch scan</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Cross-fixture ranking for generalized packages. WATCH_ONLY_PUBLIC_READS: no order path, no approvals, no cancellations, no live-control mutation.</MudText>
+                </div>
+                <MudSpacer />
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">WATCH_ONLY</MudChip>
+            </MudStack>
+            @if (_batchScan is null)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Batch results: click Scan fixtures to map local fixtures to Polymarket events and rank read-only generalized candidates.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Batch checkpoint export payload: available after a read-only Scan fixtures run.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Batch input hashes: available after Scan fixtures. Event-list, event-detail, and CLOB book Payload hash rows are audit-only provenance.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Batch input freshness: Batch input freshness summary is NO_INPUTS until Scan fixtures; then FRESH/STALE, max input age, and Fetched UTC rows come from public response receive timestamps.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Batch phase gate: PRE_GAME_ONLY and IN_PLAY_COMPATIBLE rows are visible; BLOCKED_IN_PLAY_STATE_MISSING rows stay rejected until score and elapsed time parse cleanly.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Batch goal decay gate: CURRENT_MINUTE_GOAL_DECAY rows use elapsed-minute remaining-goals weighting; CURRENT_MINUTE_GOAL_DECAY_MARKET_ANCHORED rows use a market-implied live total anchor.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Batch score grid gate: CURRENT_SCORE_CONDITIONED rows evaluate only terminal states compatible with the observed score.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Batch cushion view: Ask cost, Cost plus buffer, Max cost, Cushion, Eq/px, LOCK_FLOOR, and UPSIDE_HEDGE rank the package break threshold without implying tradability.</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">WATCH_ONLY batch rollups: Fixture status, Reject source/detail, and Candidate blocker counts appear after Scan fixtures.</MudText>
+            }
+            else
+            {
+                <div class="monitor-strip mini">
+                    <div><span class="monitor-k">as-of</span><span class="monitor-v">@_batchScan.AsOfUtc.ToString("HH:mm:ss 'UTC'")</span></div>
+                    <div><span class="monitor-k">mode</span><span class="monitor-v warn">@_batchScan.Mode</span></div>
+                    <div><span class="monitor-k">fixtures</span><span class="monitor-v">@_batchScan.FixturesScanned/@_batchScan.FixturesSeen</span></div>
+                    <div><span class="monitor-k">eventless</span><span class="monitor-v warn">@_batchScan.EventlessFixtures</span></div>
+                    <div><span class="monitor-k">ambiguous</span><span class="monitor-v warn">@_batchScan.AmbiguousEvents</span></div>
+                    <div><span class="monitor-k">books</span><span class="monitor-v">@_batchScan.TotalBooksFetched</span></div>
+                    <div><span class="monitor-k">input hashes</span><span class="monitor-v">@_batchScan.InputHashes.Count</span></div>
+                    <div><span class="monitor-k">candidates</span><span class="monitor-v safe">@_batchScan.Candidates.Count</span></div>
+                    <div><span class="monitor-k">true locks</span><span class="monitor-v safe">@_batchScan.TruePositiveLocks</span></div>
+                </div>
+                <InputFreshnessSummary Freshness="_batchScan.InputFreshness" StatusLabel="batch input freshness" SummaryLabel="Batch input freshness summary" />
+                <MudText Typo="Typo.subtitle2" Class="mt-2">WATCH_ONLY batch rollups</MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" md="4">
+                        <MudTable Items="BatchFixtureStatusRollupRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                            <HeaderContent>
+                                <MudTh>Fixture status</MudTh>
+                                <MudTh Class="num">Count</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Fixture status"><MudChip T="string" Size="Size.Small" Color="@BatchStatusColor(context.Status)" Variant="Variant.Outlined">@context.Status</MudChip></MudTd>
+                                <MudTd DataLabel="Count" Class="num">@context.Count</MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent><MudText Typo="Typo.caption" Color="Color.Secondary">No fixture statuses.</MudText></NoRecordsContent>
+                        </MudTable>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudTable Items="BatchRejectRollupRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                            <HeaderContent>
+                                <MudTh>Reject source/detail</MudTh>
+                                <MudTh Class="num">Count</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Reject source/detail"><MudChip T="string" Size="Size.Small" Color="@RejectSourceColor(context.Source)" Variant="Variant.Outlined">@context.Source</MudChip><div class="combo-market-meta">@context.Detail</div></MudTd>
+                                <MudTd DataLabel="Count" Class="num">@context.Count</MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent><MudText Typo="Typo.caption" Color="Color.Secondary">No rejects.</MudText></NoRecordsContent>
+                        </MudTable>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudTable Items="BatchCandidateBlockerRollupRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                            <HeaderContent>
+                                <MudTh>Candidate blocker</MudTh>
+                                <MudTh Class="num">Count</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Candidate blocker"><span class="combo-market-meta">@context.Blocker</span></MudTd>
+                                <MudTd DataLabel="Count" Class="num">@context.Count</MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent><MudText Typo="Typo.caption" Color="Color.Secondary">No candidate blockers.</MudText></NoRecordsContent>
+                        </MudTable>
+                    </MudItem>
+                </MudGrid>
+                @if (_batchCheckpoint is not null)
+                {
+                    <MudText Typo="Typo.caption" Class="hash-line">Batch checkpoint: @_batchCheckpoint.Verdict · @_batchCheckpoint.SnapshotHash</MudText>
+                    <MudStack Row="true" Spacing="1" Class="action-row mt-2">
+                        @foreach (var gate in _batchCheckpoint.RequiredValidationGates)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">@gate</MudChip>
+                        }
+                    </MudStack>
+                    <MudExpansionPanels Elevation="0" Class="mt-2">
+                        <MudExpansionPanel Text="Batch checkpoint export payload">
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-2">
+                                Manual-copy JSON for the evidence ledger. Public market metadata only; no wallet key, signature, approval, order endpoint, or live-control action.
+                            </MudAlert>
+                            <MudTextField T="string" Value="@_batchCheckpoint.PayloadJson" Label="Batch checkpoint payload JSON" Lines="12" ReadOnly="true" Variant="Variant.Outlined" FullWidth="true" />
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                }
+
+                @if (_batchScan.Candidates.Count > 0)
+                {
+                    <MudTable Items="_batchScan.Candidates" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table mt-2">
+                        <HeaderContent>
+                            <MudTh>Verdict</MudTh>
+                            <MudTh>Fixture</MudTh>
+                            <MudTh>Kind</MudTh>
+                            <MudTh>Structure</MudTh>
+                            <MudTh>Time</MudTh>
+                            <MudTh Class="num">Ask cost</MudTh>
+                            <MudTh Class="num">Cost plus buffer</MudTh>
+                            <MudTh Class="num">Max cost</MudTh>
+                            <MudTh Class="num">Cushion</MudTh>
+                            <MudTh Class="num">Eq/px</MudTh>
+                            <MudTh>Basis</MudTh>
+                            <MudTh Class="num">Floor</MudTh>
+                            <MudTh Class="num">Expected</MudTh>
+                            <MudTh Class="num">Gap</MudTh>
+                            <MudTh>Blocker</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Verdict"><MudChip T="string" Size="Size.Small" Color="@StrategyVerdictColor(context.Verdict)" Variant="Variant.Filled">@context.Verdict</MudChip></MudTd>
+                            <MudTd DataLabel="Fixture"><div class="combo-market-title">@context.FixtureLabel</div><div class="combo-market-meta">@context.EventSlug</div></MudTd>
+                            <MudTd DataLabel="Kind">@context.StrategyKind</MudTd>
+                            <MudTd DataLabel="Structure"><div class="combo-market-title">@context.Structure</div><div class="combo-market-meta">@context.Legs · @context.CoverageScope</div></MudTd>
+                            <MudTd DataLabel="Time"><MudChip T="string" Size="Size.Small" Color="@TimeModeColor(context.TimeMode)" Variant="Variant.Outlined">@context.TimeMode</MudChip><div class="combo-market-meta">@context.TimeGate</div></MudTd>
+                            <MudTd DataLabel="Ask cost" Class="num">@context.PackageAskCost.ToString("0.00")</MudTd>
+                            <MudTd DataLabel="Cost plus buffer" Class="num">@context.NetCost.ToString("0.00")</MudTd>
+                            <MudTd DataLabel="Max cost" Class="num">@context.MaxPackageCostBeforeBreak.ToString("0.00")</MudTd>
+                            <MudTd DataLabel="Cushion" Class="num">@context.TotalCushion.ToString("+0.00;-0.00;0.00")</MudTd>
+                            <MudTd DataLabel="Eq/px" Class="num">@context.PerLegEqualPriceCushion.ToString("+0.000;-0.000;0.000")</MudTd>
+                            <MudTd DataLabel="Basis"><MudChip T="string" Size="Size.Small" Color="@BreakBasisColor(context.BreakBasis)" Variant="Variant.Outlined">@context.BreakBasis</MudChip></MudTd>
+                            <MudTd DataLabel="Floor" Class="num">@context.LockedProfit.ToString("+0.00;-0.00;0.00")</MudTd>
+                            <MudTd DataLabel="Expected" Class="num">@context.ExpectedProfit.ToString("+0.00;-0.00;0.00")</MudTd>
+                            <MudTd DataLabel="Gap" Class="num">@context.GapProbability.ToString("P0")</MudTd>
+                            <MudTd DataLabel="Blocker"><span class="combo-market-meta">@context.Blocker</span></MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Batch scan found no generalized candidates after event, mapping, book, and coverage gates.</MudAlert>
+                }
+
+                <MudExpansionPanels Elevation="0" Class="mt-2">
+                    <MudExpansionPanel Text="Batch fixture scan rows" Expanded="@(!_batchScan.HasCandidates)">
+                        <MudTable Items="BatchFixtureRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                            <HeaderContent>
+                                <MudTh>Status</MudTh>
+                                <MudTh>Fixture</MudTh>
+                                <MudTh Class="num">Score</MudTh>
+                                <MudTh Class="num">Markets</MudTh>
+                                <MudTh Class="num">Books</MudTh>
+                                <MudTh Class="num">Candidates</MudTh>
+                                <MudTh>Blocker</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Status"><MudChip T="string" Size="Size.Small" Color="@BatchStatusColor(context.Status)" Variant="Variant.Outlined">@context.Status</MudChip></MudTd>
+                                <MudTd DataLabel="Fixture"><div class="combo-market-title">@context.FixtureLabel</div><div class="combo-market-meta">@context.EventSlug</div></MudTd>
+                                <MudTd DataLabel="Score" Class="num">@context.EventMatchScore</MudTd>
+                                <MudTd DataLabel="Markets" Class="num">@context.EventMarkets</MudTd>
+                                <MudTd DataLabel="Books" Class="num">@context.BooksFetched</MudTd>
+                                <MudTd DataLabel="Candidates" Class="num">@context.GeneralizedCandidates</MudTd>
+                                <MudTd DataLabel="Blocker"><span class="combo-market-meta">@context.Blocker</span></MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudExpansionPanel>
+                    @if (_batchScan.Rejects.Count > 0)
+                    {
+                        <MudExpansionPanel Text="Batch scan rejects">
+                            <MudTable Items="BatchRejectRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                                <HeaderContent>
+                                    <MudTh>Source</MudTh>
+                                    <MudTh>Token</MudTh>
+                                    <MudTh>Detail</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Source"><MudChip T="string" Size="Size.Small" Color="@RejectSourceColor(context.Source)" Variant="Variant.Outlined">@context.Source</MudChip></MudTd>
+                                    <MudTd DataLabel="Token"><div class="combo-market-title">@context.Outcome</div><div class="combo-market-meta">@context.TokenId</div></MudTd>
+                                    <MudTd DataLabel="Detail"><div class="combo-market-meta">@context.Detail</div></MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </MudExpansionPanel>
+                    }
+                    @if (_batchScan.InputHashes.Count > 0)
+                    {
+                        <MudExpansionPanel Text="Batch input hashes">
+                            <MudTable Items="BatchInputHashRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                                <HeaderContent>
+                                    <MudTh>Source</MudTh>
+                                    <MudTh>Event</MudTh>
+                                    <MudTh>Token</MudTh>
+                                    <MudTh>Fetched UTC</MudTh>
+                                    <MudTh>Payload hash</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd DataLabel="Source"><MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">@context.Source</MudChip></MudTd>
+                                    <MudTd DataLabel="Event"><div class="combo-market-title">@context.EventSlug</div><div class="combo-market-meta">@context.EventId</div></MudTd>
+                                    <MudTd DataLabel="Token"><div class="combo-market-title">@context.TokenId</div><div class="combo-market-meta">@context.ConditionId</div></MudTd>
+                                    <MudTd DataLabel="Fetched UTC"><span class="combo-market-meta">@context.FetchedAtUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")</span></MudTd>
+                                    <MudTd DataLabel="Payload hash"><span class="hash-line">@context.PayloadHash</span></MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </MudExpansionPanel>
+                    }
+                </MudExpansionPanels>
+            }
+
+            <MudDivider Class="my-2" />
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="action-row">
+                <div>
+                    <MudText Typo="Typo.h6">Evidence ledger</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Append-only local JSONL plus optional R2/S3 archive when enabled. This is an audit trail, not fill evidence or an edge claim.</MudText>
+                </div>
+                <MudSpacer />
+                <BusyButton Text="Reload ledger" BusyText="Loading" IsBusy="_ledgerBusy" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.Refresh" OnClick="LoadLedger" />
+                <BusyButton Text="Save live checkpoint" BusyText="Saving" IsBusy="_ledgerBusy" Disabled="@(_liveLockCheckpoint is null)" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.Save" OnClick="SaveLiveCheckpoint" />
+                <BusyButton Text="Save batch checkpoint" BusyText="Saving" IsBusy="_ledgerBusy" Disabled="@(_batchCheckpoint is null)" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.SaveAlt" OnClick="SaveBatchCheckpoint" />
+            </MudStack>
+            @if (_ledger is null)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Evidence ledger not loaded.</MudText>
+            }
+            else
+            {
+                <div class="monitor-strip mini">
+                    <div><span class="monitor-k">entries</span><span class="monitor-v">@_ledger.Entries.Count</span></div>
+                    <div><span class="monitor-k">live</span><span class="monitor-v">@_ledger.LiveEntries</span></div>
+                    <div><span class="monitor-k">batch</span><span class="monitor-v">@_ledger.BatchEntries</span></div>
+                    <div><span class="monitor-k">rejects</span><span class="monitor-v warn">@_ledger.Rejects.Count</span></div>
+                    <div><span class="monitor-k">mode</span><span class="monitor-v warn">AUDIT_ONLY</span></div>
+                </div>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Ledger path: @_ledger.LedgerPath</MudText>
+                @if (_ledger.HasRejects)
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Ledger parse rejects: @string.Join(" | ", _ledger.Rejects.Take(3))</MudAlert>
+                }
+                @if (_ledger.Entries.Count > 0)
+                {
+                    <MudTable Items="LedgerRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table mt-2">
+                        <HeaderContent>
+                            <MudTh>Saved</MudTh>
+                            <MudTh>Kind</MudTh>
+                            <MudTh>Hash</MudTh>
+                            <MudTh>Schema</MudTh>
+                            <MudTh>Summary</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Saved">@context.SavedAtUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'")</MudTd>
+                            <MudTd DataLabel="Kind"><MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">@context.CheckpointKind</MudChip></MudTd>
+                            <MudTd DataLabel="Hash"><span class="hash-line">@ShortHash(context.SnapshotHash)</span></MudTd>
+                            <MudTd DataLabel="Schema"><div class="combo-market-title">@context.Schema</div><div class="combo-market-meta">@context.Mode · live order path @context.LiveOrderPath</div></MudTd>
+                            <MudTd DataLabel="Summary"><span class="combo-market-meta">@context.Summary</span></MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">No checkpoint hashes have been saved yet.</MudText>
+                }
+            }
+        </MudStack>
+    </MudPaper>
+
+    @if (_snapshot is not null)
+    {
+        @foreach (var error in _snapshot.Errors)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">@error</MudAlert>
+        }
+
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6" md="3"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_snapshot.Report.Summary.TotalMarkets.ToString("N0")</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Gamma markets</MudText></MudPaper></MudItem>
+            <MudItem xs="12" sm="6" md="3"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_snapshot.Report.Summary.ComboEligibleMarkets.ToString("N0")</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Combo RFQ eligible</MudText></MudPaper></MudItem>
+            <MudItem xs="12" sm="6" md="3"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_snapshot.ReadyForPricing.ToString("N0")</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Ready for pricing</MudText></MudPaper></MudItem>
+            <MudItem xs="12" sm="6" md="3"><MudPaper Class="stat-card" Elevation="0"><MudText Typo="Typo.h4">@_snapshot.SourceBlocked.ToString("N0")</MudText><MudText Typo="Typo.body2" Color="Color.Secondary">Source blocked</MudText></MudPaper></MudItem>
+        </MudGrid>
+
+        <MudPaper Class="surface-card" Elevation="0">
+            <MudText Typo="Typo.h6">Market type scan</MudText>
+            <MudStack Row="true" Spacing="1" Class="action-row mt-2">
+                @foreach (var marketType in _snapshot.RequestedSportsMarketTypes)
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@marketType</MudChip>
+                }
+            </MudStack>
+        </MudPaper>
+
+        <MudGrid Spacing="2">
+            <MudItem xs="12" lg="6">
+                <MudPaper Class="surface-card" Elevation="0">
+                    <MudText Typo="Typo.h6">Model coverage</MudText>
+                    <MudTable Items="CoverageRows" Dense="true" Hover="true" Elevation="0" Class="dense-table">
+                        <HeaderContent>
+                            <MudTh>Coverage</MudTh>
+                            <MudTh Class="num">Markets</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Coverage">@context.Key</MudTd>
+                            <MudTd DataLabel="Markets" Class="num">@context.Value.ToString("N0")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" lg="6">
+                <MudPaper Class="surface-card" Elevation="0">
+                    <MudText Typo="Typo.h6">Market families</MudText>
+                    <MudTable Items="FamilyRows" Dense="true" Hover="true" Elevation="0" Class="dense-table">
+                        <HeaderContent>
+                            <MudTh>Family</MudTh>
+                            <MudTh Class="num">Markets</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Family">@context.Key</MudTd>
+                            <MudTd DataLabel="Markets" Class="num">@context.Value.ToString("N0")</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid Spacing="2">
+            <MudItem xs="12" lg="6">
+                <MudPaper Class="surface-card" Elevation="0">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="action-row">
+                        <MudText Typo="Typo.h6">Ready queue</MudText>
+                        <MudSpacer />
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">scoreline + combo</MudChip>
+                    </MudStack>
+                    <MudTable Items="ReadyRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                        <HeaderContent>
+                            <MudTh>Family</MudTh>
+                            <MudTh>Type</MudTh>
+                            <MudTh>Market</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Family">@context.Family</MudTd>
+                            <MudTd DataLabel="Type">@context.SportsMarketType</MudTd>
+                            <MudTd DataLabel="Market"><div class="combo-market-title">@context.Question</div><div class="combo-market-meta">@context.Slug</div></MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" lg="6">
+                <MudPaper Class="surface-card" Elevation="0">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="action-row">
+                        <MudText Typo="Typo.h6">Red blocker queue</MudText>
+                        <MudSpacer />
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">visible holds</MudChip>
+                    </MudStack>
+                    <MudTable Items="BlockerRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                        <HeaderContent>
+                            <MudTh>Verdict</MudTh>
+                            <MudTh>Family</MudTh>
+                            <MudTh>Blocker</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Verdict"><MudChip T="string" Size="Size.Small" Color="@VerdictColor(context.Verdict)" Variant="Variant.Filled">@context.VerdictLabel</MudChip></MudTd>
+                            <MudTd DataLabel="Family">@context.Family</MudTd>
+                            <MudTd DataLabel="Blocker"><div class="combo-market-title">@context.Question</div><div class="combo-market-meta">@(context.RejectReasons.Count == 0 ? context.Coverage : string.Join(", ", context.RejectReasons))</div></MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudPaper Class="surface-card" Elevation="0">
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="action-row">
+                <MudText Typo="Typo.h6">Universe map</MudText>
+                <MudSpacer />
+                <MudTextField T="string" @bind-Value="_search" Placeholder="Filter slug/question/type" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="combo-filter" />
+                <MudSelect T="ComboLabMonitorVerdict?" @bind-Value="_verdictFilter" Dense="true" Variant="Variant.Outlined" Class="combo-filter">
+                    <MudSelectItem T="ComboLabMonitorVerdict?" Value="@((ComboLabMonitorVerdict?)null)">All verdicts</MudSelectItem>
+                    @foreach (var verdict in Enum.GetValues<ComboLabMonitorVerdict>())
+                    {
+                        <MudSelectItem T="ComboLabMonitorVerdict?" Value="@verdict">@verdict</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudStack>
+            <MudTable Items="FilteredRows" Dense="true" Hover="true" Elevation="0" Class="dense-table combo-table">
+                <HeaderContent>
+                    <MudTh>Verdict</MudTh>
+                    <MudTh>Family</MudTh>
+                    <MudTh>Coverage</MudTh>
+                    <MudTh>Combo</MudTh>
+                    <MudTh>Sports type</MudTh>
+                    <MudTh>Market</MudTh>
+                    <MudTh>Blockers</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Verdict"><MudChip T="string" Size="Size.Small" Color="@VerdictColor(context.Verdict)" Variant="Variant.Filled">@context.VerdictLabel</MudChip></MudTd>
+                    <MudTd DataLabel="Family">@context.Family</MudTd>
+                    <MudTd DataLabel="Coverage">@context.Coverage</MudTd>
+                    <MudTd DataLabel="Combo">@(context.ComboEligible ? "yes" : "no")</MudTd>
+                    <MudTd DataLabel="Sports type">@context.SportsMarketType</MudTd>
+                    <MudTd DataLabel="Market"><div class="combo-market-title">@context.Question</div><div class="combo-market-meta">@context.Slug · @context.ConditionId</div></MudTd>
+                    <MudTd DataLabel="Blockers">@(context.RejectReasons.Count == 0 ? "—" : string.Join(", ", context.RejectReasons))</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Click “Refresh PM universe” to map current Polymarket World Cup markets and Combo RFQ eligibility.</MudAlert>
+    }
+
+    @if (_projection is not null)
+    {
+        <MudPaper Class="surface-card" Elevation="0">
+            <MudText Typo="Typo.h6">Tournament simulation top board</MudText>
+            <MudTable Items="_projection.Teams.Take(24)" Dense="true" Hover="true" Elevation="0" Class="dense-table">
+                <HeaderContent>
+                    <MudTh>Team</MudTh>
+                    <MudTh>Group</MudTh>
+                    <MudTh Class="num">Win group</MudTh>
+                    <MudTh Class="num">Qualify</MudTh>
+                    <MudTh Class="num">Final</MudTh>
+                    <MudTh Class="num">Champion</MudTh>
+                    <MudTh Class="num">xPts</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Team"><TeamLabel TeamId="@context.TeamId" Name="@Name(context.TeamId)" /></MudTd>
+                    <MudTd DataLabel="Group">@context.Group</MudTd>
+                    <MudTd DataLabel="Win group" Class="num">@context.WinGroup.ToString("P1")</MudTd>
+                    <MudTd DataLabel="Qualify" Class="num">@context.Qualify.ToString("P1")</MudTd>
+                    <MudTd DataLabel="Final" Class="num">@context.ReachFinal.ToString("P1")</MudTd>
+                    <MudTd DataLabel="Champion" Class="num"><strong>@context.WinTournament.ToString("P1")</strong></MudTd>
+                    <MudTd DataLabel="xPts" Class="num">@context.ExpectedGroupPoints.ToString("0.00")</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+</MudStack>
+
+@code {
+    private bool _universeBusy;
+    private bool _simulationBusy;
+    private string _error = "";
+    private string _search = "";
+    private ComboLabMonitorVerdict? _verdictFilter;
+    private ComboLabUniverseMonitorSnapshot? _snapshot;
+    private TournamentProjection? _projection;
+    private WorldCupBurdenCoverageSnapshot? _burden;
+    private SimulationPreRegistrationCheckpoint? _preReg;
+    private Dictionary<string, string> _names = [];
+    private IReadOnlyList<ComplementaryLockSandboxRow> _lockRows = [];
+    private IReadOnlyList<LiveLockFixtureOption> _fixtureOptions = [];
+    private string _selectedFixtureId = "";
+    private string _eventSlug = "";
+    private bool _liveLockBusy;
+    private bool _eventSuggestBusy;
+    private LiveComplementaryLockSnapshot? _liveLockSnapshot;
+    private LiveComplementaryLockEventSuggestion? _eventSuggestion;
+    private LiveComplementaryLockCheckpoint? _liveLockCheckpoint;
+    private bool _batchLockBusy;
+    private LiveComplementaryBatchScanSnapshot? _batchScan;
+    private LiveComplementaryBatchScanCheckpoint? _batchCheckpoint;
+    private bool _ledgerBusy;
+    private ComboLabEvidenceLedgerSnapshot? _ledger;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _names = await Db.Teams.AsNoTracking().ToDictionaryAsync(team => team.Id, team => team.Name);
+        _burden = await Burden.SnapshotAsync();
+        _lockRows = ComplementaryLockSandbox.BuildRows();
+        _fixtureOptions = await LoadFixtureOptions();
+        _selectedFixtureId = _fixtureOptions.FirstOrDefault()?.Id ?? "";
+        _ledger = await EvidenceLedger.LoadAsync();
+    }
+
+    private IEnumerable<KeyValuePair<PolymarketFootballModelCoverage, int>> CoverageRows =>
+        (_snapshot?.Report.Summary.CoverageCounts ?? new Dictionary<PolymarketFootballModelCoverage, int>())
+            .OrderByDescending(item => item.Value);
+
+    private IEnumerable<KeyValuePair<PolymarketFootballMarketFamily, int>> FamilyRows =>
+        (_snapshot?.Report.Summary.FamilyCounts ?? new Dictionary<PolymarketFootballMarketFamily, int>())
+            .OrderByDescending(item => item.Value);
+
+    private IEnumerable<ComboLabMonitorMarketRow> FilteredRows =>
+        (_snapshot?.Rows ?? Array.Empty<ComboLabMonitorMarketRow>())
+            .Where(row => _verdictFilter is null || row.Verdict == _verdictFilter)
+            .Where(row => string.IsNullOrWhiteSpace(_search) || Matches(row, _search))
+            .Take(400);
+
+    private IEnumerable<ComboLabMonitorMarketRow> ReadyRows =>
+        (_snapshot?.Rows ?? Array.Empty<ComboLabMonitorMarketRow>())
+            .Where(row => row.Verdict == ComboLabMonitorVerdict.ReadyForPricing)
+            .Take(24);
+
+    private IEnumerable<ComboLabMonitorMarketRow> BlockerRows =>
+        (_snapshot?.Rows ?? Array.Empty<ComboLabMonitorMarketRow>())
+            .Where(row => row.Verdict is ComboLabMonitorVerdict.SourceBlocked or ComboLabMonitorVerdict.NeedsModel or ComboLabMonitorVerdict.UnknownFamily)
+            .Take(24);
+
+    private IEnumerable<LiveComplementaryLockReject> LiveLockRejectRows =>
+        (_liveLockSnapshot?.Rejects ?? Array.Empty<LiveComplementaryLockReject>()).Take(80);
+
+    private IEnumerable<LiveComplementaryRejectSourceDetailCount> LiveRejectRollupRows =>
+        (_liveLockSnapshot?.RejectSourceDetailCounts ?? Array.Empty<LiveComplementaryRejectSourceDetailCount>()).Take(12);
+
+    private IEnumerable<LiveComplementaryCandidateBlockerCount> LiveCandidateBlockerRollupRows =>
+        (_liveLockSnapshot?.CandidateBlockerCounts ?? Array.Empty<LiveComplementaryCandidateBlockerCount>()).Take(12);
+
+    private IEnumerable<LiveComplementaryInputHash> LiveInputHashRows =>
+        (_liveLockSnapshot?.InputHashes ?? Array.Empty<LiveComplementaryInputHash>()).Take(120);
+
+    private IEnumerable<LiveComplementaryBatchFixtureRow> BatchFixtureRows =>
+        (_batchScan?.Fixtures ?? Array.Empty<LiveComplementaryBatchFixtureRow>()).Take(80);
+
+    private IEnumerable<LiveComplementaryLockReject> BatchRejectRows =>
+        (_batchScan?.Rejects ?? Array.Empty<LiveComplementaryLockReject>()).Take(120);
+
+    private IEnumerable<LiveComplementaryRejectSourceDetailCount> BatchRejectRollupRows =>
+        (_batchScan?.RejectSourceDetailCounts ?? Array.Empty<LiveComplementaryRejectSourceDetailCount>()).Take(12);
+
+    private IEnumerable<LiveComplementaryCandidateBlockerCount> BatchCandidateBlockerRollupRows =>
+        (_batchScan?.CandidateBlockerCounts ?? Array.Empty<LiveComplementaryCandidateBlockerCount>()).Take(12);
+
+    private IEnumerable<LiveComplementaryFixtureStatusCount> BatchFixtureStatusRollupRows =>
+        (_batchScan?.FixtureScanStatusCounts ?? Array.Empty<LiveComplementaryFixtureStatusCount>()).Take(12);
+
+    private IEnumerable<LiveComplementaryInputHash> BatchInputHashRows =>
+        (_batchScan?.InputHashes ?? Array.Empty<LiveComplementaryInputHash>()).Take(200);
+
+    private IEnumerable<ComboLabEvidenceLedgerEntry> LedgerRows =>
+        (_ledger?.Entries ?? Array.Empty<ComboLabEvidenceLedgerEntry>()).Take(40);
+
+    private async Task<IReadOnlyList<LiveLockFixtureOption>> LoadFixtureOptions()
+    {
+        var fixtures = (await Db.Fixtures.AsNoTracking().ToListAsync())
+            .OrderBy(fixture => fixture.KickoffUtc ?? DateTimeOffset.MaxValue)
+            .ThenBy(fixture => fixture.Group)
+            .ThenBy(fixture => fixture.HomeTeamId)
+            .ThenBy(fixture => fixture.AwayTeamId)
+            .ToList();
+
+        return fixtures.Select(fixture => new LiveLockFixtureOption(
+            fixture.Id,
+            $"{Name(fixture.HomeTeamId)} vs {Name(fixture.AwayTeamId)} · Group {fixture.Group} · {(fixture.KickoffUtc.HasValue ? fixture.KickoffUtc.Value.UtcDateTime.ToString("MMM d HH:mm 'UTC'") : "scheduled")}"))
+            .ToList();
+    }
+
+    private async Task RefreshUniverse()
+    {
+        _universeBusy = true;
+        _error = "";
+        try
+        {
+            _snapshot = await Monitor.RefreshUniverseAsync(comboMaxPages: 20);
+            _burden = await Burden.SnapshotAsync();
+            Snackbar.Add(_snapshot.HasErrors ? "Universe refresh completed with warnings." : "Universe refresh complete.", _snapshot.HasErrors ? Severity.Warning : Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("Could not refresh Combo Lab universe.", Severity.Error);
+        }
+        finally
+        {
+            _universeBusy = false;
+        }
+    }
+
+    private async Task RunSimulation()
+    {
+        _simulationBusy = true;
+        _error = "";
+        try
+        {
+            _projection = await Simulator.RunAsync(Options.Value.SimulationCount, saveSnapshot: false);
+            _burden ??= await Burden.SnapshotAsync();
+            _preReg = SimulationPreRegistrationCheckpoint.Create(_projection, _snapshot?.Report.Summary, _burden, ComboLabSourceManifest);
+            Snackbar.Add("Simulation complete.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("Could not run tournament simulation.", Severity.Error);
+        }
+        finally
+        {
+            _simulationBusy = false;
+        }
+    }
+
+    private async Task RefreshLiveLocks()
+    {
+        _liveLockBusy = true;
+        _error = "";
+        try
+        {
+            _liveLockSnapshot = await LiveLocks.RefreshAsync(_selectedFixtureId, _eventSlug, sharesPerLeg: 5m, executionBuffer: .02m);
+            _liveLockCheckpoint = LiveComplementaryLockCheckpoint.Create(_liveLockSnapshot);
+            Snackbar.Add(_liveLockSnapshot.HasCandidates ? "Live read-only lock scan complete." : "Live read-only lock scan found no candidates.", _liveLockSnapshot.HasCandidates ? Severity.Success : Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("Could not fetch live lock candidates.", Severity.Error);
+        }
+        finally
+        {
+            _liveLockBusy = false;
+        }
+    }
+
+    private async Task RefreshBatchLocks()
+    {
+        _batchLockBusy = true;
+        _error = "";
+        try
+        {
+            _batchScan = await LiveLocks.BatchScanAsync(new LiveComplementaryBatchScanOptions
+            {
+                MaxFixtures = 48,
+                MaxCandidatesPerFixture = 8,
+                MaxTotalCandidates = 80,
+                SharesPerLeg = 5m,
+                ExecutionBuffer = .02m
+            });
+            _batchCheckpoint = LiveComplementaryBatchScanCheckpoint.Create(_batchScan);
+            Snackbar.Add(_batchScan.HasCandidates ? "Batch read-only fixture scan complete." : "Batch read-only fixture scan found no candidates.", _batchScan.HasCandidates ? Severity.Success : Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("Could not run all-fixture batch scan.", Severity.Error);
+        }
+        finally
+        {
+            _batchLockBusy = false;
+        }
+    }
+
+    private async Task SuggestEventSlug()
+    {
+        _eventSuggestBusy = true;
+        _error = "";
+        try
+        {
+            _eventSuggestion = await LiveLocks.SuggestEventAsync(_selectedFixtureId);
+            if (_eventSuggestion.HasSuggestion)
+            {
+                _eventSlug = _eventSuggestion.EventSlug ?? "";
+                Snackbar.Add("Polymarket event slug suggested. Review before fetching locks.", Severity.Info);
+            }
+            else
+            {
+                Snackbar.Add("No unambiguous Polymarket event slug found.", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("Could not suggest Polymarket event slug.", Severity.Error);
+        }
+        finally
+        {
+            _eventSuggestBusy = false;
+        }
+    }
+
+    private async Task LoadLedger()
+    {
+        _ledgerBusy = true;
+        _error = "";
+        try
+        {
+            _ledger = await EvidenceLedger.LoadAsync();
+            Snackbar.Add("Evidence ledger loaded.", _ledger.HasRejects ? Severity.Warning : Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("Could not load evidence ledger.", Severity.Error);
+        }
+        finally
+        {
+            _ledgerBusy = false;
+        }
+    }
+
+    private async Task SaveLiveCheckpoint()
+    {
+        if (_liveLockCheckpoint is null)
+            return;
+
+        _ledgerBusy = true;
+        _error = "";
+        try
+        {
+            var entry = await EvidenceLedger.SaveAsync(_liveLockCheckpoint);
+            _ledger = await EvidenceLedger.LoadAsync();
+            Snackbar.Add($"Saved live checkpoint {ShortHash(entry.SnapshotHash)} to the evidence ledger.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("Could not save live checkpoint.", Severity.Error);
+        }
+        finally
+        {
+            _ledgerBusy = false;
+        }
+    }
+
+    private async Task SaveBatchCheckpoint()
+    {
+        if (_batchCheckpoint is null)
+            return;
+
+        _ledgerBusy = true;
+        _error = "";
+        try
+        {
+            var entry = await EvidenceLedger.SaveAsync(_batchCheckpoint);
+            _ledger = await EvidenceLedger.LoadAsync();
+            Snackbar.Add($"Saved batch checkpoint {ShortHash(entry.SnapshotHash)} to the evidence ledger.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("Could not save batch checkpoint.", Severity.Error);
+        }
+        finally
+        {
+            _ledgerBusy = false;
+        }
+    }
+
+    private static bool Matches(ComboLabMonitorMarketRow row, string query)
+    {
+        var needle = query.Trim();
+        return Contains(row.Slug, needle) ||
+               Contains(row.Question, needle) ||
+               Contains(row.SportsMarketType, needle) ||
+               Contains(row.ConditionId, needle) ||
+               row.Family.ToString().Contains(needle, StringComparison.OrdinalIgnoreCase) ||
+               row.Coverage.ToString().Contains(needle, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool Contains(string? value, string needle) =>
+        !string.IsNullOrWhiteSpace(value) && value.Contains(needle, StringComparison.OrdinalIgnoreCase);
+
+    private static Color VerdictColor(ComboLabMonitorVerdict verdict) => verdict switch
+    {
+        ComboLabMonitorVerdict.ReadyForPricing => Color.Success,
+        ComboLabMonitorVerdict.SourceBlocked => Color.Error,
+        ComboLabMonitorVerdict.NeedsModel => Color.Warning,
+        ComboLabMonitorVerdict.UnknownFamily => Color.Error,
+        ComboLabMonitorVerdict.NotComboEligible => Color.Info,
+        _ => Color.Default
+    };
+
+    private static Color LockVerdictColor(string verdict) => verdict switch
+    {
+        nameof(ComplementaryLockVerdict.PositiveLock) => Color.Success,
+        nameof(ComplementaryLockVerdict.LockNoProfit) => Color.Warning,
+        nameof(ComplementaryLockVerdict.CorrelatedOnly) => Color.Error,
+        _ => Color.Default
+    };
+
+    private static Color RejectSourceColor(LiveComplementaryLockRejectSource source) => source switch
+    {
+        LiveComplementaryLockRejectSource.Book => Color.Warning,
+        LiveComplementaryLockRejectSource.Candidate => Color.Info,
+        LiveComplementaryLockRejectSource.Event => Color.Error,
+        LiveComplementaryLockRejectSource.Fixture => Color.Error,
+        LiveComplementaryLockRejectSource.Mapping => Color.Warning,
+        _ => Color.Default
+    };
+
+    private static Color StrategyVerdictColor(string verdict) => verdict switch
+    {
+        nameof(FootballStrategyVerdict.TruePositiveLock) => Color.Success,
+        nameof(FootballStrategyVerdict.BreakEvenLock) => Color.Info,
+        nameof(FootballStrategyVerdict.MiddleHedge) => Color.Warning,
+        nameof(FootballStrategyVerdict.GapHedge) => Color.Error,
+        nameof(FootballStrategyVerdict.CorrelatedOnly) => Color.Error,
+        _ => Color.Default
+    };
+
+    private static Color BatchStatusColor(string status) => status switch
+    {
+        "CANDIDATES" => Color.Success,
+        "SCANNED_NO_CANDIDATES" => Color.Info,
+        "NO_EVENT_MATCH" => Color.Warning,
+        "AMBIGUOUS_EVENT" => Color.Warning,
+        "FETCH_FAILED" => Color.Error,
+        _ => Color.Default
+    };
+
+    private static Color TimeModeColor(string timeMode) => timeMode switch
+    {
+        "PRE_GAME_ONLY" => Color.Info,
+        "IN_PLAY_COMPATIBLE" => Color.Success,
+        var value when value.StartsWith("BLOCKED", StringComparison.OrdinalIgnoreCase) => Color.Error,
+        _ => Color.Default
+    };
+
+    private static Color BreakBasisColor(string basis) => basis switch
+    {
+        "LOCK_FLOOR" => Color.Success,
+        "UPSIDE_HEDGE" => Color.Warning,
+        "GAP_UPSIDE_ONLY" => Color.Error,
+        "NO_STRUCTURAL_COVER" => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string ScoreStateText(LiveComplementaryEventState state) =>
+        state.HomeGoals.HasValue && state.AwayGoals.HasValue && state.ElapsedMinute.HasValue
+            ? $"· score {state.HomeGoals}-{state.AwayGoals} · minute {state.ElapsedMinute}"
+            : "";
+
+    private string Name(string id) => _names.TryGetValue(id, out var name) ? name : id;
+
+    private static string ShortHash(string hash) => hash.Length <= 12 ? hash : hash[..12];
+
+    private static readonly string[] ComboLabSourceManifest =
+    [
+        "santisignals-substack-archive-firecrawl",
+        "medium-heatmap-guide-firecrawl",
+        "santisignals-wc-terminal-firecrawl",
+        "expected-threat-karun-singh",
+        "socceraction-xT-VAEP",
+        "statsbomb-open-data",
+        "metrica-sample-tracking",
+        "world-cup-heat-travel-literature"
+    ];
+
+    private sealed record LiveLockFixtureOption(string Id, string Label);
+}

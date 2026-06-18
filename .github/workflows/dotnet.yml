@@ -1,0 +1,71 @@
+name: .NET
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Restore
+        run: dotnet restore Oloraculo.sln
+
+      - name: Build
+        run: dotnet build Oloraculo.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test Oloraculo.sln --configuration Release --no-build --verbosity normal
+
+      - name: Coverage
+        run: dotnet test Oloraculo.Web.Tests/Oloraculo.Web.Tests.csproj --configuration Release --no-build --collect:"XPlat Code Coverage"
+
+      - name: Rust tests
+        run: cargo test
+
+      - name: MCP smoke
+        run: python tools/mcp/test_oloraculo_context_server.py
+
+      - name: Secret scan
+        shell: pwsh
+        run: ./tools/security/check-no-raw-secrets.ps1
+
+      - name: No live-order path scan
+        shell: pwsh
+        run: ./tools/security/check-no-live-order-path.ps1
+
+      - name: Codex health
+        shell: pwsh
+        run: ./tools/codex/check-oloraculo-codex.ps1
+
+      - name: OpenCode compatibility health
+        shell: pwsh
+        run: ./tools/opencode/check-oloraculo-opencode.ps1
+
+      - name: Container smoke
+        shell: pwsh
+        run: ./tools/release/test-container-smoke.ps1
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: "**/TestResults/**"
+          if-no-files-found: warn
