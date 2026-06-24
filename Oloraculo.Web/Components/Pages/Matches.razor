@@ -140,7 +140,6 @@
                         }
                         <MudStack Row="true" Spacing="1" Class="action-row">
                             <BusyButton Text="@(_saved ? "Snapshot guardado" : "Guardar predicción")" BusyText="Guardando" IsBusy="_saving" Disabled="@(_saved || _result is null)" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Save" OnClick="SaveSnapshot" />
-                            <BusyButton Text="Borrar predicción" BusyText="Borrando" IsBusy="_deleting" Disabled="@(_matchSnapshots.Count == 0 || _predicting || _saving || _refreshing || _loadingSnapshot)" Variant="Variant.Outlined" Color="Color.Error" Icon="@Icons.Material.Filled.Delete" OnClick="DeletePrediction" />
                             <BusyButton Text="Actualizar contexto API" BusyText="Actualizando" IsBusy="_refreshing" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.Sync" OnClick="RefreshContext" />
                         </MudStack>
                         @if (_refreshing || _loadingSnapshot)
@@ -245,7 +244,6 @@
     private bool _loadingSnapshot;
     private bool _refreshing;
     private bool _applying;
-    private bool _deleting;
     private bool _clearing;
     private int _selectedMatchSnapshotId;
     private int? _activeMatchSnapshotId;
@@ -447,36 +445,6 @@
         finally
         {
             _refreshing = false;
-        }
-    }
-
-    private async Task DeletePrediction()
-    {
-        if (_selected is null)
-            return;
-
-        _deleting = true;
-        _error = "";
-        try
-        {
-            var count = await Snapshots.DeleteMatchSnapshotsAsync(_selected.Id);
-            _result = null;
-            _saved = false;
-            _activeMatchSnapshotId = null;
-            _selectedMatchSnapshotId = 0;
-            _resultSource = "";
-            await RefreshMatchSnapshotsForSelected();
-            var message = count == 0 ? "No había predicciones guardadas para este partido." : $"Se borraron {count} predicción(es) de este partido.";
-            Snackbar.Add(message, count == 0 ? Severity.Info : Severity.Success);
-        }
-        catch (Exception ex)
-        {
-            _error = ex.Message;
-            Snackbar.Add("No se pudo borrar la predicción.", Severity.Error);
-        }
-        finally
-        {
-            _deleting = false;
         }
     }
 

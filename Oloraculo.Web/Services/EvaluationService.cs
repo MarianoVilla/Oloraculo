@@ -14,7 +14,7 @@ namespace Oloraculo.Web.Services
 
         public async Task<int> EvaluateLatestSnapshotAsync(Fixture fixture, int homeGoals, int awayGoals, CancellationToken ct = default)
         {
-            var evaluated = await TryAddEvaluationAsync(fixture, homeGoals, awayGoals, ct);
+            var evaluated = await UpsertEvaluationAsync(fixture, homeGoals, awayGoals, ct);
             if (!evaluated)
                 return 0;
 
@@ -30,7 +30,7 @@ namespace Oloraculo.Web.Services
         /// </summary>
         public async Task<ManualResultReport> RecordManualResultAsync(Fixture fixture, int homeGoals, int awayGoals, CancellationToken ct = default)
         {
-            var evaluated = await TryAddEvaluationAsync(fixture, homeGoals, awayGoals, ct);
+            var evaluated = await UpsertEvaluationAsync(fixture, homeGoals, awayGoals, ct);
             UpsertManualResult(fixture, homeGoals, awayGoals);
             await _db.SaveChangesAsync(ct);
             return new ManualResultReport(true, evaluated);
@@ -61,22 +61,34 @@ namespace Oloraculo.Web.Services
             return hadResult || existingResult is not null || evaluations.Count > 0;
         }
 
-        private async Task<bool> TryAddEvaluationAsync(Fixture fixture, int homeGoals, int awayGoals, CancellationToken ct)
+        private async Task<bool> UpsertEvaluationAsync(Fixture fixture, int homeGoals, int awayGoals, CancellationToken ct)
         {
-            if (await _db.Evaluations.AnyAsync(e => e.FixtureId == fixture.Id, ct))
-                return false;
+            var existing = await _db.Evaluations.FirstOrDefaultAsync(e => e.FixtureId == fixture.Id, ct);
+            if (existing is not null)
+            {
+                ApplyScore(existing, homeGoals, awayGoals);
+                return true;
+            }
 
             var snapshot = (await _db.Snapshots
-                .Where(s => s.Kind == "match" && s.FixtureId == fixture.Id && s.HomeWin.HasValue)
+                .Where(s =>
+                    s.Kind == "match" &&
+                    s.FixtureId == fixture.Id &&
+                    s.HomeWin.HasValue &&
+                    s.Draw.HasValue &&
+                    s.AwayWin.HasValue)
                 .ToListAsync(ct))
                 .OrderByDescending(s => s.CreatedAt)
+                .ThenByDescending(s => s.Id)
                 .FirstOrDefault();
-            if (snapshot is null || snapshot.HomeWin is null || snapshot.Draw is null || snapshot.AwayWin is null)
+            if (snapshot is null)
                 return false;
 
-            var predicted = new OutcomeProbabilities(snapshot.HomeWin.Value, snapshot.Draw.Value, snapshot.AwayWin.Value).Normalize();
-            var actual = OutcomeFromGoals(homeGoals, awayGoals);
-            _db.Evaluations.Add(new PredictionEvaluation
+            var predicted = new OutcomeProbabilities(
+                snapshot.HomeWin.GetValueOrDefault(),
+                snapshot.Draw.GetValueOrDefault(),
+                snapshot.AwayWin.GetValueOrDefault()).Normalize();
+            var evaluation = new PredictionEvaluation
             {
                 ModelName = snapshot.ModelName,
                 FixtureId = fixture.Id,
@@ -87,14 +99,25 @@ namespace Oloraculo.Web.Services
                 HomeWin = predicted.HomeWin,
                 Draw = predicted.Draw,
                 AwayWin = predicted.AwayWin,
-                Actual = actual,
-                BrierScore = ProbabilityHelper.BrierScore(predicted, actual),
-                RankedProbabilityScore = ProbabilityHelper.RankedProbabilityScore(predicted, actual),
-                LogLoss = ProbabilityHelper.LogLoss(predicted, actual),
-                TopPickCorrect = predicted.TopPick == actual,
                 PredictedAt = snapshot.CreatedAt
-            });
+            };
+            ApplyScore(evaluation, homeGoals, awayGoals);
+            _db.Evaluations.Add(evaluation);
             return true;
+        }
+
+        private static void ApplyScore(PredictionEvaluation evaluation, int homeGoals, int awayGoals)
+        {
+            var predicted = new OutcomeProbabilities(evaluation.HomeWin, evaluation.Draw, evaluation.AwayWin).Normalize();
+            var actual = OutcomeFromGoals(homeGoals, awayGoals);
+
+            evaluation.HomeGoals = homeGoals;
+            evaluation.AwayGoals = awayGoals;
+            evaluation.Actual = actual;
+            evaluation.BrierScore = ProbabilityHelper.BrierScore(predicted, actual);
+            evaluation.RankedProbabilityScore = ProbabilityHelper.RankedProbabilityScore(predicted, actual);
+            evaluation.LogLoss = ProbabilityHelper.LogLoss(predicted, actual);
+            evaluation.TopPickCorrect = predicted.TopPick == actual;
         }
 
         private void UpsertManualResult(Fixture fixture, int homeGoals, int awayGoals)

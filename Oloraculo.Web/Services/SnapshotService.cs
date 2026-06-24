@@ -215,25 +215,6 @@ namespace Oloraculo.Web.Services
             return snapshots.Select(ToMatchSummary).ToList();
         }
 
-        /// <summary>
-        /// Borra todas las predicciones (snapshots de partido) guardadas para un fixture.
-        /// Devuelve cuantas se eliminaron.
-        /// </summary>
-        public async Task<int> DeleteMatchSnapshotsAsync(string fixtureId, CancellationToken ct = default)
-        {
-            await EnsureSnapshotColumnsAsync(ct);
-            var snapshots = await _db.Snapshots
-                .Where(s => s.Kind == MatchKind && s.FixtureId == fixtureId)
-                .ToListAsync(ct);
-
-            if (snapshots.Count == 0)
-                return 0;
-
-            _db.Snapshots.RemoveRange(snapshots);
-            await _db.SaveChangesAsync(ct);
-            return snapshots.Count;
-        }
-
         public async Task<MatchSnapshotLoadResult> LoadLatestMatchSnapshotAsync(string fixtureId, CancellationToken ct = default)
         {
             var latest = (await MatchSnapshotsAsync(fixtureId, ct: ct)).FirstOrDefault(snapshot => snapshot.IsValid);
