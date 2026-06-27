@@ -24,6 +24,7 @@ var ConnectionString = builder.Configuration.GetConnectionString("Oloraculo") ??
 builder.Services.AddDbContext<OloraculoDbContext>(options => options.UseSqlite(ConnectionString));
 
 builder.Services.AddScoped<CsvImportService>();
+builder.Services.AddScoped<KnockoutBracketService>();
 builder.Services.AddScoped<PredictionService>();
 builder.Services.AddScoped<EvaluationService>();
 builder.Services.AddScoped<SnapshotService>();
@@ -98,6 +99,22 @@ using (var Scope = app.Services.CreateScope())
     }
 
     await CsvImporterService.ImportIfNeededAsync();
+
+    if (Config.ResultsRefreshOnStartup && !exportReadmeSnapshots)
+    {
+        try
+        {
+            var ResultsReport = await CsvImporterService.RefreshResultsAsync();
+            foreach (var note in ResultsReport.Notes)
+                app.Logger.LogInformation("{Note}", note);
+            foreach (var error in ResultsReport.Errors)
+                app.Logger.LogWarning("{Error}", error);
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogWarning(ex, "Results refresh failed during startup. Existing data will be used.");
+        }
+    }
 }
 
 if (exportReadmeSnapshots)

@@ -28,6 +28,13 @@ namespace Oloraculo.Web.Services.Simulation
         {
             var groups = await _db.Groups.AsNoTracking().OrderBy(g => g.Name).ToListAsync(ct);
             var fixtures = await _db.Fixtures.AsNoTracking().ToListAsync(ct);
+            var groupStageCutoff = new DateTimeOffset(2026, 6, 27, 0, 0, 0, TimeSpan.Zero);
+            var knockoutResultsList = (await _db.Results
+                .Where(r => r.Tournament == "FIFA World Cup")
+                .AsNoTracking()
+                .ToListAsync(ct))
+                .Where(r => r.Date > groupStageCutoff)
+                .ToList();
             var fifaPoints = await FifaPointsAsync(ct);
             var teams = groups.SelectMany(g => g.TeamIds).Distinct().ToList();
             var rng = new Random(seed ?? _config.SimulationSeed ?? Environment.TickCount);
@@ -63,14 +70,14 @@ namespace Oloraculo.Web.Services.Simulation
                     counters[third.TeamId].Qualify++;
 
                 var thirdAssignments = WorldCup2026Bracket.AssignThirdPlaceGroups(bestThirds.Select(t => t.Group).ToList());
-                await RunKnockoutAsync(groupSlots, bestThirds, thirdAssignments, sampler, rng, counters, ct);
+                await RunKnockoutAsync(groupSlots, bestThirds, thirdAssignments, sampler, rng, counters, knockoutResultsList, ct);
             }
 
             var projection = new TournamentProjection
             {
                 Simulations = n,
                 ModelName = "Final",
-                InputSummaryHash = InputHash(groups, fixtures, n, seed ?? _config.SimulationSeed),
+                InputSummaryHash = InputHash(groups, fixtures, knockoutResultsList, n, seed ?? _config.SimulationSeed),
                 Teams = teams.Select(team =>
                 {
                     var group = groups.First(g => g.TeamIds.Contains(team)).Name;
@@ -139,10 +146,14 @@ namespace Oloraculo.Web.Services.Simulation
             MatchSamplerCache sampler,
             Random rng,
             Dictionary<string, Counter> counters,
+            IReadOnlyList<MatchResult> knockoutResultsList,
             CancellationToken ct)
         {
             var winners = new Dictionary<int, string>();
             var thirdByGroup = bestThirds.ToDictionary(t => t.Group, t => t.TeamId, StringComparer.OrdinalIgnoreCase);
+            var knockoutResults = knockoutResultsList.ToDictionary(
+                r => (r.HomeTeamId, r.AwayTeamId),
+                r => (r.HomeGoals, r.AwayGoals));
 
             await RunRoundAsync(WorldCup2026Bracket.RoundOf32, team => counters[team].R16++, ct);
             await RunRoundAsync(WorldCup2026Bracket.RoundOf16, team => counters[team].Qf++, ct);
@@ -165,7 +176,11 @@ namespace Oloraculo.Web.Services.Simulation
             {
                 var home = ResolveSlot(tie, tie.Home);
                 var away = ResolveSlot(tie, tie.Away);
-                var winner = await sampler.KnockoutWinnerAsync(home, away, rng, token);
+
+                // Use actual result if available and decisive (drawn = went to pens, simulate)
+                var knownWinner = KnownKnockoutWinner(home, away, knockoutResults);
+                var winner = knownWinner ?? await sampler.KnockoutWinnerAsync(home, away, rng, token);
+
                 winners[tie.Id] = winner;
                 return winner;
             }
@@ -181,6 +196,23 @@ namespace Oloraculo.Web.Services.Simulation
                 };
         }
 
+        private static string? KnownKnockoutWinner(
+            string homeId, string awayId,
+            IReadOnlyDictionary<(string, string), (int HomeGoals, int AwayGoals)> results)
+        {
+            if (results.TryGetValue((homeId, awayId), out var r))
+            {
+                if (r.HomeGoals > r.AwayGoals) return homeId;
+                if (r.AwayGoals > r.HomeGoals) return awayId;
+            }
+            else if (results.TryGetValue((awayId, homeId), out var rFlipped))
+            {
+                if (rFlipped.HomeGoals > rFlipped.AwayGoals) return awayId;
+                if (rFlipped.AwayGoals > rFlipped.HomeGoals) return homeId;
+            }
+            return null; // empate AET → penales → simular
+        }
+
         public static (int Home, int Away) SampleScoreFromPrediction(MatchPredictionResult prediction, Random rng) =>
             MatchSamplerCache.SampleScoreFromPrediction(prediction, rng);
 
@@ -191,14 +223,17 @@ namespace Oloraculo.Web.Services.Simulation
                 .GroupBy(r => r.TeamId)
                 .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.AsOf).First().Value, StringComparer.OrdinalIgnoreCase);
 
-        private static string InputHash(IReadOnlyList<Group> groups, IReadOnlyList<Fixture> fixtures, int simulations, int? seed)
+        private static string InputHash(IReadOnlyList<Group> groups, IReadOnlyList<Fixture> fixtures, IReadOnlyList<MatchResult> knockoutResults, int simulations, int? seed)
         {
             var groupTokens = groups.Select(g => $"{g.Name}:{string.Join("-", g.TeamIds)}");
             var resultTokens = fixtures
                 .Where(f => f is { IsPlayed: true, HomeGoals: not null, AwayGoals: not null })
                 .OrderBy(f => f.Id)
                 .Select(f => $"{f.Id}:{f.HomeGoals}-{f.AwayGoals}");
-            return CryptoUtil.GetSha256($"{simulations}|{seed}|{string.Join("|", groupTokens)}|{string.Join("|", resultTokens)}");
+            var knockoutTokens = knockoutResults
+                .OrderBy(r => r.Date).ThenBy(r => r.HomeTeamId)
+                .Select(r => $"{r.HomeTeamId}:{r.AwayTeamId}:{r.HomeGoals}-{r.AwayGoals}");
+            return CryptoUtil.GetSha256($"{simulations}|{seed}|{string.Join("|", groupTokens)}|{string.Join("|", resultTokens)}|{string.Join("|", knockoutTokens)}");
         }
 
         private sealed record GroupSlots(string Winner, string RunnerUp, string Third);
