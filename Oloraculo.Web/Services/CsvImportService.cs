@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Oloraculo.Web.DAL;
 using Oloraculo.Web.Helpers;
 using Oloraculo.Web.Models;
@@ -12,11 +13,15 @@ namespace Oloraculo.Web.Services
     {
         private readonly OloraculoDbContext _db;
         private readonly IWebHostEnvironment _environment;
+        private readonly IHttpClientFactory _httpFactory;
+        private readonly OloraculoConfig _config;
 
-        public CsvImportService(OloraculoDbContext db, IWebHostEnvironment env)
+        public CsvImportService(OloraculoDbContext db, IWebHostEnvironment env, IHttpClientFactory httpFactory, IOptions<OloraculoConfig> options)
         {
             _db = db;
             _environment = env;
+            _httpFactory = httpFactory;
+            _config = options.Value;
         }
 
         public async Task ImportIfNeededAsync(CancellationToken ct = default)
@@ -69,6 +74,81 @@ namespace Oloraculo.Web.Services
             await ImportRatingsAsync(ct);
             await _db.SaveChangesAsync(ct);
             return await _db.Ratings.CountAsync(ct);
+        }
+
+        public async Task<ResultsRefreshReport> RefreshResultsAsync(CancellationToken ct = default)
+        {
+            var notes = new List<string>();
+            var errors = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(_config.ResultsRawUrl))
+            {
+                try
+                {
+                    var http = _httpFactory.CreateClient();
+                    http.DefaultRequestHeaders.UserAgent.ParseAdd(_config.RankingRefreshUserAgent);
+                    var csv = await http.GetStringAsync(_config.ResultsRawUrl, ct);
+                    var path = FullPath(OloraculoDataFiles.HistoricalResultsCsv);
+                    await File.WriteAllTextAsync(path, csv, ct);
+                    notes.Add($"historical_results.csv descargado ({csv.Length:N0} bytes).");
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"No se pudo descargar el CSV de resultados: {ex.Message}");
+                }
+            }
+
+            await _db.Database.EnsureCreatedAsync(ct);
+            await EnsureFixtureResultColumnsAsync(ct);
+            await ImportHistoricalResultsAsync(ct);
+            await _db.SaveChangesAsync(ct);
+
+            var resultsCount = await _db.Results.CountAsync(ct);
+            notes.Add($"{resultsCount:N0} resultados históricos importados.");
+
+            var wc2026Cutoff = new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero);
+            var wc2026Results = (await _db.Results
+                .Where(r => r.Tournament == "FIFA World Cup")
+                .AsNoTracking()
+                .ToListAsync(ct))
+                .Where(r => r.Date >= wc2026Cutoff)
+                .ToList();
+
+            var fixtures = await _db.Fixtures.ToListAsync(ct);
+            var fixtureByTeams = fixtures.ToDictionary(
+                f => (f.HomeTeamId, f.AwayTeamId),
+                f => f);
+
+            int reconciled = 0;
+            foreach (var result in wc2026Results)
+            {
+                Fixture? fixture = null;
+                bool flipped = false;
+
+                if (fixtureByTeams.TryGetValue((result.HomeTeamId, result.AwayTeamId), out fixture))
+                    flipped = false;
+                else if (fixtureByTeams.TryGetValue((result.AwayTeamId, result.HomeTeamId), out fixture))
+                    flipped = true;
+
+                if (fixture is null)
+                    continue;
+
+                fixture.IsPlayed = true;
+                fixture.HomeGoals = flipped ? result.AwayGoals : result.HomeGoals;
+                fixture.AwayGoals = flipped ? result.HomeGoals : result.AwayGoals;
+                reconciled++;
+            }
+
+            await _db.SaveChangesAsync(ct);
+            notes.Add($"{reconciled} partido(s) WC2026 reconciliados en Fixtures.");
+
+            return new ResultsRefreshReport
+            {
+                ResultsImported = resultsCount,
+                FixturesReconciled = reconciled,
+                Notes = notes,
+                Errors = errors,
+            };
         }
 
         private async Task ImportGroupsAsync(CancellationToken ct)

@@ -11,10 +11,12 @@
         public int ApiFootballLeagueId { get; set; }
         public int ApiFootballSeason { get; set; }
         public bool RankingRefreshOnStartup { get; set; } = true;
+        public bool ResultsRefreshOnStartup { get; set; } = true;
         public int EloRefreshMaxLookbackDays { get; set; } = 14;
         public string FifaRankingsRawUrl { get; set; } = "https://en.wikipedia.org/w/index.php?title=Module:SportsRankings/data/FIFA_World_Rankings&action=raw";
         public string EloRankingsBaseUrl { get; set; } = "https://www.international-football.net/elo-ratings-table";
         public string RankingRefreshUserAgent { get; set; } = "Oloraculo";
+        public string ResultsRawUrl { get; set; } = "https://raw.githubusercontent.com/martj42/international_results/refs/heads/master/results.csv";
         public string GoalscorersRawUrl { get; set; } = "https://raw.githubusercontent.com/martj42/international_results/refs/heads/master/goalscorers.csv";
         public int GoalscorerLookbackYears { get; set; } = 6;
         public string OpenRouterBaseUrl { get; set; } = "https://openrouter.ai/api/v1/";

@@ -23,6 +23,7 @@
     <MudPaper Class="surface-card" Elevation="0">
         <MudStack Row="true" Spacing="1" Class="action-row">
             <BusyButton Text="Reimportar CSV" BusyText="Importando" IsBusy="_busy" Icon="@Icons.Material.Filled.UploadFile" OnClick="ImportAll" />
+            <BusyButton Text="Actualizar resultados" BusyText="Descargando" IsBusy="_resultsBusy" Variant="Variant.Outlined" Color="Color.Primary" Icon="@Icons.Material.Filled.DownloadForOffline" OnClick="RefreshResults" />
             <BusyButton Text="Actualizar rankings" BusyText="Actualizando" IsBusy="_rankingsBusy" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.Sync" OnClick="RefreshRankings" />
             <BusyButton Text="Actualizar partidos API-Football" BusyText="Actualizando" IsBusy="_apiBusy" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.CloudSync" OnClick="RefreshApi" />
             <BusyButton Text="Actualizar disponibilidad" BusyText="Analizando" IsBusy="_availabilityBusy" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.FactCheck" OnClick="RefreshAvailability" />
@@ -34,6 +35,16 @@
         @if (_report is not null)
         {
             <MudAlert Class="mt-2" Severity="Severity.Success" Variant="Variant.Outlined">@_report.Teams equipos, @_report.Groups grupos, @_report.Fixtures partidos, @_report.Results resultados, @_report.Ratings ratings.</MudAlert>
+        }
+        @if (_resultsReport is not null)
+        {
+            <MudAlert Class="mt-2" Severity="@(_resultsReport.Errors.Count > 0 ? Severity.Warning : Severity.Info)" Variant="Variant.Outlined">
+                Resultados importados: @_resultsReport.ResultsImported. Partidos reconciliados: @_resultsReport.FixturesReconciled. @string.Join(" ", _resultsReport.Notes)
+            </MudAlert>
+            @foreach (var error in _resultsReport.Errors)
+            {
+                <MudAlert Class="mt-2" Severity="Severity.Warning" Variant="Variant.Outlined">@error</MudAlert>
+            }
         }
         @if (_rankingsReport is not null)
         {
@@ -118,12 +129,14 @@
     private bool _apiBusy;
     private bool _rankingsBusy;
     private bool _availabilityBusy;
+    private bool _resultsBusy;
     private bool _loaded;
     private CsvImportReport? _report;
     private RankingRefreshReport? _rankingsReport;
     private ApiFootballRefreshReport? _apiReport;
     private AvailabilityRefreshReport? _availabilityReport;
     private AvailabilityRefreshReport? _roleReport;
+    private ResultsRefreshReport? _resultsReport;
     private int _teams;
     private int _fixtures;
     private int _ratings;
@@ -176,6 +189,27 @@
         finally
         {
             _apiBusy = false;
+        }
+    }
+
+    private async Task RefreshResults()
+    {
+        _resultsBusy = true;
+        _error = "";
+        try
+        {
+            _resultsReport = await Importer.RefreshResultsAsync();
+            await Load();
+            Snackbar.Add(_resultsReport.Errors.Count > 0 ? "Resultados actualizados con advertencias." : $"Resultados actualizados: {_resultsReport.FixturesReconciled} partido(s) reconciliados.", _resultsReport.Errors.Count > 0 ? Severity.Warning : Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("No se pudieron actualizar los resultados.", Severity.Error);
+        }
+        finally
+        {
+            _resultsBusy = false;
         }
     }
 

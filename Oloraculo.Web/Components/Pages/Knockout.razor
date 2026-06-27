@@ -1,0 +1,191 @@
+@page "/knockout"
+@rendermode InteractiveServer
+@inject KnockoutBracketService Bracket
+@inject PredictionService Predictor
+@inject ISnackbar Snackbar
+@using Oloraculo.Web.Services.Simulation
+
+<PageTitle>Eliminatoria</PageTitle>
+
+<MudStack Spacing="3">
+    <div class="page-head">
+        <MudText Typo="Typo.h3">Eliminatoria</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">Cruces de la fase eliminatoria resueltos a partir de los resultados de grupos.</MudText>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">@_error</MudAlert>
+    }
+
+    @if (!_loaded)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <MudGrid Spacing="2">
+            <MudItem xs="12" lg="5">
+                @foreach (var stage in _ties.GroupBy(t => t.Stage).OrderBy(g => (int)g.Key))
+                {
+                    <MudPaper Class="surface-card fixture-list" Elevation="0">
+                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="group-label">@StageName(stage.Key)</MudText>
+                        @foreach (var tie in stage)
+                        {
+                            <div class="fixture-row @SelectedClass(tie)">
+                                <MudButton Variant="Variant.Text"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           Disabled="@(!tie.IsResolved || _predicting)"
+                                           OnClick="() => Select(tie)"
+                                           StartIcon="@Icons.Material.Filled.Visibility">
+                                    Ver
+                                </MudButton>
+                                <MudText Typo="Typo.body2">
+                                    <span class="matchup-label">
+                                        <span>@tie.HomeLabel</span>
+                                        <span>vs</span>
+                                        <span>@tie.AwayLabel</span>
+                                    </span>
+                                </MudText>
+                                <MudSpacer />
+                                @if (tie.IsPlayed && tie.HomeGoals.HasValue && tie.AwayGoals.HasValue)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">@tie.HomeGoals-@tie.AwayGoals</MudChip>
+                                }
+                                else if (!tie.IsResolved)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Por definir</MudChip>
+                                }
+                            </div>
+                        }
+                    </MudPaper>
+                }
+            </MudItem>
+
+            <MudItem xs="12" lg="7">
+                @if (_predicting)
+                {
+                    <MudPaper Class="surface-card" Elevation="0">
+                        <MudSkeleton Height="28px" Width="45%" />
+                        <MudSkeleton Height="34px" Class="skeleton-row" />
+                        <MudProgressLinear Class="inline-progress" Color="Color.Primary" Indeterminate="true" />
+                    </MudPaper>
+                }
+                else if (_selected is not null)
+                {
+                    <MudStack Spacing="2">
+                        <MudPaper Class="surface-card final-call" Elevation="0">
+                            <MudText Typo="Typo.h6">
+                                <span class="matchup-label">
+                                    <span>@_selected.HomeLabel</span>
+                                    <span>vs</span>
+                                    <span>@_selected.AwayLabel</span>
+                                </span>
+                            </MudText>
+                            @if (_selected.IsPlayed && _selected.HomeGoals.HasValue && _selected.AwayGoals.HasValue)
+                            {
+                                <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined">Resultado: @_selected.HomeGoals-@_selected.AwayGoals</MudChip>
+                            }
+                            <MudStack Row="true" Spacing="1" Class="action-row mt-2">
+                                <BusyButton Text="Predecir"
+                                            BusyText="Prediciendo"
+                                            IsBusy="_predicting"
+                                            Icon="@Icons.Material.Filled.AutoAwesome"
+                                            OnClick="PredictSelected" />
+                            </MudStack>
+                            @if (_prediction is not null)
+                            {
+                                <div class="prob-wrap">
+                                    <ProbabilityBar Outcome="_prediction.BestPrediction.Outcome"
+                                                    HomeTeamId="@_selected.HomeTeamId"
+                                                    AwayTeamId="@_selected.AwayTeamId"
+                                                    HomeLabel="@_selected.HomeLabel"
+                                                    AwayLabel="@_selected.AwayLabel" />
+                                </div>
+                                <MudText Typo="Typo.body2" Class="explain">@_prediction.BestPrediction.Explanation</MudText>
+                            }
+                        </MudPaper>
+
+                        @if (_prediction is not null)
+                        {
+                            <PredictionCard Prediction="@_prediction.BestPrediction" HomeLabel="@_selected.HomeLabel" AwayLabel="@_selected.AwayLabel" />
+                        }
+                    </MudStack>
+                }
+                else
+                {
+                    <MudPaper Class="surface-card" Elevation="0">
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Selecciona un partido para ver la predicción.</MudAlert>
+                    </MudPaper>
+                }
+            </MudItem>
+        </MudGrid>
+    }
+</MudStack>
+
+@code {
+    private bool _loaded;
+    private bool _predicting;
+    private string _error = "";
+    private IReadOnlyList<ResolvedKnockoutTie> _ties = [];
+    private ResolvedKnockoutTie? _selected;
+    private MatchPredictionResult? _prediction;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _ties = await Bracket.ResolveAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loaded = true;
+        }
+    }
+
+    private async Task Select(ResolvedKnockoutTie tie)
+    {
+        _selected = tie;
+        _prediction = null;
+        await PredictSelected();
+    }
+
+    private async Task PredictSelected()
+    {
+        if (_selected?.HomeTeamId is null || _selected.AwayTeamId is null) return;
+        _predicting = true;
+        _error = "";
+        try
+        {
+            _prediction = await Predictor.PredictPairAsync(_selected.HomeTeamId, _selected.AwayTeamId);
+            Snackbar.Add("Predicción lista.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("No se pudo predecir.", Severity.Error);
+        }
+        finally
+        {
+            _predicting = false;
+        }
+    }
+
+    private string SelectedClass(ResolvedKnockoutTie tie) =>
+        _selected?.Id == tie.Id ? "selected" : "";
+
+    private static string StageName(KnockoutStageEnum stage) => stage switch
+    {
+        KnockoutStageEnum.RoundOf32 => "16avos de Final",
+        KnockoutStageEnum.RoundOf16 => "Octavos de Final",
+        KnockoutStageEnum.QuarterFinal => "Cuartos de Final",
+        KnockoutStageEnum.SemiFinal => "Semifinales",
+        KnockoutStageEnum.Final => "Final",
+        _ => stage.ToString()
+    };
+}
