@@ -18,12 +18,11 @@ namespace Oloraculo.Web.Services
         private readonly CsvImportService _importer;
         private readonly RankingRefreshService _rankings;
         private readonly ApiFootballService _api;
-        private readonly FixtureStatusRefreshService _fixtureStatus;
         private readonly AvailabilityNewsService _availability;
         private readonly PredictionService _prediction;
+        private readonly EvaluationService _evaluation;
         private readonly SnapshotService _snapshots;
         private readonly SimulationService _simulation;
-        private readonly KnockoutBracketService _bracket;
         private readonly IWebHostEnvironment _environment;
         private readonly ILogger<ReadmeSnapshotExportService> _logger;
 
@@ -32,12 +31,11 @@ namespace Oloraculo.Web.Services
             CsvImportService importer,
             RankingRefreshService rankings,
             ApiFootballService api,
-            FixtureStatusRefreshService fixtureStatus,
             AvailabilityNewsService availability,
             PredictionService prediction,
+            EvaluationService evaluation,
             SnapshotService snapshots,
             SimulationService simulation,
-            KnockoutBracketService bracket,
             IWebHostEnvironment environment,
             ILogger<ReadmeSnapshotExportService> logger)
         {
@@ -45,12 +43,11 @@ namespace Oloraculo.Web.Services
             _importer = importer;
             _rankings = rankings;
             _api = api;
-            _fixtureStatus = fixtureStatus;
             _availability = availability;
             _prediction = prediction;
+            _evaluation = evaluation;
             _snapshots = snapshots;
             _simulation = simulation;
-            _bracket = bracket;
             _environment = environment;
             _logger = logger;
         }
@@ -62,10 +59,8 @@ namespace Oloraculo.Web.Services
             if (rankings.AnyFileUpdated)
                 await _importer.ImportRatingsOnlyAsync(ct);
 
-            await _importer.ImportIfNeededAsync(ct);
-
-            var fixtureStatus = await _fixtureStatus.RefreshAsync(ct);
-            LogReport("fixture status", fixtureStatus.Notes, fixtureStatus.Errors);
+            var api = await _api.RefreshFixturesAsync(ct);
+            LogReport("API-Football fixtures", api.Notes, api.Errors);
 
             var availability = await _availability.RefreshAsync(ct);
             LogReport("availability", availability.Notes, availability.Errors);
@@ -73,19 +68,26 @@ namespace Oloraculo.Web.Services
             var roles = await _api.EnrichAvailabilityRolesAsync(ct);
             LogReport("availability roles", roles.Notes, roles.Errors);
 
-            var fixtures = await _db.Fixtures.AsNoTracking().Where(f => f.Id.StartsWith("grp:")).ToListAsync(ct);
+            await _importer.ImportIfNeededAsync(ct);
+
+            var evaluation = await _evaluation.EvaluateUnevaluatedPlayedFixturesAsync(ct);
+            _logger.LogInformation(
+                "Fixture evaluation refresh: evaluated={Evaluated}; skipped already evaluated={SkippedAlreadyEvaluated}; skipped without snapshot={SkippedWithoutSnapshot}.",
+                evaluation.Evaluated,
+                evaluation.SkippedAlreadyEvaluated,
+                evaluation.SkippedWithoutSnapshot);
+
+            var fixtures = await _db.Fixtures.AsNoTracking().ToListAsync(ct);
             var orderedFixtures = OrderedFixtures(fixtures).ToList();
             var predictions = await _prediction.PredictFixturesAsync(orderedFixtures, ct);
             await _snapshots.SaveFullFixtureAsync(predictions.Select(result => result.BestPrediction), ct);
 
             var projection = await _simulation.RunAsync(saveSnapshot: true, ct: ct);
-            var bracket = await _bracket.BuildAsync(upsertFixtures: true, ct);
-            await _snapshots.SaveBracketAsync(bracket, ct);
             var names = await _db.Teams.AsNoTracking().ToDictionaryAsync(t => t.Id, t => t.Name, ct);
             var readmeRows = await ReadmePredictionRowsAsync(orderedFixtures, predictions, names, ct);
             var availabilityClaims = await AvailabilityClaimsByFixtureAsync(orderedFixtures, ct);
 
-            var block = RenderSnapshotRows(projection, readmeRows, names, DateTimeOffset.UtcNow, availabilityClaims, bracket);
+            var block = RenderSnapshotRows(projection, readmeRows, names, DateTimeOffset.UtcNow, availabilityClaims);
             var readmePath = Path.Combine(RepositoryRoot(), "README.md");
             var existing = File.Exists(readmePath) ? await File.ReadAllTextAsync(readmePath, ct) : "# Oloraculo";
             var updated = ReplaceSnapshotBlock(existing, block);
@@ -140,11 +142,10 @@ namespace Oloraculo.Web.Services
             IReadOnlyList<MatchPredictionResult> predictions,
             IReadOnlyDictionary<string, string> teamNames,
             DateTimeOffset generatedAt,
-            IReadOnlyDictionary<string, IReadOnlyList<AvailabilityClaim>>? availabilityClaimsByFixture = null,
-            BracketProjection? bracket = null)
+            IReadOnlyDictionary<string, IReadOnlyList<AvailabilityClaim>>? availabilityClaimsByFixture = null)
         {
             var rows = predictions.Select(prediction => new ReadmePredictionRow(prediction, HasPrediction: true)).ToList();
-            return RenderSnapshotRows(projection, rows, teamNames, generatedAt, availabilityClaimsByFixture, bracket);
+            return RenderSnapshotRows(projection, rows, teamNames, generatedAt, availabilityClaimsByFixture);
         }
 
         private static string RenderSnapshotRows(
@@ -152,17 +153,13 @@ namespace Oloraculo.Web.Services
             IReadOnlyList<ReadmePredictionRow> predictionRows,
             IReadOnlyDictionary<string, string> teamNames,
             DateTimeOffset generatedAt,
-            IReadOnlyDictionary<string, IReadOnlyList<AvailabilityClaim>>? availabilityClaimsByFixture = null,
-            BracketProjection? bracket = null)
+            IReadOnlyDictionary<string, IReadOnlyList<AvailabilityClaim>>? availabilityClaimsByFixture = null)
         {
             var builder = new StringBuilder();
             builder.AppendLine("## Predicciones más recientes");
             builder.AppendLine("_A medida que se recibe nueva información y se juegan partidos reales, " +
                 "el Oloráculo ajusta sus predicciones y las publica acá. A continuación vas a encontrar las más recientes._");
             builder.AppendLine();
-            if (bracket is not null)
-                RenderBracketSection(builder, bracket, teamNames, generatedAt);
-
             builder.AppendLine("### Torneo");
             builder.AppendLine();
             builder.AppendLine($"_Generado {generatedAt.UtcDateTime:yyyy-MM-dd HH:mm} UTC a través de {projection.Simulations.ToString("N0", CultureInfo.InvariantCulture)} simulaciones._");
@@ -179,7 +176,7 @@ namespace Oloraculo.Web.Services
             builder.AppendLine("### Grupos");
             builder.AppendLine();
 
-            foreach (var group in predictionRows.Where(p => p.Result.Fixture.Id.StartsWith("grp:")).GroupBy(p => p.Result.Fixture.Group).OrderBy(g => g.Key))
+            foreach (var group in predictionRows.GroupBy(p => p.Result.Fixture.Group).OrderBy(g => g.Key))
             {
                 builder.AppendLine("<details open>");
                 builder.AppendLine($"<summary><strong>Group {Escape(group.Key)}</strong></summary>");
@@ -212,91 +209,6 @@ namespace Oloraculo.Web.Services
             return builder.ToString();
         }
 
-        private static void RenderBracketSection(
-            StringBuilder builder,
-            BracketProjection bracket,
-            IReadOnlyDictionary<string, string> teamNames,
-            DateTimeOffset generatedAt)
-        {
-            builder.AppendLine("### Cuadro");
-            builder.AppendLine();
-            builder.AppendLine($"_Generado {generatedAt.UtcDateTime:yyyy-MM-dd HH:mm} UTC con el cuadro vigente._");
-            builder.AppendLine();
-
-            foreach (var stage in bracket.Ties.GroupBy(t => t.StageLabel).OrderBy(g => StageSort(g.Key)))
-            {
-                builder.AppendLine("<details open>");
-                builder.AppendLine($"<summary><strong>{Escape(stage.Key)}</strong></summary>");
-                builder.AppendLine();
-                builder.AppendLine("| Match | Status | Pick | Advance odds |");
-                builder.AppendLine("| --- | --- | --- | --- |");
-                foreach (var tie in stage.OrderBy(t => t.TieId))
-                {
-                    builder.AppendLine($"| {BracketMatchText(tie, teamNames)} | {BracketStatusText(tie, teamNames)} | {BracketPickText(tie, teamNames)} | {BracketOddsText(tie, teamNames)} |");
-                }
-
-                builder.AppendLine();
-                builder.AppendLine("</details>");
-                builder.AppendLine();
-            }
-        }
-
-        private static string BracketMatchText(BracketTieProjection tie, IReadOnlyDictionary<string, string> teamNames)
-        {
-            var home = BracketTeamOrSlot(tie.HomeTeamId, tie.HomeSlotLabel, teamNames);
-            var away = BracketTeamOrSlot(tie.AwayTeamId, tie.AwaySlotLabel, teamNames);
-            return $"{home} vs {away}";
-        }
-
-        private static string BracketStatusText(BracketTieProjection tie, IReadOnlyDictionary<string, string> teamNames)
-        {
-            if (tie.IsPlayed && tie.ActualHomeGoals.HasValue && tie.ActualAwayGoals.HasValue)
-            {
-                var winner = string.IsNullOrWhiteSpace(tie.ActualWinnerTeamId)
-                    ? ""
-                    : $" <br><sub>Avanza: {Escape(Name(teamNames, tie.ActualWinnerTeamId))}</sub>";
-                return $"**{tie.ActualHomeGoals}-{tie.ActualAwayGoals}**{winner}";
-            }
-
-            return "Pendiente";
-        }
-
-        private static string BracketPickText(BracketTieProjection tie, IReadOnlyDictionary<string, string> teamNames)
-        {
-            if (string.IsNullOrWhiteSpace(tie.PredictedWinnerTeamId))
-                return string.IsNullOrWhiteSpace(tie.Error) ? "-" : Escape(tie.Error);
-
-            var score = tie.PredictedHomeGoals.HasValue && tie.PredictedAwayGoals.HasValue
-                ? $" <br><sub>{tie.PredictedHomeGoals}-{tie.PredictedAwayGoals}</sub>"
-                : "";
-            return $"{Escape(Name(teamNames, tie.PredictedWinnerTeamId))}{score}";
-        }
-
-        private static string BracketOddsText(BracketTieProjection tie, IReadOnlyDictionary<string, string> teamNames)
-        {
-            if (!tie.HomeAdvanceProbability.HasValue || !tie.AwayAdvanceProbability.HasValue ||
-                string.IsNullOrWhiteSpace(tie.HomeTeamId) || string.IsNullOrWhiteSpace(tie.AwayTeamId))
-            {
-                return "-";
-            }
-
-            return $"{Escape(Name(teamNames, tie.HomeTeamId))} {Percent(tie.HomeAdvanceProbability.Value, 0)}<br>{Escape(Name(teamNames, tie.AwayTeamId))} {Percent(tie.AwayAdvanceProbability.Value, 0)}";
-        }
-
-        private static string BracketTeamOrSlot(string? teamId, string slotLabel, IReadOnlyDictionary<string, string> teamNames) =>
-            string.IsNullOrWhiteSpace(teamId)
-                ? Escape(slotLabel)
-                : TeamCell(teamId, Name(teamNames, teamId));
-
-        private static int StageSort(string stage) => stage switch
-        {
-            "16avos" => 0,
-            "Octavos" => 1,
-            "Cuartos" => 2,
-            "Semis" => 3,
-            "Final" => 4,
-            _ => 99
-        };
         private string RepositoryRoot()
         {
             var current = new DirectoryInfo(_environment.ContentRootPath);

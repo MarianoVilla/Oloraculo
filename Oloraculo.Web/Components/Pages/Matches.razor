@@ -454,7 +454,7 @@
     }
 
     private async Task LoadFixtures() =>
-        _fixtures = await Db.Fixtures.Where(f => f.Id.StartsWith("grp:")).OrderBy(f => f.Group).ThenBy(f => f.HomeTeamId).ToListAsync();
+        _fixtures = await Db.Fixtures.OrderBy(f => f.Group).ThenBy(f => f.HomeTeamId).ToListAsync();
 
     private async Task RefreshMatchSnapshotsForSelected()
     {

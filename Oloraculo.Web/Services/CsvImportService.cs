@@ -185,7 +185,7 @@ namespace Oloraculo.Web.Services
 
         private async Task GenerateFixturesAsync(CancellationToken ct)
         {
-            _db.Fixtures.RemoveRange(_db.Fixtures.Where(f => !f.Id.StartsWith(KnockoutBracketService.KnockoutFixturePrefix)));
+            _db.Fixtures.RemoveRange(_db.Fixtures);
             var groups = await _db.Groups.AsNoTracking().ToListAsync(ct);
 
             foreach (var group in groups.OrderBy(g => g.Name))
@@ -239,8 +239,6 @@ namespace Oloraculo.Web.Services
                     await ExecuteSchemaAsync("ALTER TABLE \"Fixtures\" ADD COLUMN \"HomeGoals\" INTEGER NULL", ct);
                 if (!columns.Contains("AwayGoals"))
                     await ExecuteSchemaAsync("ALTER TABLE \"Fixtures\" ADD COLUMN \"AwayGoals\" INTEGER NULL", ct);
-                if (!columns.Contains("WinnerTeamId"))
-                    await ExecuteSchemaAsync("ALTER TABLE \"Fixtures\" ADD COLUMN \"WinnerTeamId\" TEXT NULL", ct);
             }
             finally
             {

@@ -28,8 +28,6 @@ builder.Services.AddScoped<PredictionService>();
 builder.Services.AddScoped<EvaluationService>();
 builder.Services.AddScoped<SnapshotService>();
 builder.Services.AddScoped<SimulationService>();
-builder.Services.AddScoped<KnockoutBracketService>();
-builder.Services.AddScoped<FixtureStatusRefreshService>();
 builder.Services.AddScoped<ReadmeSnapshotExportService>();
 builder.Services.AddHttpClient<PlayerImpactService>((sp, client) =>
 {
@@ -100,23 +98,6 @@ using (var Scope = app.Services.CreateScope())
     }
 
     await CsvImporterService.ImportIfNeededAsync();
-
-    if (Config.ApiFootballRefreshOnStartup && !exportReadmeSnapshots && !string.IsNullOrWhiteSpace(Config.ApiFootballApiKey))
-    {
-        try
-        {
-            var FixtureRefresh = Scope.ServiceProvider.GetRequiredService<FixtureStatusRefreshService>();
-            var FixtureRefreshReport = await FixtureRefresh.RefreshAsync();
-            foreach (var note in FixtureRefreshReport.Notes)
-                app.Logger.LogInformation("{Note}", note);
-            foreach (var error in FixtureRefreshReport.Errors)
-                app.Logger.LogWarning("{Error}", error);
-        }
-        catch (Exception ex)
-        {
-            app.Logger.LogWarning(ex, "API-Football fixture refresh failed during startup. Existing fixture data will be used.");
-        }
-    }
 }
 
 if (exportReadmeSnapshots)
