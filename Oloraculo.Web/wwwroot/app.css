@@ -421,6 +421,70 @@ body {
     padding: .75rem;
 }
 
+.bracket-board {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: .85rem;
+    align-items: start;
+}
+
+.bracket-stage {
+    display: grid;
+    gap: .65rem;
+    min-width: 0;
+}
+
+.bracket-card-list {
+    display: grid;
+    gap: .55rem;
+}
+
+.bracket-match-card {
+    display: grid;
+    gap: .45rem;
+    padding: .62rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--panel);
+    min-width: 0;
+}
+
+.bracket-match-meta,
+.bracket-pick-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    color: var(--muted);
+    font-size: .76rem;
+    font-weight: 700;
+}
+
+.bracket-match-line {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 3.8rem minmax(0, 1fr);
+    align-items: center;
+    gap: .5rem;
+    min-height: 30px;
+}
+
+.bracket-result-entry {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    flex-wrap: wrap;
+    padding-top: .15rem;
+}
+
+.bracket-goal-input {
+    width: 4.5rem;
+}
+
+.bracket-winner-select {
+    min-width: 10rem;
+    flex: 1 1 10rem;
+}
+
 @media (max-width: 960px) {
     .page-container {
         padding: 1rem .75rem 1.5rem;

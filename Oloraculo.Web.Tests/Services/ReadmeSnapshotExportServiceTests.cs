@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -145,6 +145,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
                 new EvaluationService(db),
                 snapshots,
                 new SimulationService(db, prediction, snapshots, options),
+                new KnockoutBracketService(db, prediction),
                 environment,
                 NullLogger<ReadmeSnapshotExportService>.Instance);
 
@@ -378,6 +379,47 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
         Assert.Contains("odds &#124; market", rendered);
     }
 
+    [Fact]
+    public void ReadmeExporter_RendersBracketBeforeGroupsAndSkipsKnockoutRowsInGroups()
+    {
+        var bracket = new BracketProjection
+        {
+            GeneratedAt = DateTimeOffset.Parse("2026-01-01T00:00:00Z"),
+            ModelName = "Cuadro",
+            InputSummaryHash = "bracket-hash",
+            Ties =
+            [
+                new BracketTieProjection
+                {
+                    TieId = 73,
+                    FixtureId = "ko:73",
+                    StageLabel = "16avos",
+                    HomeSlotLabel = "1A",
+                    AwaySlotLabel = "2B",
+                    HomeTeamId = "argentina",
+                    AwayTeamId = "france",
+                    PredictedWinnerTeamId = "argentina",
+                    HomeAdvanceProbability = .75,
+                    AwayAdvanceProbability = .25,
+                    PredictedHomeGoals = 2,
+                    PredictedAwayGoals = 1
+                }
+            ]
+        };
+        var rendered = ReadmeSnapshotExportService.RenderSnapshotBlock(
+            TournamentProjection("hash", 100, DateTimeOffset.Parse("2026-01-01T00:00:00Z")),
+            [
+                PredictionResult(UnplayedFixture()),
+                PredictionResult(new Fixture { Id = "ko:73", Group = "KO", HomeTeamId = "argentina", AwayTeamId = "france" })
+            ],
+            Names(),
+            DateTimeOffset.Parse("2026-01-02T00:00:00Z"),
+            bracket: bracket);
+
+        Assert.True(rendered.IndexOf("### Cuadro", StringComparison.Ordinal) < rendered.IndexOf("### Grupos", StringComparison.Ordinal));
+        Assert.Contains("| 73 |", rendered);
+        Assert.DoesNotContain("Group KO", rendered);
+    }
     private static TournamentProjection TournamentProjection(string hash, int simulations, DateTimeOffset generatedAt) => new()
     {
         GeneratedAt = generatedAt,
@@ -408,7 +450,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
 
     private static Fixture PlayedFixture() => new()
     {
-        Id = "played",
+        Id = "grp:C:argentina:france",
         Group = "C",
         HomeTeamId = "argentina",
         AwayTeamId = "france",
@@ -420,7 +462,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
 
     private static Fixture UnplayedFixture() => new()
     {
-        Id = "unplayed",
+        Id = "grp:C:argentina:france",
         Group = "C",
         HomeTeamId = "argentina",
         AwayTeamId = "france"
@@ -534,6 +576,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
             new EvaluationService(db),
             snapshots,
             new SimulationService(db, prediction, snapshots, options),
+            new KnockoutBracketService(db, prediction),
             environment,
             NullLogger<ReadmeSnapshotExportService>.Instance);
     }

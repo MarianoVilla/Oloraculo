@@ -1,4 +1,4 @@
-﻿namespace Oloraculo.Web.Models
+namespace Oloraculo.Web.Models
 {
     public class Fixture
     {
@@ -14,6 +14,7 @@
         public bool IsPlayed { get; set; }
         public int? HomeGoals { get; set; }
         public int? AwayGoals { get; set; }
+        public string? WinnerTeamId { get; set; }
         public string Source { get; set; } = "derived";
         public static string GenerateFixtureId(string Group, string HomeTeamId, string AwayTeamId) => $"grp:{Group}:{HomeTeamId}:{AwayTeamId}";
     }

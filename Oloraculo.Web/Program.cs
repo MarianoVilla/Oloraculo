@@ -28,6 +28,7 @@ builder.Services.AddScoped<PredictionService>();
 builder.Services.AddScoped<EvaluationService>();
 builder.Services.AddScoped<SnapshotService>();
 builder.Services.AddScoped<SimulationService>();
+builder.Services.AddScoped<KnockoutBracketService>();
 builder.Services.AddScoped<ReadmeSnapshotExportService>();
 builder.Services.AddHttpClient<PlayerImpactService>((sp, client) =>
 {

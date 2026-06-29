@@ -30,6 +30,7 @@ bld/
 
 ## Local automation
 /publish-readme-snapshot.bat
+/oloraculo-dev*.log
 
 ## ASP.NET / dotnet
 project.lock.json

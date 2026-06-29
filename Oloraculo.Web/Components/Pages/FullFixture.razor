@@ -346,7 +346,7 @@
     }
 
     private async Task LoadFixtures() =>
-        _fixtures = await Db.Fixtures.AsNoTracking().ToListAsync();
+        _fixtures = await Db.Fixtures.AsNoTracking().Where(f => f.Id.StartsWith("grp:")).ToListAsync();
 
     private IEnumerable<IGrouping<string, Fixture>> GroupedFixtures() =>
         _fixtures.GroupBy(fixture => fixture.Group).OrderBy(group => group.Key);
