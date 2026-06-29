@@ -424,6 +424,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
         Assert.DoesNotContain("| Tie |", rendered);
         Assert.DoesNotContain("| 73 |", rendered);
         Assert.Contains("Argentina", rendered);
+        Assert.Contains("Argentina <br><sub>2-1</sub>", rendered);
         Assert.Contains("France", rendered);
         Assert.DoesNotContain("Group KO", rendered);
     }

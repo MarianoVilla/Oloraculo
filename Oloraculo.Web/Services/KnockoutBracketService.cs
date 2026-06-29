@@ -305,11 +305,11 @@ namespace Oloraculo.Web.Services
 
         private static (int Home, int Away) PredictionScore(MatchPrediction prediction)
         {
-            if (prediction.MostLikelyScore is { } score)
-                return score;
-
             if (prediction.ExpectedHomeGoals.HasValue && prediction.ExpectedAwayGoals.HasValue)
                 return (RoundedExpectedGoals(prediction.ExpectedHomeGoals.Value), RoundedExpectedGoals(prediction.ExpectedAwayGoals.Value));
+
+            if (prediction.MostLikelyScore is { } score)
+                return score;
 
             return prediction.Outcome.TopPick switch
             {

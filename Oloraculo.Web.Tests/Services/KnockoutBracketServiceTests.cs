@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Oloraculo.Web.DAL;
 using Oloraculo.Web.Models;
+using Oloraculo.Web.Probability;
 using Oloraculo.Web.Services;
+using System.Reflection;
 
 namespace Oloraculo.Web.Tests;
 
@@ -44,6 +46,22 @@ public class KnockoutBracketServiceTests : TestFixtures
         Assert.Equal(roundOf32.HomeTeamId, updated.Ties.Single(t => t.TieId == 90).HomeTeamId);
     }
 
+    [Fact]
+    public void BracketService_PredictionScorePrefersExpectedGoalsOverMostLikelyScore()
+    {
+        var prediction = new MatchPrediction
+        {
+            ExpectedHomeGoals = 2.6,
+            ExpectedAwayGoals = .8,
+            MostLikelyScore = (1, 1),
+            Outcome = new OutcomeProbabilities(.5, .3, .2)
+        };
+        var method = typeof(KnockoutBracketService).GetMethod("PredictionScore", BindingFlags.NonPublic | BindingFlags.Static);
+
+        var score = ((int Home, int Away))method!.Invoke(null, [prediction])!;
+
+        Assert.Equal((3, 1), score);
+    }
     [Fact]
     public async Task Import_PreservesSyntheticKnockoutFixtures()
     {
