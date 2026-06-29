@@ -1,4 +1,4 @@
-﻿namespace Oloraculo.Web
+namespace Oloraculo.Web
 {
     public class OloraculoConfig
     {
@@ -10,6 +10,7 @@
         public string? ApiFootballApiKey { get; set; }
         public int ApiFootballLeagueId { get; set; }
         public int ApiFootballSeason { get; set; }
+        public bool ApiFootballRefreshOnStartup { get; set; } = true;
         public bool RankingRefreshOnStartup { get; set; } = true;
         public int EloRefreshMaxLookbackDays { get; set; } = 14;
         public string FifaRankingsRawUrl { get; set; } = "https://en.wikipedia.org/w/index.php?title=Module:SportsRankings/data/FIFA_World_Rankings&action=raw";

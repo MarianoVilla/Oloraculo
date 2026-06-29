@@ -135,17 +135,20 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
                 availability);
             var snapshots = new SnapshotService(db);
             var prediction = new PredictionService(db, options);
+            var evaluationService = new EvaluationService(db);
+            var bracket = new KnockoutBracketService(db, prediction);
+            var fixtureStatus = new FixtureStatusRefreshService(api, bracket, evaluationService);
             var exporter = new ReadmeSnapshotExportService(
                 db,
                 importer,
                 new RankingRefreshService(new HttpClient(new FakeHttpMessageHandler(new Dictionary<string, string>())), environment, options),
                 api,
+                fixtureStatus,
                 availability,
                 prediction,
-                new EvaluationService(db),
                 snapshots,
                 new SimulationService(db, prediction, snapshots, options),
-                new KnockoutBracketService(db, prediction),
+                bracket,
                 environment,
                 NullLogger<ReadmeSnapshotExportService>.Instance);
 
@@ -417,8 +420,105 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
             bracket: bracket);
 
         Assert.True(rendered.IndexOf("### Cuadro", StringComparison.Ordinal) < rendered.IndexOf("### Grupos", StringComparison.Ordinal));
-        Assert.Contains("| 73 |", rendered);
+        Assert.Contains("| Match | Status | Pick | Advance odds |", rendered);
+        Assert.DoesNotContain("| Tie |", rendered);
+        Assert.DoesNotContain("| 73 |", rendered);
+        Assert.Contains("Argentina", rendered);
+        Assert.Contains("France", rendered);
         Assert.DoesNotContain("Group KO", rendered);
+    }
+    [Fact]
+    public async Task ReadmeExporter_RefreshesKnockoutResultBeforeRenderingBracket()
+    {
+        var root = NewTempRoot();
+        try
+        {
+            await using var db = await NewDb();
+            var setup = await PrepareReadmeExportAsync(root, db);
+            setup.Options.Value.ApiFootballApiKey = "test-key";
+            db.Fixtures.Add(new Fixture
+            {
+                Id = "ko:73",
+                Group = "KO",
+                HomeTeamId = "mexico",
+                AwayTeamId = "south-africa",
+                Status = "16avos"
+            });
+            await db.SaveChangesAsync();
+
+            var apiResponses = new Dictionary<string, string>
+            {
+                [$"https://api.test/{ApiFootballEndpoints.Fixtures(1, 2026)}"] = """
+                    {
+                      "response": [{
+                        "fixture": { "id": 730, "date": "2026-06-28T20:00:00+00:00", "status": { "short": "FT" } },
+                        "league": { "round": "Round of 32" },
+                        "teams": { "home": { "id": 1, "name": "Mexico" }, "away": { "id": 2, "name": "South Africa" } },
+                        "goals": { "home": 2, "away": 0 }
+                      }]
+                    }
+                    """
+            };
+            var exporter = BuildReadmeExporter(db, setup.Importer, setup.Environment, setup.Options, apiResponses);
+
+            await exporter.ExportAsync();
+
+            var knockout = await db.Fixtures.FindAsync("ko:73");
+            var readme = await File.ReadAllTextAsync(Path.Combine(root, "README.md"));
+            Assert.NotNull(knockout);
+            Assert.True(knockout.IsPlayed);
+            Assert.Equal(2, knockout.HomeGoals);
+            Assert.Equal(0, knockout.AwayGoals);
+            Assert.Equal("mexico", knockout.WinnerTeamId);
+            Assert.Contains("### Cuadro", readme);
+            Assert.Contains("**2-0**", readme);
+            Assert.Contains("Avanza: Mexico", readme);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ReadmeExporter_ImportsFixturesBeforeApiRefreshOnEmptyFixtureTable()
+    {
+        var root = NewTempRoot();
+        try
+        {
+            await using var db = await NewDb();
+            var setup = await PrepareReadmeExportAsync(root, db);
+            setup.Options.Value.ApiFootballApiKey = "test-key";
+            db.Fixtures.RemoveRange(await db.Fixtures.ToListAsync());
+            await db.SaveChangesAsync();
+
+            var apiResponses = new Dictionary<string, string>
+            {
+                [$"https://api.test/{ApiFootballEndpoints.Fixtures(1, 2026)}"] = """
+                    {
+                      "response": [{
+                        "fixture": { "id": 10, "date": "2026-06-11T20:00:00+00:00", "status": { "short": "FT" } },
+                        "league": { "round": "Group Stage - 1" },
+                        "teams": { "home": { "id": 1, "name": "Mexico" }, "away": { "id": 2, "name": "South Africa" } },
+                        "goals": { "home": 1, "away": 1 }
+                      }]
+                    }
+                    """
+            };
+            var exporter = BuildReadmeExporter(db, setup.Importer, setup.Environment, setup.Options, apiResponses);
+
+            await exporter.ExportAsync();
+
+            var fixture = await db.Fixtures.FindAsync("grp:A:mexico:south-africa");
+            Assert.NotNull(fixture);
+            Assert.True(fixture.IsPlayed);
+            Assert.Equal(1, fixture.HomeGoals);
+            Assert.Equal(1, fixture.AwayGoals);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
     }
     private static TournamentProjection TournamentProjection(string hash, int simulations, DateTimeOffset generatedAt) => new()
     {
@@ -552,31 +652,35 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
         OloraculoDbContext db,
         CsvImportService importer,
         TestEnvironment environment,
-        IOptions<OloraculoConfig> options)
+        IOptions<OloraculoConfig> options,
+        IReadOnlyDictionary<string, string>? apiResponses = null)
     {
         var availability = new AvailabilityNewsService(
             new HttpClient(new FakeHttpMessageHandler(new Dictionary<string, string>())) { BaseAddress = new Uri("https://openrouter.test/") },
             db,
             options);
         var api = new ApiFootballService(
-            new HttpClient(new FakeHttpMessageHandler(new Dictionary<string, string>())) { BaseAddress = new Uri("https://api.test/") },
+            new HttpClient(new FakeHttpMessageHandler(apiResponses ?? new Dictionary<string, string>())) { BaseAddress = new Uri("https://api.test/") },
             db,
             options,
             availability);
         var snapshots = new SnapshotService(db);
         var prediction = new PredictionService(db, options);
+        var evaluation = new EvaluationService(db);
+        var bracket = new KnockoutBracketService(db, prediction);
+        var fixtureStatus = new FixtureStatusRefreshService(api, bracket, evaluation);
 
         return new ReadmeSnapshotExportService(
             db,
             importer,
             new RankingRefreshService(new HttpClient(new FakeHttpMessageHandler(new Dictionary<string, string>())), environment, options),
             api,
+            fixtureStatus,
             availability,
             prediction,
-            new EvaluationService(db),
             snapshots,
             new SimulationService(db, prediction, snapshots, options),
-            new KnockoutBracketService(db, prediction),
+            bracket,
             environment,
             NullLogger<ReadmeSnapshotExportService>.Instance);
     }

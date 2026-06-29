@@ -18,9 +18,9 @@ namespace Oloraculo.Web.Services
         private readonly CsvImportService _importer;
         private readonly RankingRefreshService _rankings;
         private readonly ApiFootballService _api;
+        private readonly FixtureStatusRefreshService _fixtureStatus;
         private readonly AvailabilityNewsService _availability;
         private readonly PredictionService _prediction;
-        private readonly EvaluationService _evaluation;
         private readonly SnapshotService _snapshots;
         private readonly SimulationService _simulation;
         private readonly KnockoutBracketService _bracket;
@@ -32,9 +32,9 @@ namespace Oloraculo.Web.Services
             CsvImportService importer,
             RankingRefreshService rankings,
             ApiFootballService api,
+            FixtureStatusRefreshService fixtureStatus,
             AvailabilityNewsService availability,
             PredictionService prediction,
-            EvaluationService evaluation,
             SnapshotService snapshots,
             SimulationService simulation,
             KnockoutBracketService bracket,
@@ -45,9 +45,9 @@ namespace Oloraculo.Web.Services
             _importer = importer;
             _rankings = rankings;
             _api = api;
+            _fixtureStatus = fixtureStatus;
             _availability = availability;
             _prediction = prediction;
-            _evaluation = evaluation;
             _snapshots = snapshots;
             _simulation = simulation;
             _bracket = bracket;
@@ -62,23 +62,16 @@ namespace Oloraculo.Web.Services
             if (rankings.AnyFileUpdated)
                 await _importer.ImportRatingsOnlyAsync(ct);
 
-            var api = await _api.RefreshFixturesAsync(ct);
-            LogReport("API-Football fixtures", api.Notes, api.Errors);
+            await _importer.ImportIfNeededAsync(ct);
+
+            var fixtureStatus = await _fixtureStatus.RefreshAsync(ct);
+            LogReport("fixture status", fixtureStatus.Notes, fixtureStatus.Errors);
 
             var availability = await _availability.RefreshAsync(ct);
             LogReport("availability", availability.Notes, availability.Errors);
 
             var roles = await _api.EnrichAvailabilityRolesAsync(ct);
             LogReport("availability roles", roles.Notes, roles.Errors);
-
-            await _importer.ImportIfNeededAsync(ct);
-
-            var evaluation = await _evaluation.EvaluateUnevaluatedPlayedFixturesAsync(ct);
-            _logger.LogInformation(
-                "Fixture evaluation refresh: evaluated={Evaluated}; skipped already evaluated={SkippedAlreadyEvaluated}; skipped without snapshot={SkippedWithoutSnapshot}.",
-                evaluation.Evaluated,
-                evaluation.SkippedAlreadyEvaluated,
-                evaluation.SkippedWithoutSnapshot);
 
             var fixtures = await _db.Fixtures.AsNoTracking().Where(f => f.Id.StartsWith("grp:")).ToListAsync(ct);
             var orderedFixtures = OrderedFixtures(fixtures).ToList();
@@ -235,11 +228,11 @@ namespace Oloraculo.Web.Services
                 builder.AppendLine("<details open>");
                 builder.AppendLine($"<summary><strong>{Escape(stage.Key)}</strong></summary>");
                 builder.AppendLine();
-                builder.AppendLine("| Tie | Match | Status | Pick | Advance odds |");
-                builder.AppendLine("| ---: | --- | --- | --- | --- |");
+                builder.AppendLine("| Match | Status | Pick | Advance odds |");
+                builder.AppendLine("| --- | --- | --- | --- |");
                 foreach (var tie in stage.OrderBy(t => t.TieId))
                 {
-                    builder.AppendLine($"| {tie.TieId} | {BracketMatchText(tie, teamNames)} | {BracketStatusText(tie, teamNames)} | {BracketPickText(tie, teamNames)} | {BracketOddsText(tie, teamNames)} |");
+                    builder.AppendLine($"| {BracketMatchText(tie, teamNames)} | {BracketStatusText(tie, teamNames)} | {BracketPickText(tie, teamNames)} | {BracketOddsText(tie, teamNames)} |");
                 }
 
                 builder.AppendLine();
