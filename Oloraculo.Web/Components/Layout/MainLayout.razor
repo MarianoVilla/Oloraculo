@@ -1,6 +1,6 @@
 @inherits LayoutComponentBase
 
-<MudThemeProvider Theme="_theme" />
+<MudThemeProvider @ref="_mudThemeProvider" @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -10,6 +10,11 @@
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ToggleDrawer" />
         <MudText Typo="Typo.h6" Class="app-title">Oloráculo</MudText>
         <MudSpacer />
+        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
+                       Color="Color.Inherit" 
+                       aria-label="@ThemeToggleLabel"
+                       OnClick="ToggleDarkMode" 
+                       Class="mr-2" />
         <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">Oráculo mundialista</MudChip>
     </MudAppBar>
 
@@ -32,6 +37,26 @@
 
 @code {
     private bool _drawerOpen = true;
+    private bool _isDarkMode;
+    private MudThemeProvider? _mudThemeProvider;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _mudThemeProvider != null)
+        {
+            _isDarkMode = await _mudThemeProvider.GetSystemDarkModeAsync();
+            await _mudThemeProvider.WatchSystemDarkModeAsync(async (newValue) =>
+            {
+                _isDarkMode = newValue;
+                await InvokeAsync(StateHasChanged);
+            });
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+    private void ToggleDarkMode() => _isDarkMode = !_isDarkMode;
+    private string ThemeToggleLabel => _isDarkMode ? "Cambiar a tema claro" : "Cambiar a tema oscuro";
 
     private readonly MudTheme _theme = new()
     {
@@ -53,6 +78,30 @@
             Error = "#a83f45",
             Warning = "#c98926"
         },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#1abc9c",       // Brighter teal for dark theme
+            PrimaryContrastText = "#0d1117",
+            Secondary = "#4a90e2",     // Brighter blue
+            SecondaryContrastText = "#0d1117",
+            Tertiary = "#f39c12",      // Brighter amber
+            TertiaryContrastText = "#0d1117",
+            Background = "#0d1117",    // Deep sleek dark blue-grey (GitHub-like)
+            Surface = "#161b22",       // Slightly lighter surface card
+            AppbarBackground = "#090d13",
+            AppbarText = "#f0f6fc",
+            DrawerBackground = "#161b22",
+            DrawerText = "#c9d1d9",
+            TextPrimary = "#f0f6fc",
+            TextSecondary = "#8b949e",
+            Divider = "#30363d",
+            Success = "#2ea043",
+            SuccessContrastText = "#0d1117",
+            Error = "#f85149",
+            ErrorContrastText = "#0d1117",
+            Warning = "#f0883e",
+            WarningContrastText = "#0d1117"
+        },
         LayoutProperties = new LayoutProperties
         {
             DefaultBorderRadius = "8px"
@@ -65,6 +114,4 @@
             }
         }
     };
-
-    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 }

@@ -1,14 +1,30 @@
 :root {
-    --bg: #f5f7fb;
-    --panel: #ffffff;
-    --ink: #172033;
-    --muted: #667085;
-    --line: #d8dee8;
-    --accent: #126a5a;
-    --accent-2: #315a9f;
-    --home: #126a5a;
-    --draw: #c98926;
-    --away: #315a9f;
+    --bg: var(--mud-palette-background);
+    --panel: var(--mud-palette-surface);
+    --ink: var(--mud-palette-text-primary);
+    --muted: var(--mud-palette-text-secondary);
+    --line: var(--mud-palette-divider);
+    --accent: var(--mud-palette-primary);
+    --accent-2: var(--mud-palette-secondary);
+    --home: var(--mud-palette-primary);
+    --draw: var(--mud-palette-warning);
+    --away: var(--mud-palette-secondary);
+}
+
+body, 
+.main-content, 
+.app-drawer, 
+.surface-card, 
+.prediction-card, 
+.stat-card, 
+.fixture-match-card,
+.fixture-score-slot,
+.fixture-row,
+.prob,
+.topbar,
+.brand-lockup,
+.app-nav {
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 
 html,
@@ -79,7 +95,7 @@ body {
 }
 
 .final-call {
-    border-color: #b9c8dc;
+    border-color: color-mix(in srgb, var(--mud-palette-primary) 40%, var(--line));
 }
 
 .action-row,
@@ -131,7 +147,7 @@ body {
     display: flex;
     overflow: hidden;
     border-radius: 6px;
-    background: #e6ebf2;
+    background: var(--line);
 }
 
 .seg {
@@ -182,7 +198,7 @@ body {
     height: 1rem;
     flex: 0 0 auto;
     object-fit: cover;
-    border: 1px solid rgba(23, 32, 51, .16);
+    border: 1px solid var(--line);
     border-radius: 2px;
     background: #fff;
 }
@@ -201,7 +217,7 @@ body {
 }
 
 .explain {
-    color: #344054;
+    color: var(--muted);
     line-height: 1.45;
 }
 
@@ -262,7 +278,7 @@ body {
     padding: .58rem .62rem;
     border: 1px solid var(--line);
     border-radius: 6px;
-    background: #fbfcfe;
+    background: var(--bg);
     min-width: 0;
 }
 
@@ -312,7 +328,7 @@ body {
     width: 3.8rem;
     min-height: 30px;
     border-radius: 6px;
-    background: #eef2f7;
+    background: var(--line);
     color: var(--ink);
     font-weight: 800;
     font-variant-numeric: tabular-nums;
@@ -323,7 +339,7 @@ body {
     height: 8px;
     overflow: hidden;
     border-radius: 999px;
-    background: #e6ebf2;
+    background: var(--line);
 }
 
 .fixture-prob-segment {
@@ -370,7 +386,7 @@ body {
 }
 
 .fixture-row.selected {
-    background: #eef6f4;
+    background: color-mix(in srgb, var(--mud-palette-primary) 10%, transparent);
     border-bottom-color: transparent;
 }
 
@@ -399,8 +415,9 @@ body {
     left: 0;
     right: 0;
     z-index: 2000;
-    background: #fff1d6;
-    border-top: 1px solid var(--draw);
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
+    border-top: 2px solid var(--mud-palette-error);
     padding: .75rem;
 }
 
