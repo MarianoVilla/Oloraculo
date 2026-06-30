@@ -13,7 +13,6 @@ namespace Oloraculo.Web.Services
     {
         private const string MatchKind = "match";
         private const string TournamentKind = "tournament";
-        private const string BracketKind = "bracket";
         private const string FullFixtureKind = "full-fixture";
 
         private readonly OloraculoDbContext _db;
@@ -320,80 +319,6 @@ namespace Oloraculo.Web.Services
             return new TournamentSnapshotLoadResult(projection, null);
         }
 
-
-        public async Task<PredictionSnapshot> SaveBracketAsync(BracketProjection projection, CancellationToken ct = default)
-        {
-            await EnsureSnapshotColumnsAsync(ct);
-            var payload = JsonSerializer.Serialize(SerializableBracketProjection(projection), JsonOptions);
-            var officialPredictions = projection.Ties
-                .Where(t => t.IsOfficialFixture && !string.IsNullOrWhiteSpace(t.FixtureId) && t.Prediction is not null)
-                .Select(t => t.Prediction!)
-                .ToList();
-
-            await using var transaction = await _db.Database.BeginTransactionAsync(ct);
-            var snapshot = new PredictionSnapshot
-            {
-                Kind = BracketKind,
-                ModelName = projection.ModelName,
-                CreatedAt = projection.GeneratedAt,
-                InputSummaryHash = projection.InputSummaryHash,
-                PayloadJson = payload,
-                Explanation = $"{projection.Ties.Count:N0} cruces de cuadro oficial.",
-                HomeWin = 0,
-                Draw = 0,
-                AwayWin = 0
-            };
-            _db.Snapshots.Add(snapshot);
-            await _db.SaveChangesAsync(ct);
-
-            if (officialPredictions.Count > 0)
-            {
-                var childSnapshots = officialPredictions
-                    .Select(prediction => CreateMatchSnapshot(prediction, projection.GeneratedAt, snapshot.Id))
-                    .ToList();
-                _db.Snapshots.AddRange(childSnapshots);
-                await _db.SaveChangesAsync(ct);
-            }
-
-            await transaction.CommitAsync(ct);
-            return snapshot;
-        }
-
-        public async Task<IReadOnlyList<BracketSnapshotSummary>> BracketSnapshotsAsync(int? take = null, CancellationToken ct = default)
-        {
-            await EnsureSnapshotColumnsAsync(ct);
-            var snapshots = await _db.Snapshots
-                .AsNoTracking()
-                .Where(s => s.Kind == BracketKind)
-                .ToListAsync(ct);
-
-            IEnumerable<PredictionSnapshot> ordered = snapshots
-                .OrderByDescending(s => s.CreatedAt)
-                .ThenByDescending(s => s.Id);
-
-            if (take is > 0)
-                ordered = ordered.Take(take.Value);
-
-            return ordered.Select(ToBracketSummary).ToList();
-        }
-
-        public async Task<BracketSnapshotLoadResult> LoadBracketSnapshotAsync(int id, CancellationToken ct = default)
-        {
-            await EnsureSnapshotColumnsAsync(ct);
-            var snapshot = await _db.Snapshots
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.Kind == BracketKind && s.Id == id, ct);
-
-            if (snapshot is null)
-                return new BracketSnapshotLoadResult(null, "No se encontr? el snapshot de cuadro.");
-
-            var projection = DeserializeBracketProjection(snapshot.PayloadJson, out var error);
-            if (projection is null)
-                return new BracketSnapshotLoadResult(null, error ?? "No se pudo leer el snapshot de cuadro.");
-
-            return new BracketSnapshotLoadResult(projection, null);
-        }
-
         private async Task<MatchSnapshotLoadResult> ToMatchPredictionResultAsync(PredictionSnapshot snapshot, CancellationToken ct)
         {
             var stored = DeserializeMatchPayloadBestEffort(snapshot.PayloadJson);
@@ -499,73 +424,6 @@ namespace Oloraculo.Web.Services
                 error);
         }
 
-
-        private static BracketSnapshotSummary ToBracketSummary(PredictionSnapshot snapshot)
-        {
-            var projection = DeserializeBracketProjection(snapshot.PayloadJson, out var error);
-            return new BracketSnapshotSummary(
-                snapshot.Id,
-                snapshot.CreatedAt,
-                snapshot.ModelName,
-                snapshot.InputSummaryHash,
-                projection?.Ties.Count ?? 0,
-                error);
-        }
-
-        private static BracketProjection SerializableBracketProjection(BracketProjection projection) => new()
-        {
-            GeneratedAt = projection.GeneratedAt,
-            ModelName = projection.ModelName,
-            InputSummaryHash = projection.InputSummaryHash,
-            PendingMessage = projection.PendingMessage,
-            Ties = projection.Ties.Select(SerializableBracketTie).ToList()
-        };
-
-        private static BracketTieProjection SerializableBracketTie(BracketTieProjection tie) => new()
-        {
-            TieId = tie.TieId,
-            FixtureId = tie.FixtureId,
-            StageLabel = tie.StageLabel,
-            IsOfficialFixture = tie.IsOfficialFixture,
-            HomeSlotLabel = tie.HomeSlotLabel,
-            AwaySlotLabel = tie.AwaySlotLabel,
-            HomeTeamId = tie.HomeTeamId,
-            AwayTeamId = tie.AwayTeamId,
-            Prediction = tie.Prediction is null ? null : SerializablePrediction(tie.Prediction),
-            PredictionModelName = tie.PredictionModelName,
-            PredictedWinnerTeamId = tie.PredictedWinnerTeamId,
-            HomeAdvanceProbability = tie.HomeAdvanceProbability,
-            AwayAdvanceProbability = tie.AwayAdvanceProbability,
-            PredictedHomeGoals = tie.PredictedHomeGoals,
-            PredictedAwayGoals = tie.PredictedAwayGoals,
-            IsPlayed = tie.IsPlayed,
-            ActualHomeGoals = tie.ActualHomeGoals,
-            ActualAwayGoals = tie.ActualAwayGoals,
-            ActualWinnerTeamId = tie.ActualWinnerTeamId,
-            LatestSnapshotId = tie.LatestSnapshotId,
-            HasEvaluation = tie.HasEvaluation,
-            Error = tie.Error
-        };
-
-        private static MatchPrediction SerializablePrediction(MatchPrediction prediction) => new()
-        {
-            PredictorName = prediction.PredictorName,
-            PredictorPriority = prediction.PredictorPriority,
-            FixtureId = prediction.FixtureId,
-            HomeTeamId = prediction.HomeTeamId,
-            AwayTeamId = prediction.AwayTeamId,
-            Outcome = prediction.Outcome,
-            ExpectedHomeGoals = prediction.ExpectedHomeGoals,
-            ExpectedAwayGoals = prediction.ExpectedAwayGoals,
-            MostLikelyScore = prediction.MostLikelyScore,
-            Explanation = prediction.Explanation,
-            FeaturesUsed = prediction.FeaturesUsed,
-            FeaturesMissing = prediction.FeaturesMissing,
-            Drivers = prediction.Drivers,
-            Sources = prediction.Sources,
-            Degraded = prediction.Degraded
-        };
-
         private static FullFixtureSnapshotPayload? DeserializeFullFixturePayload(string payloadJson, out string? error)
         {
             error = null;
@@ -612,29 +470,6 @@ namespace Oloraculo.Web.Services
             catch (JsonException)
             {
                 error = "El snapshot guardado no tiene un formato válido.";
-                return null;
-            }
-        }
-
-
-        private static BracketProjection? DeserializeBracketProjection(string payloadJson, out string? error)
-        {
-            error = null;
-
-            try
-            {
-                var projection = JsonSerializer.Deserialize<BracketProjection>(payloadJson, JsonOptions);
-                if (projection is null)
-                {
-                    error = "El snapshot no contiene una proyecci?n de cuadro.";
-                    return null;
-                }
-
-                return projection;
-            }
-            catch (JsonException)
-            {
-                error = "El snapshot guardado no tiene un formato v?lido.";
                 return null;
             }
         }

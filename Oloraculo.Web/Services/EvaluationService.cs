@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Oloraculo.Web.DAL;
 using Oloraculo.Web.Helpers;
 using Oloraculo.Web.Models;
@@ -12,7 +12,7 @@ namespace Oloraculo.Web.Services
 
         public EvaluationService(OloraculoDbContext db) => _db = db;
 
-        public async Task<int> EvaluateLatestSnapshotAsync(Fixture fixture, int homeGoals, int awayGoals, string? winnerTeamId = null, CancellationToken ct = default)
+        public async Task<int> EvaluateLatestSnapshotAsync(Fixture fixture, int homeGoals, int awayGoals, CancellationToken ct = default)
         {
             var snapshot = (await _db.Snapshots
                 .Where(s => s.Kind == "match" && s.FixtureId == fixture.Id && s.HomeWin.HasValue)
@@ -23,7 +23,7 @@ namespace Oloraculo.Web.Services
                 return 0;
 
             var predicted = new OutcomeProbabilities(snapshot.HomeWin.Value, snapshot.Draw.Value, snapshot.AwayWin.Value).Normalize();
-            var actual = OutcomeFromGoals(homeGoals, awayGoals, winnerTeamId, fixture.HomeTeamId, fixture.AwayTeamId);
+            var actual = OutcomeFromGoals(homeGoals, awayGoals);
             _db.Evaluations.Add(new PredictionEvaluation
             {
                 ModelName = snapshot.ModelName,
@@ -45,7 +45,7 @@ namespace Oloraculo.Web.Services
 
             _db.Results.Add(new MatchResult
             {
-                Id = CryptoUtil.GetSha256($"manual|{DateTimeOffset.UtcNow:O}|{fixture.HomeTeamId}|{fixture.AwayTeamId}|{homeGoals}-{awayGoals}|{winnerTeamId}"),
+                Id = CryptoUtil.GetSha256($"manual|{DateTimeOffset.UtcNow:O}|{fixture.HomeTeamId}|{fixture.AwayTeamId}|{homeGoals}-{awayGoals}"),
                 HomeTeamId = fixture.HomeTeamId,
                 AwayTeamId = fixture.AwayTeamId,
                 HomeGoals = homeGoals,
@@ -58,23 +58,15 @@ namespace Oloraculo.Web.Services
             fixture.IsPlayed = true;
             fixture.HomeGoals = homeGoals;
             fixture.AwayGoals = awayGoals;
-            fixture.WinnerTeamId = winnerTeamId;
             await _db.SaveChangesAsync(ct);
             return 1;
         }
 
         public async Task<FixtureEvaluationRefreshReport> EvaluateUnevaluatedPlayedFixturesAsync(CancellationToken ct = default)
         {
-            var mappedKnockoutIds = await _db.ApiMappings.AsNoTracking()
-                .Where(m => m.LocalFixtureId.StartsWith(OfficialBracketService.KnockoutFixturePrefix))
-                .Select(m => m.LocalFixtureId)
-                .ToListAsync(ct);
-            var mappedKnockoutSet = mappedKnockoutIds.ToHashSet(StringComparer.Ordinal);
-            var fixtures = (await _db.Fixtures
+            var fixtures = await _db.Fixtures
                 .Where(f => f.IsPlayed && f.HomeGoals.HasValue && f.AwayGoals.HasValue)
-                .ToListAsync(ct))
-                .Where(f => !f.Id.StartsWith(OfficialBracketService.KnockoutFixturePrefix, StringComparison.Ordinal) || mappedKnockoutSet.Contains(f.Id))
-                .ToList();
+                .ToListAsync(ct);
 
             var evaluated = 0;
             var skippedAlreadyEvaluated = 0;
@@ -90,7 +82,7 @@ namespace Oloraculo.Web.Services
                     continue;
                 }
 
-                var count = await EvaluateLatestSnapshotAsync(fixture, fixture.HomeGoals!.Value, fixture.AwayGoals!.Value, fixture.WinnerTeamId, ct);
+                var count = await EvaluateLatestSnapshotAsync(fixture, fixture.HomeGoals!.Value, fixture.AwayGoals!.Value, ct);
                 if (count == 0)
                     skippedWithoutSnapshot++;
                 else
@@ -131,20 +123,7 @@ namespace Oloraculo.Web.Services
                 .ToListAsync(ct);
 
         public static string OutcomeFromGoals(int homeGoals, int awayGoals) =>
-            OutcomeFromGoals(homeGoals, awayGoals, null, "", "");
-
-        public static string OutcomeFromGoals(int homeGoals, int awayGoals, string? winnerTeamId, string homeTeamId, string awayTeamId)
-        {
-            if (homeGoals > awayGoals)
-                return "Home";
-            if (awayGoals > homeGoals)
-                return "Away";
-            if (string.Equals(winnerTeamId, homeTeamId, StringComparison.Ordinal))
-                return "Home";
-            if (string.Equals(winnerTeamId, awayTeamId, StringComparison.Ordinal))
-                return "Away";
-            return "Draw";
-        }
+            homeGoals > awayGoals ? "Home" : awayGoals > homeGoals ? "Away" : "Draw";
     }
 
     public sealed record FixtureEvaluationRefreshReport(
