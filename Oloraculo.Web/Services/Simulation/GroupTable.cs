@@ -59,8 +59,10 @@ namespace Oloraculo.Web.Services.Simulation
 
         public IReadOnlyList<GroupStanding> Rank() =>
             _standings.Values
-                .GroupBy(s => s.Points)
-                .OrderByDescending(g => g.Key)
+                .GroupBy(s => (s.Points, s.GoalDiff, s.GoalsFor))
+                .OrderByDescending(g => g.Key.Points)
+                .ThenByDescending(g => g.Key.GoalDiff)
+                .ThenByDescending(g => g.Key.GoalsFor)
                 .SelectMany(g => RankTied(g.ToList()))
                 .ToList();
 
@@ -78,7 +80,7 @@ namespace Oloraculo.Web.Services.Simulation
             if (tied.Count <= 1)
                 return tied;
 
-            foreach (var criterion in new[] { TieCriterion.HeadToHeadPoints, TieCriterion.HeadToHeadGoalDiff, TieCriterion.HeadToHeadGoalsFor, TieCriterion.OverallGoalDiff, TieCriterion.OverallGoalsFor, TieCriterion.TeamConduct, TieCriterion.FifaRanking })
+            foreach (var criterion in new[] { TieCriterion.HeadToHeadPoints, TieCriterion.HeadToHeadGoalDiff, TieCriterion.HeadToHeadGoalsFor, TieCriterion.TeamConduct, TieCriterion.FifaRanking })
             {
                 var groups = tied
                     .GroupBy(team => CriterionValue(team, tied, criterion))
@@ -105,8 +107,6 @@ namespace Oloraculo.Web.Services.Simulation
                 TieCriterion.HeadToHeadPoints => HeadToHead(team.TeamId, tiedIds).Points,
                 TieCriterion.HeadToHeadGoalDiff => HeadToHead(team.TeamId, tiedIds).GoalDiff,
                 TieCriterion.HeadToHeadGoalsFor => HeadToHead(team.TeamId, tiedIds).GoalsFor,
-                TieCriterion.OverallGoalDiff => team.GoalDiff,
-                TieCriterion.OverallGoalsFor => team.GoalsFor,
                 TieCriterion.TeamConduct => 0,
                 TieCriterion.FifaRanking => FifaPoints(_fifaPoints, team.TeamId),
                 _ => 0
@@ -158,8 +158,6 @@ namespace Oloraculo.Web.Services.Simulation
             HeadToHeadPoints,
             HeadToHeadGoalDiff,
             HeadToHeadGoalsFor,
-            OverallGoalDiff,
-            OverallGoalsFor,
             TeamConduct,
             FifaRanking
         }

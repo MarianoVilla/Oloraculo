@@ -25,6 +25,7 @@ namespace Oloraculo.Web.Services
         private readonly SimulationService _simulation;
         private readonly IWebHostEnvironment _environment;
         private readonly ILogger<ReadmeSnapshotExportService> _logger;
+        private readonly KnockoutUpdateService? _knockout;
 
         public ReadmeSnapshotExportService(
             OloraculoDbContext db,
@@ -37,7 +38,8 @@ namespace Oloraculo.Web.Services
             SnapshotService snapshots,
             SimulationService simulation,
             IWebHostEnvironment environment,
-            ILogger<ReadmeSnapshotExportService> logger)
+            ILogger<ReadmeSnapshotExportService> logger,
+            KnockoutUpdateService? knockout = null)
         {
             _db = db;
             _importer = importer;
@@ -50,6 +52,7 @@ namespace Oloraculo.Web.Services
             _simulation = simulation;
             _environment = environment;
             _logger = logger;
+            _knockout = knockout;
         }
 
         public async Task ExportAsync(CancellationToken ct = default)
@@ -59,9 +62,6 @@ namespace Oloraculo.Web.Services
             if (rankings.AnyFileUpdated)
                 await _importer.ImportRatingsOnlyAsync(ct);
 
-            var api = await _api.RefreshFixturesAsync(ct);
-            LogReport("API-Football fixtures", api.Notes, api.Errors);
-
             var availability = await _availability.RefreshAsync(ct);
             LogReport("availability", availability.Notes, availability.Errors);
 
@@ -69,6 +69,14 @@ namespace Oloraculo.Web.Services
             LogReport("availability roles", roles.Notes, roles.Errors);
 
             await _importer.ImportIfNeededAsync(ct);
+
+            KnockoutBoard? knockoutBoard = null;
+            if (_knockout is not null)
+            {
+                var knockout = await _knockout.RefreshAsync(ct);
+                LogReport("knockout", knockout.Notes, knockout.Errors);
+                knockoutBoard = knockout.Board;
+            }
 
             var evaluation = await _evaluation.EvaluateUnevaluatedPlayedFixturesAsync(ct);
             _logger.LogInformation(
@@ -87,7 +95,7 @@ namespace Oloraculo.Web.Services
             var readmeRows = await ReadmePredictionRowsAsync(orderedFixtures, predictions, names, ct);
             var availabilityClaims = await AvailabilityClaimsByFixtureAsync(orderedFixtures, ct);
 
-            var block = RenderSnapshotRows(projection, readmeRows, names, DateTimeOffset.UtcNow, availabilityClaims);
+            var block = RenderSnapshotRows(projection, readmeRows, names, DateTimeOffset.UtcNow, availabilityClaims, knockoutBoard);
             var readmePath = Path.Combine(RepositoryRoot(), "README.md");
             var existing = File.Exists(readmePath) ? await File.ReadAllTextAsync(readmePath, ct) : "# Oloraculo";
             var updated = ReplaceSnapshotBlock(existing, block);
@@ -142,10 +150,11 @@ namespace Oloraculo.Web.Services
             IReadOnlyList<MatchPredictionResult> predictions,
             IReadOnlyDictionary<string, string> teamNames,
             DateTimeOffset generatedAt,
-            IReadOnlyDictionary<string, IReadOnlyList<AvailabilityClaim>>? availabilityClaimsByFixture = null)
+            IReadOnlyDictionary<string, IReadOnlyList<AvailabilityClaim>>? availabilityClaimsByFixture = null,
+            KnockoutBoard? knockoutBoard = null)
         {
             var rows = predictions.Select(prediction => new ReadmePredictionRow(prediction, HasPrediction: true)).ToList();
-            return RenderSnapshotRows(projection, rows, teamNames, generatedAt, availabilityClaimsByFixture);
+            return RenderSnapshotRows(projection, rows, teamNames, generatedAt, availabilityClaimsByFixture, knockoutBoard);
         }
 
         private static string RenderSnapshotRows(
@@ -153,7 +162,8 @@ namespace Oloraculo.Web.Services
             IReadOnlyList<ReadmePredictionRow> predictionRows,
             IReadOnlyDictionary<string, string> teamNames,
             DateTimeOffset generatedAt,
-            IReadOnlyDictionary<string, IReadOnlyList<AvailabilityClaim>>? availabilityClaimsByFixture = null)
+            IReadOnlyDictionary<string, IReadOnlyList<AvailabilityClaim>>? availabilityClaimsByFixture = null,
+            KnockoutBoard? knockoutBoard = null)
         {
             var builder = new StringBuilder();
             builder.AppendLine("## Predicciones más recientes");
@@ -170,6 +180,35 @@ namespace Oloraculo.Web.Services
             {
                 builder.AppendLine(
                     $"| {TeamCell(team.TeamId, Name(teamNames, team.TeamId))} | {Escape(team.Group)} | {Percent(team.Qualify, 0)} | {Percent(team.ReachQuarterFinal, 0)} | {Percent(team.ReachSemiFinal, 0)} | {Percent(team.ReachFinal, 0)} | **{Percent(team.WinTournament, 1)}** |");
+            }
+
+            if (knockoutBoard is not null)
+            {
+                builder.AppendLine();
+                builder.AppendLine("### Eliminatorias");
+                builder.AppendLine();
+                builder.AppendLine("_Los equipos marcados como proyectados todavía no están confirmados por la fuente._");
+                builder.AppendLine();
+                foreach (var round in knockoutBoard.Matches.GroupBy(match => match.Stage))
+                {
+                    builder.AppendLine("<details open>");
+                    builder.AppendLine($"<summary><strong>{KnockoutUpdateService.StageLabel(round.Key)}</strong></summary>");
+                    builder.AppendLine();
+                    builder.AppendLine("| Match | Teams | Status | Prediction | Result |");
+                    builder.AppendLine("| ---: | --- | --- | --- | --- |");
+                    foreach (var match in round)
+                    {
+                        var home = KnockoutTeamText(match.HomeTeamName, match.HomeResolution);
+                        var away = KnockoutTeamText(match.AwayTeamName, match.AwayResolution);
+                        var status = string.IsNullOrWhiteSpace(match.Status) ? "Scheduled" : Escape(match.Status);
+                        var prediction = KnockoutPredictionText(match);
+                        var result = KnockoutResultText(match);
+                        builder.AppendLine($"| {match.MatchNumber} | {home} vs {away} | {status} | {prediction} | {result} |");
+                    }
+                    builder.AppendLine();
+                    builder.AppendLine("</details>");
+                    builder.AppendLine();
+                }
             }
 
             builder.AppendLine();
@@ -207,6 +246,36 @@ namespace Oloraculo.Web.Services
             }
 
             return builder.ToString();
+        }
+
+        private static string KnockoutTeamText(string? name, ParticipantResolution resolution)
+        {
+            var label = resolution switch
+            {
+                ParticipantResolution.Confirmed => "confirmed",
+                ParticipantResolution.Projected => "projected",
+                _ => "TBD"
+            };
+            return $"{Escape(name ?? "TBD")} <sub>{label}</sub>";
+        }
+
+        private static string KnockoutPredictionText(KnockoutMatchView match)
+        {
+            if (match.PredictionUnavailable) return "Pre-match prediction unavailable";
+            if (!match.PredictedHomeGoals.HasValue || !match.PredictedAwayGoals.HasValue) return "-";
+            var score = $"{match.PredictedHomeGoals}-{match.PredictedAwayGoals}";
+            if (match.PredictedHomeGoals != match.PredictedAwayGoals) return score;
+            var winner = match.PredictedWinnerTeamId == match.HomeTeamId ? match.HomeTeamName : match.AwayTeamName;
+            return $"{score}; {Escape(winner ?? "TBD")} advances";
+        }
+
+        private static string KnockoutResultText(KnockoutMatchView match)
+        {
+            if (!match.IsPlayed) return "-";
+            var score = $"**{match.HomeGoals}-{match.AwayGoals}**";
+            return match.HomePenaltyGoals.HasValue && match.AwayPenaltyGoals.HasValue
+                ? $"{score} ({match.HomePenaltyGoals}-{match.AwayPenaltyGoals} pens)"
+                : score;
         }
 
         private string RepositoryRoot()
@@ -363,20 +432,12 @@ namespace Oloraculo.Web.Services
         private static bool TryExpectedGoalsScore(MatchPrediction prediction, out string score)
         {
             score = "";
-            if (!prediction.ExpectedHomeGoals.HasValue || !prediction.ExpectedAwayGoals.HasValue)
+            if (!PredictionScoreHelper.TryPreferredScore(prediction, out var preferred) ||
+                !prediction.ExpectedHomeGoals.HasValue || !prediction.ExpectedAwayGoals.HasValue)
                 return false;
-
-            var home = prediction.ExpectedHomeGoals.Value;
-            var away = prediction.ExpectedAwayGoals.Value;
-            if (!double.IsFinite(home) || !double.IsFinite(away))
-                return false;
-
-            score = $"{RoundedExpectedGoals(home)}-{RoundedExpectedGoals(away)}";
+            score = $"{preferred.Home}-{preferred.Away}";
             return true;
         }
-
-        private static int RoundedExpectedGoals(double value) =>
-            Math.Max(0, (int)Math.Round(value, MidpointRounding.AwayFromZero));
 
         private static string RationaleText(
             MatchPrediction prediction,

@@ -22,6 +22,7 @@ namespace Oloraculo.Web.DAL
         public DbSet<AvailabilityClaim> AvailabilityClaims => Set<AvailabilityClaim>();
         public DbSet<PredictionSnapshot> Snapshots => Set<PredictionSnapshot>();
         public DbSet<PredictionEvaluation> Evaluations => Set<PredictionEvaluation>();
+        public DbSet<KnockoutMatch> KnockoutMatches => Set<KnockoutMatch>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -47,6 +48,8 @@ namespace Oloraculo.Web.DAL
             modelBuilder.Entity<AvailabilityClaim>().HasIndex(c => new { c.TeamId, c.PlayerKey, c.Status, c.SourceUrl });
             modelBuilder.Entity<PredictionSnapshot>().HasIndex(s => new { s.Kind, s.FixtureId, s.CreatedAt });
             modelBuilder.Entity<PredictionSnapshot>().HasIndex(s => new { s.Kind, s.BatchId, s.CreatedAt });
+            modelBuilder.Entity<KnockoutMatch>().HasKey(m => m.MatchNumber);
+            modelBuilder.Entity<KnockoutMatch>().HasIndex(m => m.ExternalFixtureId).IsUnique();
         }
     }
 }

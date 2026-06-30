@@ -47,7 +47,7 @@ namespace Oloraculo.Web.Services
             return await PredictAsync(fixture, predictors, ct);
         }
 
-        private async Task<MatchPredictionResult> PredictAsync(Fixture fixture, IReadOnlyList<IPredictor> predictors, CancellationToken ct)
+        public async Task<MatchPredictionResult> PredictAsync(Fixture fixture, IReadOnlyList<IPredictor> predictors, CancellationToken ct = default)
         {
             var context = await BuildContextAsync(fixture, ct);
             var ladder = predictors.Select(p => p.Predict(context)).ToList();

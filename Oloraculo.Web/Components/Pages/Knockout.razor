@@ -1,0 +1,138 @@
+@page "/knockout"
+@rendermode InteractiveServer
+@inject KnockoutUpdateService KnockoutService
+@inject SnapshotService Snapshots
+@inject ISnackbar Snackbar
+
+<PageTitle>Eliminatorias</PageTitle>
+
+<MudStack Spacing="3">
+    <div class="page-head">
+        <MudText Typo="Typo.h3">Eliminatorias</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">Cuadro canónico: los datos confirmados reemplazan las proyecciones a medida que avanza el torneo.</MudText>
+    </div>
+
+    <MudPaper Class="surface-card" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="action-row">
+            <BusyButton Text="Actualizar cuadro" BusyText="Actualizando" IsBusy="_busy" Icon="@Icons.Material.Filled.Refresh" OnClick="Refresh" />
+            <MudSpacer />
+            @if (_board is not null)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Generado @_board.GeneratedAt.ToLocalTime().ToString("g") · @_board.Source</MudText>
+            }
+        </MudStack>
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">@_error</MudAlert>
+    }
+    @if (_board?.SourceRefreshSucceeded == false)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Se muestra el último estado disponible; la fuente no fue actualizada en esta vista.</MudAlert>
+    }
+    @foreach (var warning in _board?.Warnings ?? [])
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">@warning</MudAlert>
+    }
+
+    @if (_board is null)
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+    else
+    {
+        @foreach (var round in _board.Matches.GroupBy(m => m.Stage))
+        {
+            <section class="knockout-round">
+                <MudText Typo="Typo.h5">@KnockoutUpdateService.StageLabel(round.Key)</MudText>
+                <MudGrid Spacing="2">
+                    @foreach (var match in round)
+                    {
+                        <MudItem xs="12" sm="6" lg="4">
+                            <MudPaper Class="knockout-card" Elevation="0">
+                                <MudStack Spacing="1">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.overline">Partido @match.MatchNumber</MudText>
+                                        <MudSpacer />
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@DateText(match)</MudText>
+                                    </MudStack>
+                                    <KnockoutTeamRow Name="@match.HomeTeamName" Resolution="@match.HomeResolution" ActualGoals="@match.HomeGoals" PredictedGoals="@match.PredictedHomeGoals" />
+                                    <KnockoutTeamRow Name="@match.AwayTeamName" Resolution="@match.AwayResolution" ActualGoals="@match.AwayGoals" PredictedGoals="@match.PredictedAwayGoals" />
+
+                                    @if (match.IsPlayed)
+                                    {
+                                        <MudText Typo="Typo.body2" Class="knockout-result"><strong>Resultado: @ActualResult(match)</strong></MudText>
+                                    }
+                                    @if (match.PredictionUnavailable)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Warning">Predicción previa no disponible</MudText>
+                                    }
+                                    else if (match.Probabilities is { } probabilities)
+                                    {
+                                        <MudText Typo="Typo.body2">Predicción: @PredictionText(match)</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @match.HomeTeamName @probabilities.HomeWin.ToString("P0") · Empate @probabilities.Draw.ToString("P0") · @match.AwayTeamName @probabilities.AwayWin.ToString("P0")
+                                        </MudText>
+                                    }
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+                    }
+                </MudGrid>
+            </section>
+        }
+    }
+</MudStack>
+
+@code {
+    private KnockoutBoard? _board;
+    private bool _busy;
+    private string _error = "";
+
+    protected override async Task OnInitializedAsync() =>
+        _board = await Snapshots.LoadLatestKnockoutBoardAsync() ?? await KnockoutService.BuildBoardAsync();
+
+    private async Task Refresh()
+    {
+        _busy = true;
+        _error = "";
+        try
+        {
+            var report = await KnockoutService.RefreshAsync();
+            _board = report.Board;
+            Snackbar.Add(report.Errors.Count == 0 ? "Cuadro actualizado." : "Se conservó el último estado disponible.",
+                report.Errors.Count == 0 ? Severity.Success : Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("No se pudo actualizar el cuadro.", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string DateText(KnockoutMatchView match)
+    {
+        var date = match.KickoffUtc?.ToLocalTime().ToString("dd MMM HH:mm") ?? "Fecha pendiente";
+        return string.IsNullOrWhiteSpace(match.Venue) ? date : $"{date} · {match.Venue}";
+    }
+
+    private static string ActualResult(KnockoutMatchView match)
+    {
+        var score = $"{match.HomeGoals}-{match.AwayGoals}";
+        return match.HomePenaltyGoals.HasValue && match.AwayPenaltyGoals.HasValue
+            ? $"{score} ({match.HomePenaltyGoals}-{match.AwayPenaltyGoals} pen.)"
+            : score;
+    }
+
+    private static string PredictionText(KnockoutMatchView match)
+    {
+        var score = $"{match.PredictedHomeGoals}-{match.PredictedAwayGoals}";
+        var winner = match.PredictedWinnerTeamId == match.HomeTeamId ? match.HomeTeamName : match.AwayTeamName;
+        return match.PredictedHomeGoals == match.PredictedAwayGoals ? $"{score}; avanza {winner}" : score;
+    }
+}

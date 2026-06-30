@@ -14,6 +14,7 @@ namespace Oloraculo.Web.Services
         private const string MatchKind = "match";
         private const string TournamentKind = "tournament";
         private const string FullFixtureKind = "full-fixture";
+        private const string KnockoutBoardKind = "knockout-board";
 
         private readonly OloraculoDbContext _db;
         private static readonly JsonSerializerOptions JsonOptions = new()
@@ -248,6 +249,76 @@ namespace Oloraculo.Web.Services
             return snapshot is null
                 ? new MatchSnapshotLoadResult(null, "No hay snapshots guardados para este partido antes del corte.")
                 : await ToMatchPredictionResultAsync(snapshot, ct);
+        }
+
+        public async Task<(MatchPredictionResult? Prediction, DateTimeOffset? CreatedAt)> LoadPregamePredictionAsync(
+            string fixtureId,
+            string homeTeamId,
+            string awayTeamId,
+            DateTimeOffset cutoff,
+            CancellationToken ct = default)
+        {
+            await EnsureSnapshotColumnsAsync(ct);
+            var snapshots = await _db.Snapshots.AsNoTracking()
+                .Where(s => s.Kind == MatchKind && s.FixtureId == fixtureId)
+                .ToListAsync(ct);
+
+            foreach (var snapshot in snapshots
+                .Where(s => s.CreatedAt <= cutoff)
+                .OrderByDescending(s => s.CreatedAt)
+                .ThenByDescending(s => s.Id))
+            {
+                var loaded = await ToMatchPredictionResultAsync(snapshot, ct);
+                if (loaded.Prediction?.BestPrediction is { } prediction &&
+                    prediction.HomeTeamId == homeTeamId && prediction.AwayTeamId == awayTeamId)
+                    return (loaded.Prediction, snapshot.CreatedAt);
+            }
+
+            return (null, null);
+        }
+
+        public async Task<PredictionSnapshot> SaveKnockoutBoardAsync(KnockoutBoard board, CancellationToken ct = default)
+        {
+            await EnsureSnapshotColumnsAsync(ct);
+            var payload = JsonSerializer.Serialize(board, JsonOptions);
+            var snapshot = new PredictionSnapshot
+            {
+                Kind = KnockoutBoardKind,
+                ModelName = "Canonical knockout",
+                CreatedAt = board.GeneratedAt,
+                InputSummaryHash = CryptoUtil.GetSha256(payload),
+                PayloadJson = payload,
+                Explanation = $"Cuadro eliminatorio de {board.Matches.Count} partidos.",
+                HomeWin = 0,
+                Draw = 0,
+                AwayWin = 0
+            };
+            _db.Snapshots.Add(snapshot);
+            await _db.SaveChangesAsync(ct);
+            return snapshot;
+        }
+
+        public async Task<KnockoutBoard?> LoadLatestKnockoutBoardAsync(CancellationToken ct = default)
+        {
+            await EnsureSnapshotColumnsAsync(ct);
+            var snapshots = await _db.Snapshots.AsNoTracking()
+                .Where(s => s.Kind == KnockoutBoardKind)
+                .ToListAsync(ct);
+            var snapshot = snapshots
+                .OrderByDescending(s => s.CreatedAt)
+                .ThenByDescending(s => s.Id)
+                .FirstOrDefault();
+            if (snapshot is null)
+                return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<KnockoutBoard>(snapshot.PayloadJson, JsonOptions);
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
         }
 
         public async Task<MatchSnapshotLoadResult> LoadMatchSnapshotAsync(int id, CancellationToken ct = default)

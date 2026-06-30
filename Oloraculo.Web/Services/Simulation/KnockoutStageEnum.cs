@@ -6,6 +6,7 @@
         RoundOf16,
         QuarterFinal,
         SemiFinal,
+        ThirdPlace,
         Final
     }
 }
