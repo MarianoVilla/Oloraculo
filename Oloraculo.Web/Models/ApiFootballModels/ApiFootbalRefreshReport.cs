@@ -1,10 +1,11 @@
-﻿namespace Oloraculo.Web.Models.ApiFootballModels
+namespace Oloraculo.Web.Models.ApiFootballModels
 {
     public class ApiFootballRefreshReport
     {
         public bool IsConfigured { get; init; }
         public int FixturesFetched { get; init; }
         public int FixturesMatched { get; init; }
+        public int FixturesUpdatedAsPlayed { get; init; }
         public int ContextRows { get; init; }
         public int FixtureInjuryRows { get; init; }
         public int LeagueInjuryRows { get; init; }

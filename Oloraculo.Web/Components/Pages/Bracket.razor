@@ -1,0 +1,212 @@
+@page "/bracket"
+@rendermode InteractiveServer
+@inject OfficialBracketService BracketService
+@inject SnapshotService Snapshots
+@inject ApiFootballService ApiFootball
+@inject EvaluationService Evaluation
+@inject OloraculoDbContext Db
+@inject ISnackbar Snackbar
+
+<PageTitle>Cuadro</PageTitle>
+
+<MudStack Spacing="3">
+    <div class="page-head">
+        <MudText Typo="Typo.h3">Cuadro</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">Cruces oficiales API-Football y proyecci?n hacia la final.</MudText>
+    </div>
+
+    <MudPaper Class="surface-card" Elevation="0">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="action-row">
+            <BusyButton Text="Actualizar cuadro" BusyText="Actualizando" IsBusy="_busy" Icon="@Icons.Material.Filled.Refresh" OnClick="RefreshOfficialData" />
+            <BusyButton Text="Guardar snapshot" BusyText="Guardando" IsBusy="_saving" Icon="@Icons.Material.Filled.Save" OnClick="SaveSnapshot" Disabled="@(_projection?.HasOfficialFixtures != true)" />
+            <MudSelect T="int?" Value="_selectedSnapshotId" ValueChanged="LoadSnapshot" Label="Snapshot" Dense="true" Variant="Variant.Outlined" Style="min-width: 240px">
+                @foreach (var snapshot in _snapshots)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)snapshot.Id)">@SnapshotLabel(snapshot)</MudSelectItem>
+                }
+            </MudSelect>
+            <MudIconButton Icon="@Icons.Material.Filled.History" Color="Color.Default" OnClick="LoadSnapshots" />
+        </MudStack>
+        @if (_busy || _saving)
+        {
+            <MudProgressLinear Class="inline-progress" Color="Color.Primary" Indeterminate="true" />
+        }
+        @if (_projection is not null)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Generado @_projection.GeneratedAt.UtcDateTime.ToString("yyyy-MM-dd HH:mm") UTC | @_projection.InputSummaryHash</MudText>
+        }
+    </MudPaper>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">@_error</MudAlert>
+    }
+
+    @if (_projection is null)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (!_projection.HasOfficialFixtures)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">@(_projection.PendingMessage ?? OfficialBracketService.PendingMessage)</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3">
+            @foreach (var stage in _projection.Ties.GroupBy(t => t.StageLabel).OrderBy(g => StageOrder(g.Key)))
+            {
+                <MudItem xs="12" lg="6" xl="4">
+                    <MudPaper Class="surface-card" Elevation="0">
+                        <MudText Typo="Typo.h6">@stage.Key</MudText>
+                        <MudTable Items="stage.OrderBy(t => t.TieId)" Dense="true" Hover="true" Elevation="0" Class="dense-table">
+                            <HeaderContent>
+                                <MudTh>Partido</MudTh>
+                                <MudTh>Pick</MudTh>
+                                <MudTh Class="num">Avance</MudTh>
+                                <MudTh>Estado</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Partido">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body2"><TeamLabel TeamId="@context.HomeTeamId" Name="@Name(context.HomeTeamId)" /> vs <TeamLabel TeamId="@context.AwayTeamId" Name="@Name(context.AwayTeamId)" /></MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@(context.IsOfficialFixture ? context.FixtureId : "proyectado")</MudText>
+                                    </MudStack>
+                                </MudTd>
+                                <MudTd DataLabel="Pick">@PickText(context)</MudTd>
+                                <MudTd DataLabel="Avance" Class="num">@AdvanceText(context)</MudTd>
+                                <MudTd DataLabel="Estado">@StatusText(context)</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudStack>
+
+@code {
+    private BracketProjection? _projection;
+    private IReadOnlyList<BracketSnapshotSummary> _snapshots = [];
+    private Dictionary<string, string> _names = [];
+    private int? _selectedSnapshotId;
+    private bool _busy;
+    private bool _saving;
+    private string _error = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _names = await Db.Teams.AsNoTracking().ToDictionaryAsync(t => t.Id, t => t.Name);
+        await LoadSnapshots();
+        if (_snapshots.Count > 0)
+            await LoadSnapshot(_snapshots[0].Id);
+        else
+            await BuildProjection();
+    }
+
+    private async Task RefreshOfficialData()
+    {
+        _busy = true;
+        _error = "";
+        try
+        {
+            var api = await ApiFootball.RefreshFixturesAsync();
+            foreach (var note in api.Notes)
+                Snackbar.Add(note, Severity.Info);
+            foreach (var error in api.Errors)
+                Snackbar.Add(error, Severity.Warning);
+
+            await Evaluation.EvaluateUnevaluatedPlayedFixturesAsync();
+            await BuildProjection();
+            _names = await Db.Teams.AsNoTracking().ToDictionaryAsync(t => t.Id, t => t.Name);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("No se pudo actualizar el cuadro.", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task BuildProjection()
+    {
+        _projection = await BracketService.BuildAsync();
+        _selectedSnapshotId = null;
+    }
+
+    private async Task SaveSnapshot()
+    {
+        if (_projection is null || !_projection.HasOfficialFixtures)
+            return;
+
+        _saving = true;
+        try
+        {
+            var snapshot = await Snapshots.SaveBracketAsync(_projection);
+            Snackbar.Add("Snapshot de cuadro guardado.", Severity.Success);
+            await LoadSnapshots();
+            _selectedSnapshotId = snapshot.Id;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("No se pudo guardar el snapshot.", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task LoadSnapshots() => _snapshots = await Snapshots.BracketSnapshotsAsync(take: 20);
+
+    private async Task LoadSnapshot(int? id)
+    {
+        _selectedSnapshotId = id;
+        if (!id.HasValue)
+            return;
+
+        var loaded = await Snapshots.LoadBracketSnapshotAsync(id.Value);
+        if (loaded.IsValid && loaded.Projection is not null)
+            _projection = loaded.Projection;
+        else
+            Snackbar.Add(loaded.Error ?? "No se pudo cargar el snapshot.", Severity.Warning);
+    }
+
+    private string Name(string? id) => id is not null && _names.TryGetValue(id, out var name) ? name : id ?? "Pendiente";
+
+    private static string PickText(BracketTieProjection tie)
+    {
+        if (tie.PredictedHomeGoals.HasValue && tie.PredictedAwayGoals.HasValue)
+            return $"{tie.PredictedHomeGoals}-{tie.PredictedAwayGoals}";
+        return tie.PredictedWinnerTeamId ?? "-";
+    }
+
+    private string AdvanceText(BracketTieProjection tie)
+    {
+        if (!tie.HomeAdvanceProbability.HasValue || !tie.AwayAdvanceProbability.HasValue)
+            return "-";
+        return $"{Name(tie.HomeTeamId)} {tie.HomeAdvanceProbability.Value:P0} / {Name(tie.AwayTeamId)} {tie.AwayAdvanceProbability.Value:P0}";
+    }
+
+    private string StatusText(BracketTieProjection tie)
+    {
+        if (tie.IsPlayed && tie.ActualHomeGoals.HasValue && tie.ActualAwayGoals.HasValue)
+            return $"{tie.ActualHomeGoals}-{tie.ActualAwayGoals}; avanza {Name(tie.ActualWinnerTeamId)}";
+        return tie.IsOfficialFixture ? "Oficial" : "Proyectado";
+    }
+
+    private static string SnapshotLabel(BracketSnapshotSummary snapshot) => $"#{snapshot.Id} {snapshot.CreatedAt.UtcDateTime:MM-dd HH:mm} ({snapshot.TieCount})";
+
+    private static int StageOrder(string stage) => stage switch
+    {
+        "16avos" => 0,
+        "Octavos" => 1,
+        "Cuartos" => 2,
+        "Semis" => 3,
+        "Final" => 4,
+        _ => 99
+    };
+}

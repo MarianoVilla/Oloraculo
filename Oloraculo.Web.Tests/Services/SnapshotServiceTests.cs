@@ -61,6 +61,57 @@ public class SnapshotServiceTests : TestFixtures
         Assert.Equal(0, snapshot.AwayWin);
     }
 
+
+    [Fact]
+    public async Task SnapshotService_SavesAndLoadsBracketSnapshotsWithOfficialMatchChildrenOnly()
+    {
+        await using var db = await NewDb();
+        var service = new SnapshotService(db);
+        var officialPrediction = Prediction(4, "Final", .6, .2, .2);
+        officialPrediction.FixtureId = "ko:73";
+        officialPrediction.HomeTeamId = "argentina";
+        officialPrediction.AwayTeamId = "france";
+        var projection = new BracketProjection
+        {
+            GeneratedAt = DateTimeOffset.Parse("2026-07-01T00:00:00Z"),
+            ModelName = "Cuadro oficial",
+            InputSummaryHash = "bracket-hash",
+            Ties =
+            [
+                new BracketTieProjection
+                {
+                    TieId = 73,
+                    FixtureId = "ko:73",
+                    StageLabel = "16avos",
+                    IsOfficialFixture = true,
+                    HomeTeamId = "argentina",
+                    AwayTeamId = "france",
+                    Prediction = officialPrediction
+                },
+                new BracketTieProjection
+                {
+                    TieId = 89,
+                    StageLabel = "Octavos",
+                    IsOfficialFixture = false,
+                    HomeTeamId = "argentina",
+                    AwayTeamId = "brazil",
+                    Prediction = Prediction(4, "Final", .5, .2, .3)
+                }
+            ]
+        };
+
+        var saved = await service.SaveBracketAsync(projection);
+        var loaded = await service.LoadBracketSnapshotAsync(saved.Id);
+        var summaries = await service.BracketSnapshotsAsync();
+
+        Assert.True(loaded.IsValid);
+        Assert.Equal(2, loaded.Projection!.Ties.Count);
+        Assert.Single(summaries);
+        Assert.Equal(2, summaries[0].TieCount);
+        Assert.Equal(2, await db.Snapshots.CountAsync());
+        Assert.Equal(1, await db.Snapshots.CountAsync(snapshot => snapshot.Kind == "match" && snapshot.FixtureId == "ko:73"));
+    }
+
     [Fact]
     public async Task SnapshotService_SavesMatchSnapshotsInBulk()
     {

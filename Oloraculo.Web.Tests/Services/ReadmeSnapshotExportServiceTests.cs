@@ -145,6 +145,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
                 new EvaluationService(db),
                 snapshots,
                 new SimulationService(db, prediction, snapshots, options),
+                new OfficialBracketService(db, prediction),
                 environment,
                 NullLogger<ReadmeSnapshotExportService>.Instance);
 
@@ -258,6 +259,60 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
         var rendered = ReadmeSnapshotExportService.RenderSnapshotBlock(projection, [], Names(), DateTimeOffset.Parse("2026-01-02T00:00:00Z"));
 
         Assert.True(rendered.IndexOf("Argentina", StringComparison.Ordinal) < rendered.IndexOf("France", StringComparison.Ordinal));
+    }
+
+
+    [Fact]
+    public void ReadmeExporter_OmitsBracketWhenThereAreNoOfficialKnockoutFixtures()
+    {
+        var rendered = ReadmeSnapshotExportService.RenderSnapshotBlock(
+            TournamentProjection("hash", 100, DateTimeOffset.Parse("2026-01-01T00:00:00Z")),
+            [PredictionResult(UnplayedFixture())],
+            Names(),
+            DateTimeOffset.Parse("2026-01-02T00:00:00Z"));
+
+        Assert.DoesNotContain("### Cuadro", rendered);
+    }
+
+    [Fact]
+    public void ReadmeExporter_RendersOfficialBracketBeforeTournament()
+    {
+        var bracket = new BracketProjection
+        {
+            GeneratedAt = DateTimeOffset.Parse("2026-01-02T00:00:00Z"),
+            ModelName = "Cuadro oficial",
+            InputSummaryHash = "bracket-hash",
+            Ties =
+            [
+                new BracketTieProjection
+                {
+                    TieId = 73,
+                    FixtureId = "ko:73",
+                    StageLabel = "16avos",
+                    IsOfficialFixture = true,
+                    HomeTeamId = "argentina",
+                    AwayTeamId = "france",
+                    PredictedWinnerTeamId = "argentina",
+                    PredictedHomeGoals = 2,
+                    PredictedAwayGoals = 1,
+                    HomeAdvanceProbability = .62,
+                    AwayAdvanceProbability = .38
+                }
+            ]
+        };
+
+        var rendered = ReadmeSnapshotExportService.RenderSnapshotBlock(
+            TournamentProjection("hash", 100, DateTimeOffset.Parse("2026-01-01T00:00:00Z")),
+            [PredictionResult(UnplayedFixture())],
+            Names(),
+            DateTimeOffset.Parse("2026-01-02T00:00:00Z"),
+            bracket: bracket);
+
+        Assert.True(rendered.IndexOf("### Cuadro", StringComparison.Ordinal) < rendered.IndexOf("### Torneo", StringComparison.Ordinal));
+        Assert.Contains("| Match | Pick | Advance odds | Status |", rendered);
+        Assert.Contains("Argentina", rendered);
+        Assert.Contains("2-1", rendered);
+        Assert.DoesNotContain("| Tie |", rendered);
     }
 
     [Fact]
@@ -408,7 +463,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
 
     private static Fixture PlayedFixture() => new()
     {
-        Id = "played",
+        Id = "grp:played",
         Group = "C",
         HomeTeamId = "argentina",
         AwayTeamId = "france",
@@ -420,7 +475,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
 
     private static Fixture UnplayedFixture() => new()
     {
-        Id = "unplayed",
+        Id = "grp:unplayed",
         Group = "C",
         HomeTeamId = "argentina",
         AwayTeamId = "france"
@@ -534,6 +589,7 @@ public class ReadmeSnapshotExportServiceTests : TestFixtures
             new EvaluationService(db),
             snapshots,
             new SimulationService(db, prediction, snapshots, options),
+            new OfficialBracketService(db, prediction),
             environment,
             NullLogger<ReadmeSnapshotExportService>.Instance);
     }

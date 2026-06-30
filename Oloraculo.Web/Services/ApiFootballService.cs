@@ -1,9 +1,10 @@
-Ôªøusing Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Oloraculo.Web.DAL;
 using Oloraculo.Web.Helpers;
 using Oloraculo.Web.Models;
 using Oloraculo.Web.Models.ApiFootballModels;
+using Oloraculo.Web.Services.Simulation;
 
 namespace Oloraculo.Web.Services
 {
@@ -30,7 +31,7 @@ namespace Oloraculo.Web.Services
         public async Task<ApiFootballRefreshReport> RefreshFixtureContextAsync(string fixtureId, CancellationToken ct = default)
         {
             if (!IsConfigured)
-                return new ApiFootballRefreshReport { IsConfigured = false, Notes = ["La clave de API-Football no est√° configurada."] };
+                return new ApiFootballRefreshReport { IsConfigured = false, Notes = ["La clave de API-Football no est· configurada."] };
 
             var errors = new List<string>();
             var notes = new List<string>();
@@ -38,7 +39,7 @@ namespace Oloraculo.Web.Services
             {
                 var fixture = await _db.Fixtures.FindAsync([fixtureId], ct);
                 if (fixture is null)
-                    return new ApiFootballRefreshReport { IsConfigured = true, Errors = [$"No se encontr√≥ el partido {fixtureId}."] };
+                    return new ApiFootballRefreshReport { IsConfigured = true, Errors = [$"No se encontrÛ el partido {fixtureId}."] };
 
                 var mapping = await _db.ApiMappings.SingleOrDefaultAsync(m => m.LocalFixtureId == fixtureId, ct);
                 if (mapping is null)
@@ -46,7 +47,7 @@ namespace Oloraculo.Web.Services
                     var refresh = await RefreshFixturesAsync(ct);
                     mapping = await _db.ApiMappings.SingleOrDefaultAsync(m => m.LocalFixtureId == fixtureId, ct);
                     if (mapping is null)
-                        return new ApiFootballRefreshReport { IsConfigured = true, Notes = refresh.Notes, Errors = ["No se encontr√≥ un mapeo de API para este partido local."] };
+                        return new ApiFootballRefreshReport { IsConfigured = true, Notes = refresh.Notes, Errors = ["No se encontrÛ un mapeo de API para este partido local."] };
                 }
 
                 var coverage = await GetApiAsync<ApiLeagueResponse>(
@@ -135,11 +136,11 @@ namespace Oloraculo.Web.Services
                     notes.Add($"Lesiones API-Football con impacto enriquecido: {externalUnavailablePlayers.Count(p => !PlayerImpactSources.IsFallback(p.ImpactSource))}/{externalUnavailablePlayers.Count}.");
                 notes.Add($"Filas de alineaciones: {lineupRows}. Filas de cuotas previas: {preMatchOddsRows}. Filas de cuotas en vivo: {liveOddsRows}.");
                 if (fixtureInjuryRows == 0 && leagueInjuryRows == 0)
-                    notes.Add("No llegaron filas de lesiones. API-Football puede soportar lesiones para la competencia, pero todav√≠a no tener bajas asociadas.");
+                    notes.Add("No llegaron filas de lesiones. API-Football puede soportar lesiones para la competencia, pero todavÌa no tener bajas asociadas.");
                 if (preMatchOddsRows == 0)
-                    notes.Add("No llegaron cuotas previas. API-Football documenta las cuotas previas como limitadas a los √∫ltimos 7 d√≠as.");
+                    notes.Add("No llegaron cuotas previas. API-Football documenta las cuotas previas como limitadas a los ˙ltimos 7 dÌas.");
                 if (liveOddsRows == 0)
-                    notes.Add("No llegaron cuotas en vivo. Es esperable salvo que el partido est√© cerca de empezar, en vivo o reci√©n terminado.");
+                    notes.Add("No llegaron cuotas en vivo. Es esperable salvo que el partido estÈ cerca de empezar, en vivo o reciÈn terminado.");
 
                 return new ApiFootballRefreshReport
                 {
@@ -165,7 +166,7 @@ namespace Oloraculo.Web.Services
         public async Task<ApiFootballRefreshReport> RefreshFixturesAsync(CancellationToken ct = default)
         {
             if (!IsConfigured)
-                return new ApiFootballRefreshReport { IsConfigured = false, Notes = ["La clave de API-Football no est√° configurada. Los datos CSV siguen funcionando."] };
+                return new ApiFootballRefreshReport { IsConfigured = false, Notes = ["La clave de API-Football no est· configurada. Los datos CSV siguen funcionando."] };
 
             var errors = new List<string>();
             var notes = new List<string>();
@@ -175,55 +176,75 @@ namespace Oloraculo.Web.Services
                     ApiFootballEndpoints.Fixtures(_config.ApiFootballLeagueId, _config.ApiFootballSeason), ct);
                 var items = response?.Response ?? [];
                 var local = await _db.Fixtures.ToListAsync(ct);
-                var byPair = local.ToDictionary(f => PairKey(f.HomeTeamId, f.AwayTeamId));
+                var mappings = await _db.ApiMappings.ToListAsync(ct);
+                var mappingsByExternal = mappings.ToDictionary(m => m.ExternalFixtureId, StringComparer.Ordinal);
+                var mappingsByLocal = mappings.ToDictionary(m => m.LocalFixtureId, StringComparer.Ordinal);
                 var matched = 0;
+                var played = 0;
                 var unmatchedPairs = new List<string>();
+                var usedKnockoutIds = local
+                    .Where(f => f.Id.StartsWith(OfficialBracketService.KnockoutFixturePrefix, StringComparison.Ordinal))
+                    .Select(f => f.Id)
+                    .ToHashSet(StringComparer.Ordinal);
+                var knockoutAssignments = AllocateNewKnockoutIds(items, local, mappingsByExternal, usedKnockoutIds);
 
                 foreach (var api in items)
                 {
+                    var externalId = api.Fixture.Id.ToString();
                     var home = TeamNameNormalizer.ToId(api.Teams.Home.Name);
                     var away = TeamNameNormalizer.ToId(api.Teams.Away.Name);
-                    if (!byPair.TryGetValue(PairKey(home, away), out var fixture))
+                    var stage = OfficialBracketService.StageFromRound(api.League.Round);
+
+                    Fixture? fixture = null;
+                    if (mappingsByExternal.TryGetValue(externalId, out var mapped))
+                    {
+                        fixture = local.FirstOrDefault(f => f.Id == mapped.LocalFixtureId);
+                    }
+                    else if (stage.HasValue)
+                    {
+                        fixture = await CreateOfficialKnockoutFixtureAsync(api, stage.Value, home, away, knockoutAssignments, local, mappings, mappingsByLocal, mappingsByExternal, ct);
+                    }
+                    else
+                    {
+                        fixture = ResolveGroupFixture(home, away, local);
+                    }
+
+                    if (fixture is null)
                     {
                         unmatchedPairs.Add($"{api.Teams.Home.Name} vs {api.Teams.Away.Name} ({home} vs {away})");
                         continue;
                     }
 
-                    fixture.KickoffUtc = api.Fixture.Date;
-                    fixture.Venue = api.Fixture.Venue?.Name;
-                    fixture.City = api.Fixture.Venue?.City;
-                    fixture.Status = api.Fixture.Status?.Short;
-                    if (IsFinishedStatus(api.Fixture.Status?.Short) && api.Goals.Home.HasValue && api.Goals.Away.HasValue)
-                    {
-                        fixture.IsPlayed = true;
-                        fixture.HomeGoals = api.Teams.Home.Name is { } homeName &&
-                            TeamNameNormalizer.ToId(homeName) == fixture.HomeTeamId
-                                ? api.Goals.Home.Value
-                                : api.Goals.Away.Value;
-                        fixture.AwayGoals = api.Teams.Away.Name is { } awayName &&
-                            TeamNameNormalizer.ToId(awayName) == fixture.AwayTeamId
-                                ? api.Goals.Away.Value
-                                : api.Goals.Home.Value;
-                    }
-                    fixture.Source = "API-Football";
+                    await EnsureTeamAsync(api.Teams.Home.Name, ct);
+                    await EnsureTeamAsync(api.Teams.Away.Name, ct);
+                    ApplyApiFixture(api, fixture, home, away);
+                    if (fixture.IsPlayed)
+                        played++;
                     matched++;
 
-                    var existing = await _db.ApiMappings.SingleOrDefaultAsync(m => m.LocalFixtureId == fixture.Id, ct);
                     var updatedAt = DateTimeOffset.UtcNow;
-                    if (existing is null)
-                        _db.ApiMappings.Add(new ApiMapping { LocalFixtureId = fixture.Id, ExternalFixtureId = api.Fixture.Id.ToString(), UpdatedAt = updatedAt });
+                    if (mappingsByLocal.TryGetValue(fixture.Id, out var existing))
+                    {
+                        existing.ExternalFixtureId = externalId;
+                        existing.UpdatedAt = updatedAt;
+                    }
                     else
                     {
-                        existing.ExternalFixtureId = api.Fixture.Id.ToString();
-                        existing.UpdatedAt = updatedAt;
+                        var mapping = new ApiMapping { LocalFixtureId = fixture.Id, ExternalFixtureId = externalId, UpdatedAt = updatedAt };
+                        _db.ApiMappings.Add(mapping);
+                        mappings.Add(mapping);
+                        mappingsByLocal[fixture.Id] = mapping;
+                        mappingsByExternal[externalId] = mapping;
                     }
                 }
 
                 await _db.SaveChangesAsync(ct);
-                notes.Add($"Se obtuvieron {items.Count} filas de partidos y se matchearon {matched} partidos locales de fase de grupos.");
+                notes.Add($"Se obtuvieron {items.Count} filas de partidos y se matchearon {matched} partidos locales.");
+                if (played > 0)
+                    notes.Add($"Se marcaron {played} partidos como jugados desde API-Football.");
                 if (unmatchedPairs.Count > 0)
                     notes.Add($"No se matchearon {unmatchedPairs.Count} filas API contra partidos locales: {string.Join("; ", unmatchedPairs.Take(10))}{(unmatchedPairs.Count > 10 ? "; ..." : "")}");
-                return new ApiFootballRefreshReport { IsConfigured = true, FixturesFetched = items.Count, FixturesMatched = matched, Notes = notes };
+                return new ApiFootballRefreshReport { IsConfigured = true, FixturesFetched = items.Count, FixturesMatched = matched, FixturesUpdatedAsPlayed = played, Notes = notes };
             }
             catch (Exception ex)
             {
@@ -235,7 +256,7 @@ namespace Oloraculo.Web.Services
         public async Task<AvailabilityRefreshReport> EnrichAvailabilityRolesAsync(CancellationToken ct = default)
         {
             if (!IsConfigured)
-                return new AvailabilityRefreshReport { IsConfigured = false, Notes = ["La clave de API-Football no est√° configurada. No se pueden resolver roles."] };
+                return new AvailabilityRefreshReport { IsConfigured = false, Notes = ["La clave de API-Football no est· configurada. No se pueden resolver roles."] };
 
             var errors = new List<string>();
             var notes = new List<string>();
@@ -466,6 +487,133 @@ namespace Oloraculo.Web.Services
                 ? PlayerImpactService.FallbackImpact(position)
                 : await _impact.CalculateAsync(teamId, player, playerKey, position, statistics, ct);
 
+        private static Dictionary<long, string> AllocateNewKnockoutIds(
+            IReadOnlyList<ApiFixtureRow> items,
+            IReadOnlyList<Fixture> local,
+            IReadOnlyDictionary<string, ApiMapping> mappingsByExternal,
+            HashSet<string> usedKnockoutIds)
+        {
+            var assignments = new Dictionary<long, string>();
+            foreach (var stageGroup in items
+                .Where(item => OfficialBracketService.StageFromRound(item.League.Round).HasValue && !mappingsByExternal.ContainsKey(item.Fixture.Id.ToString()))
+                .GroupBy(item => OfficialBracketService.StageFromRound(item.League.Round)!.Value))
+            {
+                var availableIds = OfficialBracketService.TieIdsForStage(stageGroup.Key)
+                    .Select(OfficialBracketService.FixtureId)
+                    .Where(id => !usedKnockoutIds.Contains(id))
+                    .ToList();
+                var rows = stageGroup
+                    .OrderBy(item => item.Fixture.Date ?? DateTimeOffset.MaxValue)
+                    .ThenBy(item => item.Fixture.Id)
+                    .ToList();
+
+                for (var i = 0; i < rows.Count && i < availableIds.Count; i++)
+                {
+                    assignments[rows[i].Fixture.Id] = availableIds[i];
+                    usedKnockoutIds.Add(availableIds[i]);
+                }
+            }
+
+            return assignments;
+        }
+
+        private async Task<Fixture?> CreateOfficialKnockoutFixtureAsync(
+            ApiFixtureRow api,
+            KnockoutStageEnum stage,
+            string home,
+            string away,
+            IReadOnlyDictionary<long, string> knockoutAssignments,
+            List<Fixture> local,
+            List<ApiMapping> mappings,
+            Dictionary<string, ApiMapping> mappingsByLocal,
+            Dictionary<string, ApiMapping> mappingsByExternal,
+            CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(home) || string.IsNullOrWhiteSpace(away) || !knockoutAssignments.TryGetValue(api.Fixture.Id, out var fixtureId))
+                return null;
+
+            var fixture = local.FirstOrDefault(f => f.Id == fixtureId);
+            if (fixture is not null)
+            {
+                if (!mappingsByLocal.ContainsKey(fixture.Id))
+                    return null;
+            }
+            else
+            {
+                fixture = new Fixture
+                {
+                    Id = fixtureId,
+                    Group = "KO",
+                    HomeTeamId = home,
+                    AwayTeamId = away,
+                    NeutralVenue = true,
+                    Status = OfficialBracketService.StageLabel(stage),
+                    Source = "API-Football"
+                };
+                _db.Fixtures.Add(fixture);
+                local.Add(fixture);
+            }
+
+            return fixture;
+        }
+
+        private static Fixture? ResolveGroupFixture(string home, string away, IReadOnlyList<Fixture> local)
+        {
+            var pair = PairKey(home, away);
+            var candidates = local
+                .Where(f => !f.Id.StartsWith(OfficialBracketService.KnockoutFixturePrefix, StringComparison.Ordinal) && PairKey(f.HomeTeamId, f.AwayTeamId) == pair)
+                .ToList();
+            return candidates.Count == 1 ? candidates[0] : null;
+        }
+
+        private async Task EnsureTeamAsync(string name, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return;
+
+            var canonical = TeamNameNormalizer.CanonicalName(name);
+            var id = TeamNameNormalizer.ToId(canonical);
+            var existing = await _db.Teams.FindAsync([id], ct);
+            if (existing is null)
+                _db.Teams.Add(new Team { Id = id, Name = canonical, Source = "API-Football" });
+            else if (string.IsNullOrWhiteSpace(existing.Name) || string.Equals(existing.Name, id, StringComparison.Ordinal))
+                existing.Name = canonical;
+        }
+
+        private static void ApplyApiFixture(ApiFixtureRow api, Fixture fixture, string apiHome, string apiAway)
+        {
+            fixture.KickoffUtc = api.Fixture.Date;
+            fixture.Venue = api.Fixture.Venue?.Name;
+            fixture.City = api.Fixture.Venue?.City;
+            fixture.Status = api.Fixture.Status?.Short ?? fixture.Status;
+            fixture.Source = "API-Football";
+
+            if (IsFinishedStatus(api.Fixture.Status?.Short) && api.Goals.Home.HasValue && api.Goals.Away.HasValue)
+            {
+                var homeGoals = apiHome == fixture.HomeTeamId ? api.Goals.Home.Value : api.Goals.Away.Value;
+                var awayGoals = apiAway == fixture.AwayTeamId ? api.Goals.Away.Value : api.Goals.Home.Value;
+                fixture.IsPlayed = true;
+                fixture.HomeGoals = homeGoals;
+                fixture.AwayGoals = awayGoals;
+                fixture.WinnerTeamId = WinnerTeamId(api, fixture, homeGoals, awayGoals, apiHome, apiAway);
+            }
+        }
+
+        private static string? WinnerTeamId(ApiFixtureRow api, Fixture fixture, int homeGoals, int awayGoals, string apiHome, string apiAway)
+        {
+            if (homeGoals > awayGoals)
+                return fixture.HomeTeamId;
+            if (awayGoals > homeGoals)
+                return fixture.AwayTeamId;
+            if (api.Fixture.Status?.Short != "PEN" || !api.Penalty.Home.HasValue || !api.Penalty.Away.HasValue)
+                return null;
+
+            var homePenalties = apiHome == fixture.HomeTeamId ? api.Penalty.Home.Value : api.Penalty.Away.Value;
+            var awayPenalties = apiAway == fixture.AwayTeamId ? api.Penalty.Away.Value : api.Penalty.Home.Value;
+            if (homePenalties == awayPenalties)
+                return null;
+            return homePenalties > awayPenalties ? fixture.HomeTeamId : fixture.AwayTeamId;
+        }
         private static bool IsFinishedStatus(string? status) =>
             status is "FT" or "AET" or "PEN";
 

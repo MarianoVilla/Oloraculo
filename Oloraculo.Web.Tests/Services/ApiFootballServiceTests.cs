@@ -317,6 +317,117 @@ public class ApiFootballServiceTests : TestFixtures
         Assert.Equal(1, report.ImpactMatchedPlayers);
     }
 
+
+    [Fact]
+    public async Task ApiFootball_RefreshFixturesCreatesMappedOfficialKnockoutFixture()
+    {
+        await using var db = await NewDb();
+        var handler = new FakeHttpMessageHandler(new Dictionary<string, string>
+        {
+            [$"https://api.test/{ApiFootballEndpoints.Fixtures(1, 2026)}"] = """
+                {
+                  "response": [{
+                    "fixture": {
+                      "id": 730,
+                      "date": "2026-07-01T20:00:00+00:00",
+                      "venue": { "name": "KO Stadium", "city": "KO City" },
+                      "status": { "short": "NS" }
+                    },
+                    "league": { "round": "Round of 32" },
+                    "teams": {
+                      "home": { "id": 1, "name": "Germany" },
+                      "away": { "id": 2, "name": "Paraguay" }
+                    },
+                    "goals": { "home": null, "away": null }
+                  }]
+                }
+                """
+        });
+        var api = ApiService(db, handler);
+
+        var report = await api.RefreshFixturesAsync();
+        var fixture = await db.Fixtures.FindAsync("ko:73");
+        var mapping = await db.ApiMappings.SingleAsync();
+
+        Assert.Equal(1, report.FixturesMatched);
+        Assert.NotNull(fixture);
+        Assert.Equal("germany", fixture.HomeTeamId);
+        Assert.Equal("paraguay", fixture.AwayTeamId);
+        Assert.Equal("API-Football", fixture.Source);
+        Assert.Equal("ko:73", mapping.LocalFixtureId);
+        Assert.Equal("730", mapping.ExternalFixtureId);
+    }
+
+    [Fact]
+    public async Task ApiFootball_RefreshFixturesDoesNotReuseUnmappedLegacyKnockoutFixture()
+    {
+        await using var db = await NewDb();
+        db.Fixtures.Add(new Fixture { Id = "ko:73", Group = "KO", HomeTeamId = "germany", AwayTeamId = "bosnia-and-herzegovina" });
+        await db.SaveChangesAsync();
+        var handler = new FakeHttpMessageHandler(new Dictionary<string, string>
+        {
+            [$"https://api.test/{ApiFootballEndpoints.Fixtures(1, 2026)}"] = """
+                {
+                  "response": [{
+                    "fixture": { "id": 731, "date": "2026-07-01T21:00:00+00:00", "status": { "short": "NS" } },
+                    "league": { "round": "Round of 32" },
+                    "teams": {
+                      "home": { "id": 1, "name": "Germany" },
+                      "away": { "id": 2, "name": "Paraguay" }
+                    },
+                    "goals": { "home": null, "away": null }
+                  }]
+                }
+                """
+        });
+        var api = ApiService(db, handler);
+
+        await api.RefreshFixturesAsync();
+        var legacy = await db.Fixtures.FindAsync("ko:73");
+        var official = await db.Fixtures.FindAsync("ko:74");
+        var mapping = await db.ApiMappings.SingleAsync();
+
+        Assert.Equal("bosnia-and-herzegovina", legacy!.AwayTeamId);
+        Assert.NotNull(official);
+        Assert.Equal("paraguay", official.AwayTeamId);
+        Assert.Equal("ko:74", mapping.LocalFixtureId);
+    }
+
+    [Fact]
+    public async Task ApiFootball_RefreshFixturesStoresPenaltyWinnerForKnockoutFixture()
+    {
+        await using var db = await NewDb();
+        db.Fixtures.Add(new Fixture { Id = "ko:73", Group = "KO", HomeTeamId = "germany", AwayTeamId = "paraguay" });
+        db.ApiMappings.Add(new ApiMapping { LocalFixtureId = "ko:73", ExternalFixtureId = "732", UpdatedAt = DateTimeOffset.UtcNow.AddDays(-1) });
+        await db.SaveChangesAsync();
+        var handler = new FakeHttpMessageHandler(new Dictionary<string, string>
+        {
+            [$"https://api.test/{ApiFootballEndpoints.Fixtures(1, 2026)}"] = """
+                {
+                  "response": [{
+                    "fixture": { "id": 732, "date": "2026-07-01T21:00:00+00:00", "status": { "short": "PEN" } },
+                    "league": { "round": "Round of 32" },
+                    "teams": {
+                      "home": { "id": 1, "name": "Germany" },
+                      "away": { "id": 2, "name": "Paraguay" }
+                    },
+                    "goals": { "home": 1, "away": 1 },
+                    "penalty": { "home": 4, "away": 5 }
+                  }]
+                }
+                """
+        });
+        var api = ApiService(db, handler);
+
+        await api.RefreshFixturesAsync();
+        var fixture = await db.Fixtures.FindAsync("ko:73");
+
+        Assert.True(fixture!.IsPlayed);
+        Assert.Equal(1, fixture.HomeGoals);
+        Assert.Equal(1, fixture.AwayGoals);
+        Assert.Equal("paraguay", fixture.WinnerTeamId);
+    }
+
     private static ApiFootballService ApiService(OloraculoDbContext db, HttpMessageHandler handler)
     {
         var options = Options.Create(new OloraculoConfig
