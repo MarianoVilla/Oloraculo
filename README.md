@@ -9,26 +9,111 @@ _A medida que se recibe nueva información y se juegan partidos reales, el Olor�
 
 ### Torneo
 
-_Generado 2026-06-28 23:35 UTC a través de 10,000 simulaciones._
+_Generado 2026-06-30 23:36 UTC a través de 10,000 simulaciones._
 
 | Team | Group | Qualify | QF | SF | Final | Champion |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | J | 100 % | 76 % | 56 % | 40 % | **27.2 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | H | 100 % | 50 % | 37 % | 23 % | **11.9 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/ma.svg" width="18" alt=""> Morocco | C | 100 % | 50 % | 30 % | 18 % | **9.3 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/co.svg" width="18" alt=""> Colombia | K | 100 % | 68 % | 29 % | 16 % | **8.5 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/jp.svg" width="18" alt=""> Japan | F | 100 % | 41 % | 26 % | 12 % | **7.0 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/fr.svg" width="18" alt=""> France | I | 100 % | 49 % | 28 % | 15 % | **6.5 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/pt.svg" width="18" alt=""> Portugal | K | 100 % | 32 % | 21 % | 11 % | **5.0 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England | L | 100 % | 42 % | 22 % | 9 % | **5.0 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/br.svg" width="18" alt=""> Brazil | C | 100 % | 30 % | 17 % | 7 % | **3.4 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/de.svg" width="18" alt=""> Germany | E | 100 % | 42 % | 20 % | 8 % | **2.9 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/nl.svg" width="18" alt=""> Netherlands | F | 100 % | 25 % | 12 % | 5 % | **2.1 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/be.svg" width="18" alt=""> Belgium | G | 100 % | 31 % | 12 % | 5 % | **1.8 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/ec.svg" width="18" alt=""> Ecuador | E | 100 % | 24 % | 10 % | 4 % | **1.7 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/mx.svg" width="18" alt=""> Mexico | A | 100 % | 21 % | 8 % | 3 % | **1.1 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/sn.svg" width="18" alt=""> Senegal | I | 100 % | 25 % | 9 % | 3 % | **0.9 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/au.svg" width="18" alt=""> Australia | D | 100 % | 15 % | 6 % | 2 % | **0.9 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | J | 100 % | 76 % | 55 % | 39 % | **25.7 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | H | 100 % | 51 % | 39 % | 23 % | **12.4 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/fr.svg" width="18" alt=""> France | I | 100 % | 79 % | 45 % | 25 % | **12.0 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/ma.svg" width="18" alt=""> Morocco | C | 100 % | 72 % | 39 % | 22 % | **10.4 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/br.svg" width="18" alt=""> Brazil | C | 100 % | 72 % | 42 % | 19 % | **9.5 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/co.svg" width="18" alt=""> Colombia | K | 100 % | 63 % | 27 % | 15 % | **7.8 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/pt.svg" width="18" alt=""> Portugal | K | 100 % | 34 % | 23 % | 12 % | **5.7 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England | L | 100 % | 44 % | 24 % | 11 % | **5.7 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/be.svg" width="18" alt=""> Belgium | G | 100 % | 36 % | 13 % | 6 % | **2.1 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/mx.svg" width="18" alt=""> Mexico | A | 100 % | 24 % | 10 % | 3 % | **1.3 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/ec.svg" width="18" alt=""> Ecuador | E | 100 % | 21 % | 9 % | 3 % | **1.1 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/no.svg" width="18" alt=""> Norway | I | 100 % | 28 % | 12 % | 3 % | **0.9 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/au.svg" width="18" alt=""> Australia | D | 100 % | 14 % | 6 % | 2 % | **0.8 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/ca.svg" width="18" alt=""> Canada | B | 100 % | 28 % | 9 % | 3 % | **0.8 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/us.svg" width="18" alt=""> United States | D | 100 % | 37 % | 11 % | 3 % | **0.7 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/sn.svg" width="18" alt=""> Senegal | I | 100 % | 26 % | 8 % | 3 % | **0.7 %** |
+
+### Eliminatorias
+
+_Los equipos marcados como proyectados todavía no están confirmados por la fuente._
+
+<details open>
+<summary><strong>Dieciseisavos</strong></summary>
+
+| Match | Teams | Status | Prediction | Result |
+| ---: | --- | --- | --- | --- |
+| 73 | South Africa <sub>confirmed</sub> vs Canada <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **0-1** |
+| 74 | Germany <sub>confirmed</sub> vs Paraguay <sub>confirmed</sub> | PEN | Pre-match prediction unavailable | **1-1** (3-4 pens) |
+| 75 | Netherlands <sub>confirmed</sub> vs Morocco <sub>confirmed</sub> | PEN | Pre-match prediction unavailable | **1-1** (2-3 pens) |
+| 76 | Brazil <sub>confirmed</sub> vs Japan <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **2-1** |
+| 77 | France <sub>confirmed</sub> vs Sweden <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **3-0** |
+| 78 | Ivory Coast <sub>confirmed</sub> vs Norway <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **1-2** |
+| 79 | Mexico <sub>confirmed</sub> vs Ecuador <sub>confirmed</sub> | NS | 1-1; Mexico advances | - |
+| 80 | England <sub>confirmed</sub> vs Congo DR <sub>confirmed</sub> | NS | 1-1; England advances | - |
+| 81 | United States <sub>confirmed</sub> vs Bosnia and Herzegovina <sub>confirmed</sub> | NS | 3-1 | - |
+| 82 | Belgium <sub>confirmed</sub> vs Senegal <sub>confirmed</sub> | NS | 1-1; Belgium advances | - |
+| 83 | Portugal <sub>confirmed</sub> vs Croatia <sub>confirmed</sub> | NS | 2-1 | - |
+| 84 | Spain <sub>confirmed</sub> vs Austria <sub>confirmed</sub> | NS | 2-1 | - |
+| 85 | Switzerland <sub>confirmed</sub> vs Algeria <sub>confirmed</sub> | NS | 2-1 | - |
+| 86 | Argentina <sub>confirmed</sub> vs Cape Verde <sub>confirmed</sub> | NS | 2-0 | - |
+| 87 | Colombia <sub>confirmed</sub> vs Ghana <sub>confirmed</sub> | NS | 2-1 | - |
+| 88 | Australia <sub>confirmed</sub> vs Egypt <sub>confirmed</sub> | NS | 1-1; Australia advances | - |
+
+</details>
+
+<details open>
+<summary><strong>Octavos de final</strong></summary>
+
+| Match | Teams | Status | Prediction | Result |
+| ---: | --- | --- | --- | --- |
+| 89 | Paraguay <sub>projected</sub> vs France <sub>projected</sub> | Scheduled | 1-2 | - |
+| 90 | Canada <sub>confirmed</sub> vs Morocco <sub>confirmed</sub> | NS | 1-1; Morocco advances | - |
+| 91 | Brazil <sub>projected</sub> vs Norway <sub>projected</sub> | Scheduled | 2-1 | - |
+| 92 | Mexico <sub>projected</sub> vs England <sub>projected</sub> | Scheduled | 1-1; England advances | - |
+| 93 | Portugal <sub>projected</sub> vs Spain <sub>projected</sub> | Scheduled | 1-1; Spain advances | - |
+| 94 | United States <sub>projected</sub> vs Belgium <sub>projected</sub> | Scheduled | 1-2 | - |
+| 95 | Argentina <sub>projected</sub> vs Australia <sub>projected</sub> | Scheduled | 1-1; Argentina advances | - |
+| 96 | Switzerland <sub>projected</sub> vs Colombia <sub>projected</sub> | Scheduled | 1-2 | - |
+
+</details>
+
+<details open>
+<summary><strong>Cuartos de final</strong></summary>
+
+| Match | Teams | Status | Prediction | Result |
+| ---: | --- | --- | --- | --- |
+| 97 | France <sub>projected</sub> vs Morocco <sub>projected</sub> | Scheduled | 1-1; France advances | - |
+| 98 | Spain <sub>projected</sub> vs Belgium <sub>projected</sub> | Scheduled | 2-1 | - |
+| 99 | Brazil <sub>projected</sub> vs England <sub>projected</sub> | Scheduled | 1-1; Brazil advances | - |
+| 100 | Argentina <sub>projected</sub> vs Colombia <sub>projected</sub> | Scheduled | 1-1; Argentina advances | - |
+
+</details>
+
+<details open>
+<summary><strong>Semifinales</strong></summary>
+
+| Match | Teams | Status | Prediction | Result |
+| ---: | --- | --- | --- | --- |
+| 101 | France <sub>projected</sub> vs Spain <sub>projected</sub> | Scheduled | 1-1; Spain advances | - |
+| 102 | Brazil <sub>projected</sub> vs Argentina <sub>projected</sub> | Scheduled | 1-1; Argentina advances | - |
+
+</details>
+
+<details open>
+<summary><strong>Tercer puesto</strong></summary>
+
+| Match | Teams | Status | Prediction | Result |
+| ---: | --- | --- | --- | --- |
+| 103 | France <sub>projected</sub> vs Brazil <sub>projected</sub> | Scheduled | 1-1; France advances | - |
+
+</details>
+
+<details open>
+<summary><strong>Final</strong></summary>
+
+| Match | Teams | Status | Prediction | Result |
+| ---: | --- | --- | --- | --- |
+| 104 | Spain <sub>projected</sub> vs Argentina <sub>projected</sub> | Scheduled | 1-1; Argentina advances | - |
+
+</details>
+
 
 ### Grupos
 
