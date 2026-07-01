@@ -264,9 +264,8 @@ namespace Oloraculo.Web.Services
             if (match.PredictionUnavailable) return "Pre-match prediction unavailable";
             if (!match.PredictedHomeGoals.HasValue || !match.PredictedAwayGoals.HasValue) return "-";
             var score = $"{match.PredictedHomeGoals}-{match.PredictedAwayGoals}";
-            if (match.PredictedHomeGoals != match.PredictedAwayGoals) return score;
-            var winner = match.PredictedWinnerTeamId == match.HomeTeamId ? match.HomeTeamName : match.AwayTeamName;
-            return $"{score}; {Escape(winner ?? "TBD")} advances";
+            var winner = KnockoutDisplayHelper.PredictedWinnerName(match);
+            return winner is null ? score : $"{score}; {Escape(winner)} advances";
         }
 
         private static string KnockoutResultText(KnockoutMatchView match)

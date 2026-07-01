@@ -1,5 +1,6 @@
 @page "/knockout"
 @rendermode InteractiveServer
+@using Oloraculo.Web.Helpers
 @inject KnockoutUpdateService KnockoutService
 @inject SnapshotService Snapshots
 @inject ISnackbar Snackbar
@@ -132,7 +133,7 @@
     private static string PredictionText(KnockoutMatchView match)
     {
         var score = $"{match.PredictedHomeGoals}-{match.PredictedAwayGoals}";
-        var winner = match.PredictedWinnerTeamId == match.HomeTeamId ? match.HomeTeamName : match.AwayTeamName;
-        return match.PredictedHomeGoals == match.PredictedAwayGoals ? $"{score}; avanza {winner}" : score;
+        var winner = KnockoutDisplayHelper.PredictedWinnerName(match);
+        return winner is null ? score : $"{score}; avanza {winner}";
     }
 }

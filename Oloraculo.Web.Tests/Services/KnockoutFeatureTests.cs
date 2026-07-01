@@ -117,6 +117,42 @@ public class KnockoutFeatureTests : TestFixtures
                     IsPlayed = true,
                     HomeGoals = 0,
                     AwayGoals = 1
+                },
+                new KnockoutMatchView
+                {
+                    MatchNumber = 75,
+                    Stage = KnockoutStageEnum.RoundOf32,
+                    HomeTeamId = "spain",
+                    HomeTeamName = "Spain",
+                    AwayTeamId = "belgium",
+                    AwayTeamName = "Belgium",
+                    PredictedHomeGoals = 2,
+                    PredictedAwayGoals = 1,
+                    PredictedWinnerTeamId = "spain"
+                },
+                new KnockoutMatchView
+                {
+                    MatchNumber = 76,
+                    Stage = KnockoutStageEnum.RoundOf32,
+                    HomeTeamId = "brazil",
+                    HomeTeamName = "Brazil",
+                    AwayTeamId = "norway",
+                    AwayTeamName = "Norway",
+                    PredictedHomeGoals = 0,
+                    PredictedAwayGoals = 2,
+                    PredictedWinnerTeamId = "norway"
+                },
+                new KnockoutMatchView
+                {
+                    MatchNumber = 77,
+                    Stage = KnockoutStageEnum.RoundOf32,
+                    HomeTeamId = "france",
+                    HomeTeamName = "France",
+                    AwayTeamId = "sweden",
+                    AwayTeamName = "Sweden",
+                    PredictedHomeGoals = 1,
+                    PredictedAwayGoals = 0,
+                    PredictedWinnerTeamId = "unknown-team"
                 }
             ]
         };
@@ -128,7 +164,27 @@ public class KnockoutFeatureTests : TestFixtures
         Assert.Contains("Germany <sub>confirmed</sub>", rendered);
         Assert.Contains("Paraguay <sub>projected</sub>", rendered);
         Assert.Contains("1-1; Paraguay advances", rendered);
+        Assert.Contains("2-1; Spain advances", rendered);
+        Assert.Contains("0-2; Norway advances", rendered);
+        Assert.Contains("| 77 |", rendered);
+        Assert.Contains("| 1-0 |", rendered);
+        Assert.DoesNotContain("unknown-team advances", rendered);
         Assert.Contains("**0-1**", rendered);
+    }
+
+    [Fact]
+    public void PredictedWinnerNameRejectsMissingOrUnrelatedTeamIds()
+    {
+        var match = new KnockoutMatchView
+        {
+            HomeTeamId = "spain",
+            HomeTeamName = "Spain",
+            AwayTeamId = "belgium",
+            AwayTeamName = "Belgium",
+            PredictedWinnerTeamId = "france"
+        };
+
+        Assert.Null(KnockoutDisplayHelper.PredictedWinnerName(match));
     }
 
     [Fact]
