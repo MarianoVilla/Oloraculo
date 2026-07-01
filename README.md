@@ -9,7 +9,7 @@ _A medida que se recibe nueva información y se juegan partidos reales, el Olor�
 
 ### Torneo
 
-_Generado 2026-07-01 01:24 UTC a través de 10,000 simulaciones._
+_Generado 2026-07-01 02:03 UTC a través de 10,000 simulaciones._
 
 | Team | Group | Qualify | QF | SF | Final | Champion |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
@@ -45,15 +45,15 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 | 76 | Brazil <sub>confirmed</sub> vs Japan <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **2-1** |
 | 77 | France <sub>confirmed</sub> vs Sweden <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **3-0** |
 | 78 | Ivory Coast <sub>confirmed</sub> vs Norway <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **1-2** |
-| 79 | Mexico <sub>confirmed</sub> vs Ecuador <sub>confirmed</sub> | PST | 1-1; Mexico advances | - |
+| 79 | Mexico <sub>confirmed</sub> vs Ecuador <sub>confirmed</sub> | 1H | 1-1; Mexico advances | - |
 | 80 | England <sub>confirmed</sub> vs Congo DR <sub>confirmed</sub> | NS | 1-1; England advances | - |
-| 81 | United States <sub>confirmed</sub> vs Bosnia and Herzegovina <sub>confirmed</sub> | NS | 3-1 | - |
+| 81 | United States <sub>confirmed</sub> vs Bosnia and Herzegovina <sub>confirmed</sub> | NS | 3-1; United States advances | - |
 | 82 | Belgium <sub>confirmed</sub> vs Senegal <sub>confirmed</sub> | NS | 1-1; Belgium advances | - |
-| 83 | Portugal <sub>confirmed</sub> vs Croatia <sub>confirmed</sub> | NS | 2-1 | - |
-| 84 | Spain <sub>confirmed</sub> vs Austria <sub>confirmed</sub> | NS | 2-1 | - |
-| 85 | Switzerland <sub>confirmed</sub> vs Algeria <sub>confirmed</sub> | NS | 2-1 | - |
-| 86 | Argentina <sub>confirmed</sub> vs Cape Verde <sub>confirmed</sub> | NS | 2-0 | - |
-| 87 | Colombia <sub>confirmed</sub> vs Ghana <sub>confirmed</sub> | NS | 2-1 | - |
+| 83 | Portugal <sub>confirmed</sub> vs Croatia <sub>confirmed</sub> | NS | 2-1; Portugal advances | - |
+| 84 | Spain <sub>confirmed</sub> vs Austria <sub>confirmed</sub> | NS | 2-1; Spain advances | - |
+| 85 | Switzerland <sub>confirmed</sub> vs Algeria <sub>confirmed</sub> | NS | 2-1; Switzerland advances | - |
+| 86 | Argentina <sub>confirmed</sub> vs Cape Verde <sub>confirmed</sub> | NS | 2-0; Argentina advances | - |
+| 87 | Colombia <sub>confirmed</sub> vs Ghana <sub>confirmed</sub> | NS | 2-1; Colombia advances | - |
 | 88 | Australia <sub>confirmed</sub> vs Egypt <sub>confirmed</sub> | NS | 1-1; Australia advances | - |
 
 </details>
@@ -63,14 +63,14 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 
 | Match | Teams | Status | Prediction | Result |
 | ---: | --- | --- | --- | --- |
-| 89 | Paraguay <sub>projected</sub> vs France <sub>projected</sub> | Scheduled | 1-2 | - |
+| 89 | Paraguay <sub>projected</sub> vs France <sub>projected</sub> | Scheduled | 1-2; France advances | - |
 | 90 | Canada <sub>confirmed</sub> vs Morocco <sub>confirmed</sub> | NS | 1-1; Morocco advances | - |
-| 91 | Brazil <sub>confirmed</sub> vs Norway <sub>confirmed</sub> | NS | 2-1 | - |
+| 91 | Brazil <sub>confirmed</sub> vs Norway <sub>confirmed</sub> | NS | 2-1; Brazil advances | - |
 | 92 | Mexico <sub>projected</sub> vs England <sub>projected</sub> | Scheduled | 1-1; England advances | - |
 | 93 | Portugal <sub>projected</sub> vs Spain <sub>projected</sub> | Scheduled | 1-1; Spain advances | - |
-| 94 | United States <sub>projected</sub> vs Belgium <sub>projected</sub> | Scheduled | 1-2 | - |
+| 94 | United States <sub>projected</sub> vs Belgium <sub>projected</sub> | Scheduled | 1-2; Belgium advances | - |
 | 95 | Argentina <sub>projected</sub> vs Australia <sub>projected</sub> | Scheduled | 1-1; Argentina advances | - |
-| 96 | Switzerland <sub>projected</sub> vs Colombia <sub>projected</sub> | Scheduled | 1-2 | - |
+| 96 | Switzerland <sub>projected</sub> vs Colombia <sub>projected</sub> | Scheduled | 1-2; Colombia advances | - |
 
 </details>
 
@@ -80,7 +80,7 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 | Match | Teams | Status | Prediction | Result |
 | ---: | --- | --- | --- | --- |
 | 97 | France <sub>projected</sub> vs Morocco <sub>projected</sub> | Scheduled | 1-1; France advances | - |
-| 98 | Spain <sub>projected</sub> vs Belgium <sub>projected</sub> | Scheduled | 2-1 | - |
+| 98 | Spain <sub>projected</sub> vs Belgium <sub>projected</sub> | Scheduled | 2-1; Spain advances | - |
 | 99 | Brazil <sub>projected</sub> vs England <sub>projected</sub> | Scheduled | 1-1; Brazil advances | - |
 | 100 | Argentina <sub>projected</sub> vs Colombia <sub>projected</sub> | Scheduled | 1-1; Argentina advances | - |
 
