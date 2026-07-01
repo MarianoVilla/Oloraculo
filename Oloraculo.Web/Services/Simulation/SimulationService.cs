@@ -35,6 +35,7 @@ namespace Oloraculo.Web.Services.Simulation
             var counters = teams.ToDictionary(t => t, _ => new Counter());
             var predictionContext = await SimulationPredictionContext.CreateAsync(_db, _config, ct);
             var sampler = new MatchSamplerCache(predictionContext.PredictPairAsync);
+            var knownKnockout = await _db.KnockoutMatches.AsNoTracking().ToDictionaryAsync(m => m.MatchNumber, ct);
 
             for (var i = 0; i < n; i++)
             {
@@ -63,7 +64,7 @@ namespace Oloraculo.Web.Services.Simulation
                     counters[third.TeamId].Qualify++;
 
                 var thirdAssignments = WorldCup2026Bracket.AssignThirdPlaceGroups(bestThirds.Select(t => t.Group).ToList());
-                await RunKnockoutAsync(groupSlots, bestThirds, thirdAssignments, sampler, rng, counters, ct);
+                await RunKnockoutAsync(groupSlots, bestThirds, thirdAssignments, sampler, rng, counters, knownKnockout, ct);
             }
 
             var projection = new TournamentProjection
@@ -139,6 +140,7 @@ namespace Oloraculo.Web.Services.Simulation
             MatchSamplerCache sampler,
             Random rng,
             Dictionary<string, Counter> counters,
+            IReadOnlyDictionary<int, KnockoutMatch> knownKnockout,
             CancellationToken ct)
         {
             var winners = new Dictionary<int, string>();
@@ -163,9 +165,12 @@ namespace Oloraculo.Web.Services.Simulation
 
             async Task<string> PlayTieAsync(BracketTie tie, CancellationToken token)
             {
-                var home = ResolveSlot(tie, tie.Home);
-                var away = ResolveSlot(tie, tie.Away);
-                var winner = await sampler.KnockoutWinnerAsync(home, away, rng, token);
+                knownKnockout.TryGetValue(tie.Id, out var known);
+                var home = known?.ConfirmedHomeTeamId ?? ResolveSlot(tie, tie.Home);
+                var away = known?.ConfirmedAwayTeamId ?? ResolveSlot(tie, tie.Away);
+                var winner = known is { IsPlayed: true, WinnerTeamId: not null }
+                    ? known.WinnerTeamId
+                    : await sampler.KnockoutWinnerAsync(home, away, rng, token);
                 winners[tie.Id] = winner;
                 return winner;
             }

@@ -1,0 +1,26 @@
+<div class="knockout-team-row">
+    <span class="knockout-team-name">@(Name ?? "Por definir")</span>
+    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@ResolutionColor">@ResolutionText</MudChip>
+    <span class="knockout-score">@(ActualGoals?.ToString() ?? PredictedGoals?.ToString() ?? "–")</span>
+</div>
+
+@code {
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public ParticipantResolution Resolution { get; set; }
+    [Parameter] public int? ActualGoals { get; set; }
+    [Parameter] public int? PredictedGoals { get; set; }
+
+    private Color ResolutionColor => Resolution switch
+    {
+        ParticipantResolution.Confirmed => Color.Success,
+        ParticipantResolution.Projected => Color.Info,
+        _ => Color.Default
+    };
+
+    private string ResolutionText => Resolution switch
+    {
+        ParticipantResolution.Confirmed => "Confirmado",
+        ParticipantResolution.Projected => "Proyectado",
+        _ => "TBD"
+    };
+}

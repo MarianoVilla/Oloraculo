@@ -51,6 +51,7 @@ namespace Oloraculo.Web.Services.Simulation
         new(102, KnockoutStageEnum.SemiFinal, WinnerOf(99), WinnerOf(100))
         ];
 
+        public static readonly BracketTie ThirdPlace = new(103, KnockoutStageEnum.ThirdPlace, LoserOf(101), LoserOf(102));
         public static readonly BracketTie Final = new(104, KnockoutStageEnum.Final, WinnerOf(101), WinnerOf(102));
 
         public static IReadOnlyList<BracketTie> KnockoutTies =>
@@ -59,8 +60,20 @@ namespace Oloraculo.Web.Services.Simulation
         ..RoundOf16,
         ..QuarterFinals,
         ..SemiFinals,
+        ThirdPlace,
         Final
         ];
+
+        public static IReadOnlyList<BracketTie> ForStage(KnockoutStageEnum stage) => stage switch
+        {
+            KnockoutStageEnum.RoundOf32 => RoundOf32,
+            KnockoutStageEnum.RoundOf16 => RoundOf16,
+            KnockoutStageEnum.QuarterFinal => QuarterFinals,
+            KnockoutStageEnum.SemiFinal => SemiFinals,
+            KnockoutStageEnum.ThirdPlace => [ThirdPlace],
+            KnockoutStageEnum.Final => [Final],
+            _ => []
+        };
 
         public static IReadOnlyDictionary<int, string> AssignThirdPlaceGroups(IReadOnlyCollection<string> qualifiedThirdGroups)
         {
@@ -105,10 +118,48 @@ namespace Oloraculo.Web.Services.Simulation
             }
         }
 
+        public static readonly IReadOnlyDictionary<int, OfficialKnockoutSchedule> OfficialSchedule =
+            new Dictionary<int, OfficialKnockoutSchedule>
+            {
+                [73] = new(2026, 6, 28, "Los Angeles|Inglewood|SoFi"),
+                [74] = new(2026, 6, 29, "Boston|Foxborough|Gillette"),
+                [75] = new(2026, 6, 29, "Monterrey"),
+                [76] = new(2026, 6, 29, "Houston"),
+                [77] = new(2026, 6, 30, "New York|East Rutherford|MetLife"),
+                [78] = new(2026, 6, 30, "Dallas|Arlington|AT&T"),
+                [79] = new(2026, 6, 30, "Mexico City"),
+                [80] = new(2026, 7, 1, "Atlanta"),
+                [81] = new(2026, 7, 1, "San Francisco|Santa Clara|Levi"),
+                [82] = new(2026, 7, 1, "Seattle"),
+                [83] = new(2026, 7, 2, "Toronto"),
+                [84] = new(2026, 7, 2, "Los Angeles|Inglewood|SoFi"),
+                [85] = new(2026, 7, 2, "Vancouver"),
+                [86] = new(2026, 7, 3, "Miami|Miami Gardens|Hard Rock"),
+                [87] = new(2026, 7, 3, "Kansas City|Arrowhead"),
+                [88] = new(2026, 7, 3, "Dallas|Arlington|AT&T"),
+                [89] = new(2026, 7, 4, "Philadelphia"),
+                [90] = new(2026, 7, 4, "Houston"),
+                [91] = new(2026, 7, 5, "New York|East Rutherford|MetLife"),
+                [92] = new(2026, 7, 5, "Mexico City"),
+                [93] = new(2026, 7, 6, "Dallas|Arlington|AT&T"),
+                [94] = new(2026, 7, 6, "Seattle"),
+                [95] = new(2026, 7, 7, "Atlanta"),
+                [96] = new(2026, 7, 7, "Vancouver"),
+                [97] = new(2026, 7, 9, "Boston|Foxborough|Gillette"),
+                [98] = new(2026, 7, 10, "Los Angeles|Inglewood|SoFi"),
+                [99] = new(2026, 7, 11, "Miami|Miami Gardens|Hard Rock"),
+                [100] = new(2026, 7, 11, "Kansas City|Arrowhead"),
+                [101] = new(2026, 7, 14, "Dallas|Arlington|AT&T"),
+                [102] = new(2026, 7, 15, "Atlanta"),
+                [103] = new(2026, 7, 18, "Miami|Miami Gardens|Hard Rock"),
+                [104] = new(2026, 7, 19, "New York|East Rutherford|MetLife")
+            };
+
         private static BracketSlot Winner(string group) => new(BracketSlotKindEnum.GroupWinner, Group: group);
         private static BracketSlot RunnerUp(string group) => new(BracketSlotKindEnum.GroupRunnerUp, Group: group);
         private static BracketSlot Third(params string[] groups) => new(BracketSlotKindEnum.GroupThird, ThirdPlaceGroupOptions: groups);
         private static BracketSlot WinnerOf(int tieId) => new(BracketSlotKindEnum.WinnerOfTie, TieId: tieId);
+        private static BracketSlot LoserOf(int tieId) => new(BracketSlotKindEnum.LoserOfTie, TieId: tieId);
 
         private static IReadOnlyList<string> ThirdOptions(BracketTie tie) =>
             tie.Home.Kind == BracketSlotKindEnum.GroupThird ? tie.Home.ThirdPlaceGroupOptions ?? [] : tie.Away.ThirdPlaceGroupOptions ?? [];
@@ -116,5 +167,9 @@ namespace Oloraculo.Web.Services.Simulation
         private static int GroupOrder(string group) => group.Length == 0 ? int.MaxValue : group[0] - 'A';
 
         private sealed record ThirdSlot(int TieId, IReadOnlyList<string> Options);
+        public sealed record OfficialKnockoutSchedule(int Year, int Month, int Day, string Location)
+        {
+            public DateOnly Date => new(Year, Month, Day);
+        }
     }
 }

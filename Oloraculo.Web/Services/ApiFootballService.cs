@@ -7,7 +7,7 @@ using Oloraculo.Web.Models.ApiFootballModels;
 
 namespace Oloraculo.Web.Services
 {
-    public class ApiFootballService
+    public class ApiFootballService : ITournamentFixtureSource
     {
         private readonly HttpClient _http;
         private readonly OloraculoDbContext _db;
@@ -22,6 +22,70 @@ namespace Oloraculo.Web.Services
             this._config = config.Value;
             this._availability = availability;
             _impact = impact;
+        }
+
+        public async Task<TournamentFixtureFeedResult> FetchTournamentFixturesAsync(CancellationToken ct = default)
+        {
+            if (!IsConfigured)
+                return new TournamentFixtureFeedResult { IsConfigured = false, Errors = ["La clave de API-Football no está configurada."] };
+
+            try
+            {
+                var response = await _http.GetFromJsonAsync<ApiFixtureResponse>(
+                    ApiFootballEndpoints.Fixtures(_config.ApiFootballLeagueId, _config.ApiFootballSeason), ct);
+                var rows = (response?.Response ?? []).Select(ToFeedRow).ToList();
+                return new TournamentFixtureFeedResult { IsConfigured = true, Fixtures = rows };
+            }
+            catch (Exception ex)
+            {
+                return new TournamentFixtureFeedResult { IsConfigured = true, Errors = [ex.Message] };
+            }
+        }
+
+        private static TournamentFixtureFeedRow ToFeedRow(ApiFixtureRow row)
+        {
+            var home = RealTeamId(row.Teams.Home);
+            var away = RealTeamId(row.Teams.Away);
+            var winner = row.Teams.Home.Winner == true ? home
+                : row.Teams.Away.Winner == true ? away
+                : WinnerFromScore(home, away, row.Goals, row.Score.Penalty);
+
+            return new TournamentFixtureFeedRow
+            {
+                ExternalFixtureId = row.Fixture.Id.ToString(),
+                Round = row.League.Round,
+                KickoffUtc = row.Fixture.Date,
+                Venue = row.Fixture.Venue?.Name,
+                City = row.Fixture.Venue?.City,
+                Status = row.Fixture.Status?.Short,
+                HomeTeamId = home,
+                AwayTeamId = away,
+                HomeGoals = row.Goals.Home,
+                AwayGoals = row.Goals.Away,
+                HomePenaltyGoals = row.Score.Penalty?.Home,
+                AwayPenaltyGoals = row.Score.Penalty?.Away,
+                WinnerTeamId = winner,
+                IsFinished = IsFinishedStatus(row.Fixture.Status?.Short)
+            };
+        }
+
+        private static string? RealTeamId(ApiTeam team)
+        {
+            if (team.Id <= 0 || string.IsNullOrWhiteSpace(team.Name) ||
+                team.Name.Contains("winner", StringComparison.OrdinalIgnoreCase) ||
+                team.Name.Contains("third", StringComparison.OrdinalIgnoreCase) ||
+                team.Name.Contains("tbd", StringComparison.OrdinalIgnoreCase))
+                return null;
+            return TeamNameNormalizer.ToId(team.Name);
+        }
+
+        private static string? WinnerFromScore(string? home, string? away, ApiGoals goals, ApiScorePair? penalties)
+        {
+            if (penalties is { Home: int hp, Away: int ap } && hp != ap)
+                return hp > ap ? home : away;
+            if (goals is { Home: int hg, Away: int ag } && hg != ag)
+                return hg > ag ? home : away;
+            return null;
         }
 
         public Task<ApiFootballRefreshReport> RefreshAsync(string fixtureId, CancellationToken ct = default) =>

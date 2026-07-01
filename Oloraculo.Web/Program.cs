@@ -29,6 +29,7 @@ builder.Services.AddScoped<EvaluationService>();
 builder.Services.AddScoped<SnapshotService>();
 builder.Services.AddScoped<SimulationService>();
 builder.Services.AddScoped<ReadmeSnapshotExportService>();
+builder.Services.AddScoped<KnockoutUpdateService>();
 builder.Services.AddHttpClient<PlayerImpactService>((sp, client) =>
 {
     var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<OloraculoConfig>>().Value;
@@ -52,6 +53,7 @@ builder.Services.AddHttpClient<ApiFootballService>((sp, client) =>
         client.DefaultRequestHeaders.Add("x-apisports-key", options.ApiFootballApiKey);
     }
 });
+builder.Services.AddScoped<ITournamentFixtureSource>(sp => sp.GetRequiredService<ApiFootballService>());
 builder.Services.AddHttpClient<AvailabilityNewsService>((sp, client) =>
 {
     var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<OloraculoConfig>>().Value;

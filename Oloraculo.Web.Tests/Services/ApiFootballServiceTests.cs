@@ -139,6 +139,38 @@ public class ApiFootballServiceTests : TestFixtures
     }
 
     [Fact]
+    public async Task ApiFootball_TournamentFeedParsesRoundWinnerAndPenalties()
+    {
+        await using var db = await NewDb();
+        var handler = new FakeHttpMessageHandler(new Dictionary<string, string>
+        {
+            [$"https://api.test/{ApiFootballEndpoints.Fixtures(1, 2026)}"] = """
+                {
+                  "response": [{
+                    "fixture": { "id": 1030, "date": "2026-07-04T20:00:00Z", "status": { "short": "PEN" } },
+                    "league": { "id": 1, "name": "World Cup", "round": "Round of 16" },
+                    "teams": {
+                      "home": { "id": 1, "name": "Argentina", "winner": true },
+                      "away": { "id": 2, "name": "France", "winner": false }
+                    },
+                    "goals": { "home": 1, "away": 1 },
+                    "score": { "penalty": { "home": 5, "away": 4 } }
+                  }]
+                }
+                """
+        });
+
+        var result = await ApiService(db, handler).FetchTournamentFixturesAsync();
+        var fixture = Assert.Single(result.Fixtures);
+
+        Assert.Equal("Round of 16", fixture.Round);
+        Assert.True(fixture.IsFinished);
+        Assert.Equal("argentina", fixture.WinnerTeamId);
+        Assert.Equal(5, fixture.HomePenaltyGoals);
+        Assert.Equal(4, fixture.AwayPenaltyGoals);
+    }
+
+    [Fact]
     public async Task ApiFootball_RefreshFixturesMatchesApiFootballNameAliases()
     {
         await using var db = await NewDb();

@@ -25,6 +25,7 @@ namespace Oloraculo.Web.Services
             await EnsureFixtureResultColumnsAsync(ct);
             await EnsureAvailabilityTablesAsync(ct);
             await EnsureSnapshotColumnsAsync(ct);
+            await EnsureKnockoutTablesAsync(ct);
 
             var needsImport =
                 !await _db.Groups.AnyAsync(ct) ||
@@ -44,6 +45,7 @@ namespace Oloraculo.Web.Services
             await EnsureFixtureResultColumnsAsync(ct);
             await EnsureAvailabilityTablesAsync(ct);
             await EnsureSnapshotColumnsAsync(ct);
+            await EnsureKnockoutTablesAsync(ct);
             await ImportGroupsAsync(ct);
             await ImportRatingsAsync(ct);
             await ImportHistoricalResultsAsync(ct);
@@ -66,6 +68,7 @@ namespace Oloraculo.Web.Services
             await _db.Database.EnsureCreatedAsync(ct);
             await EnsureAvailabilityTablesAsync(ct);
             await EnsureSnapshotColumnsAsync(ct);
+            await EnsureKnockoutTablesAsync(ct);
             await ImportRatingsAsync(ct);
             await _db.SaveChangesAsync(ct);
             return await _db.Ratings.CountAsync(ct);
@@ -418,6 +421,41 @@ namespace Oloraculo.Web.Services
                 command.CommandText = sql;
                 await command.ExecuteNonQueryAsync(token);
             }
+        }
+
+        private async Task EnsureKnockoutTablesAsync(CancellationToken ct)
+        {
+            await _db.Database.ExecuteSqlRawAsync("""
+                CREATE TABLE IF NOT EXISTS "KnockoutMatches" (
+                    "MatchNumber" INTEGER NOT NULL CONSTRAINT "PK_KnockoutMatches" PRIMARY KEY,
+                    "Stage" INTEGER NOT NULL,
+                    "ExternalFixtureId" TEXT NULL,
+                    "KickoffUtc" TEXT NULL,
+                    "Venue" TEXT NULL,
+                    "City" TEXT NULL,
+                    "Status" TEXT NULL,
+                    "ConfirmedHomeTeamId" TEXT NULL,
+                    "ConfirmedAwayTeamId" TEXT NULL,
+                    "HomeGoals" INTEGER NULL,
+                    "AwayGoals" INTEGER NULL,
+                    "HomePenaltyGoals" INTEGER NULL,
+                    "AwayPenaltyGoals" INTEGER NULL,
+                    "WinnerTeamId" TEXT NULL,
+                    "IsPlayed" INTEGER NOT NULL,
+                    "Source" TEXT NOT NULL,
+                    "SourceUpdatedAt" TEXT NULL
+                )
+                """, ct);
+            await _db.Database.ExecuteSqlRawAsync(
+                """CREATE UNIQUE INDEX IF NOT EXISTS "IX_KnockoutMatches_ExternalFixtureId" ON "KnockoutMatches" ("ExternalFixtureId")""", ct);
+
+            foreach (var tie in Services.Simulation.WorldCup2026Bracket.KnockoutTies)
+            {
+                if (await _db.KnockoutMatches.FindAsync([tie.Id], ct) is null)
+                    _db.KnockoutMatches.Add(new KnockoutMatch { MatchNumber = tie.Id, Stage = tie.Stage });
+            }
+
+            await _db.SaveChangesAsync(ct);
         }
 
         private string FullPath(string fileName) => Path.Combine(_environment.ContentRootPath, "Data", fileName);

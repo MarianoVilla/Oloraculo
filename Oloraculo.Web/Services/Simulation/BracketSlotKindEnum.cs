@@ -5,6 +5,7 @@
         GroupWinner,
         GroupRunnerUp,
         GroupThird,
-        WinnerOfTie
+        WinnerOfTie,
+        LoserOfTie
     }
 }

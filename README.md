@@ -9,7 +9,7 @@ _A medida que se recibe nueva información y se juegan partidos reales, el Olor�
 
 ### Torneo
 
-_Generado 2026-06-30 23:36 UTC a través de 10,000 simulaciones._
+_Generado 2026-07-01 01:24 UTC a través de 10,000 simulaciones._
 
 | Team | Group | Qualify | QF | SF | Final | Champion |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
@@ -45,7 +45,7 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 | 76 | Brazil <sub>confirmed</sub> vs Japan <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **2-1** |
 | 77 | France <sub>confirmed</sub> vs Sweden <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **3-0** |
 | 78 | Ivory Coast <sub>confirmed</sub> vs Norway <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **1-2** |
-| 79 | Mexico <sub>confirmed</sub> vs Ecuador <sub>confirmed</sub> | NS | 1-1; Mexico advances | - |
+| 79 | Mexico <sub>confirmed</sub> vs Ecuador <sub>confirmed</sub> | PST | 1-1; Mexico advances | - |
 | 80 | England <sub>confirmed</sub> vs Congo DR <sub>confirmed</sub> | NS | 1-1; England advances | - |
 | 81 | United States <sub>confirmed</sub> vs Bosnia and Herzegovina <sub>confirmed</sub> | NS | 3-1 | - |
 | 82 | Belgium <sub>confirmed</sub> vs Senegal <sub>confirmed</sub> | NS | 1-1; Belgium advances | - |
@@ -65,7 +65,7 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 | ---: | --- | --- | --- | --- |
 | 89 | Paraguay <sub>projected</sub> vs France <sub>projected</sub> | Scheduled | 1-2 | - |
 | 90 | Canada <sub>confirmed</sub> vs Morocco <sub>confirmed</sub> | NS | 1-1; Morocco advances | - |
-| 91 | Brazil <sub>projected</sub> vs Norway <sub>projected</sub> | Scheduled | 2-1 | - |
+| 91 | Brazil <sub>confirmed</sub> vs Norway <sub>confirmed</sub> | NS | 2-1 | - |
 | 92 | Mexico <sub>projected</sub> vs England <sub>projected</sub> | Scheduled | 1-1; England advances | - |
 | 93 | Portugal <sub>projected</sub> vs Spain <sub>projected</sub> | Scheduled | 1-1; Spain advances | - |
 | 94 | United States <sub>projected</sub> vs Belgium <sub>projected</sub> | Scheduled | 1-2 | - |
