@@ -196,19 +196,60 @@ public class KnockoutUpdateService
         var mappedExternalIds = matches.Values.Where(m => m.ExternalFixtureId is not null)
             .ToDictionary(m => m.ExternalFixtureId!, m => m.MatchNumber, StringComparer.Ordinal);
 
-        foreach (var stageGroup in knockoutRows.GroupBy(x => x.Stage!.Value))
+        var stageOrder = new[]
         {
-            var definitions = WorldCup2026Bracket.ForStage(stageGroup.Key).OrderBy(t => t.Id).ToList();
-            var rows = stageGroup.Select(x => x.Row).OrderBy(r => r.KickoffUtc).ThenBy(r => r.ExternalFixtureId).ToList();
+            KnockoutStageEnum.RoundOf32,
+            KnockoutStageEnum.RoundOf16,
+            KnockoutStageEnum.QuarterFinal,
+            KnockoutStageEnum.SemiFinal,
+            KnockoutStageEnum.ThirdPlace,
+            KnockoutStageEnum.Final
+        };
+        foreach (var stage in stageOrder)
+        {
+            var definitions = WorldCup2026Bracket.ForStage(stage).OrderBy(t => t.Id).ToList();
+            var rows = knockoutRows.Where(x => x.Stage == stage).Select(x => x.Row)
+                .OrderBy(r => r.KickoffUtc).ThenBy(r => r.ExternalFixtureId).ToList();
+            if (rows.Count == 0)
+                continue;
+
             var stageMap = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var row in rows)
             {
-                var candidates = definitions.Where(definition => OfficialScheduleMatches(definition.Id, row)).ToList();
-                if (candidates.Count == 1)
-                    stageMap[row.ExternalFixtureId] = candidates[0].Id;
+                var existing = mappedExternalIds.GetValueOrDefault(row.ExternalFixtureId);
+                if (existing != 0)
+                {
+                    stageMap[row.ExternalFixtureId] = existing;
+                    continue;
+                }
+
+                var scheduleCandidates = definitions
+                    .Where(definition => CanClaim(definition.Id, row.ExternalFixtureId) && OfficialScheduleMatches(definition.Id, row))
+                    .ToList();
+                if (scheduleCandidates.Count == 1)
+                {
+                    stageMap[row.ExternalFixtureId] = scheduleCandidates[0].Id;
+                    continue;
+                }
+
+                var confirmedPairCandidates = definitions
+                    .Where(definition => CanClaim(definition.Id, row.ExternalFixtureId) &&
+                        MatchesPair(matches[definition.Id].ConfirmedHomeTeamId, matches[definition.Id].ConfirmedAwayTeamId, row))
+                    .ToList();
+                if (confirmedPairCandidates.Count == 1)
+                {
+                    stageMap[row.ExternalFixtureId] = confirmedPairCandidates[0].Id;
+                    continue;
+                }
+
+                var bracketPairCandidates = definitions
+                    .Where(definition => CanClaim(definition.Id, row.ExternalFixtureId) && MatchesDerivedPair(definition, row))
+                    .ToList();
+                if (bracketPairCandidates.Count == 1)
+                    stageMap[row.ExternalFixtureId] = bracketPairCandidates[0].Id;
             }
             if (rows.Count != definitions.Count)
-                warnings.Add($"API-Football devolvió {rows.Count}/{definitions.Count} partidos para {StageLabel(stageGroup.Key)}; sólo se aplicarán mapeos ya conocidos.");
+                warnings.Add($"API-Football devolvió {rows.Count}/{definitions.Count} partidos para {StageLabel(stage)}; se aplicarán únicamente asociaciones inequívocas.");
 
             foreach (var row in rows)
             {
@@ -217,7 +258,13 @@ public class KnockoutUpdateService
                     matchNumber = stageMap.GetValueOrDefault(row.ExternalFixtureId);
                 if (matchNumber == 0 || !matches.TryGetValue(matchNumber, out var match))
                 {
-                    warnings.Add($"No se pudo asociar el fixture externo {row.ExternalFixtureId} ({row.Round}) a un número oficial.");
+                    warnings.Add($"No se pudo asociar el fixture externo {row.ExternalFixtureId} " +
+                        $"({row.Round}: {row.HomeTeamId ?? "TBD"} vs {row.AwayTeamId ?? "TBD"}) a un número oficial.");
+                    continue;
+                }
+                if (!CanClaim(matchNumber, row.ExternalFixtureId))
+                {
+                    warnings.Add($"El partido oficial {matchNumber} ya está asociado a otro fixture externo; se ignoró {row.ExternalFixtureId}.");
                     continue;
                 }
 
@@ -239,6 +286,7 @@ public class KnockoutUpdateService
                 }
                 match.Source = "API-Football";
                 match.SourceUpdatedAt = DateTimeOffset.UtcNow;
+                mappedExternalIds[row.ExternalFixtureId] = matchNumber;
                 if (row.IsFinished)
                     UpsertResult(row);
                 applied++;
@@ -283,6 +331,34 @@ public class KnockoutUpdateService
             result.Tournament = "FIFA World Cup 2026";
             result.Neutral = true;
             result.Source = "API-Football";
+        }
+
+        bool CanClaim(int matchNumber, string externalFixtureId) =>
+            matches.TryGetValue(matchNumber, out var match) &&
+            (match.ExternalFixtureId is null || string.Equals(match.ExternalFixtureId, externalFixtureId, StringComparison.Ordinal));
+
+        bool MatchesDerivedPair(SimulationService.BracketTie definition, TournamentFixtureFeedRow row)
+        {
+            var home = ResolveAuthoritativeSlot(definition.Home);
+            var away = ResolveAuthoritativeSlot(definition.Away);
+            return MatchesPair(home, away, row);
+        }
+
+        string? ResolveAuthoritativeSlot(SimulationService.BracketSlot slot)
+        {
+            if (!slot.TieId.HasValue || !matches.TryGetValue(slot.TieId.Value, out var upstream) ||
+                !upstream.IsPlayed || upstream.WinnerTeamId is null)
+                return null;
+
+            return slot.Kind switch
+            {
+                BracketSlotKindEnum.WinnerOfTie => upstream.WinnerTeamId,
+                BracketSlotKindEnum.LoserOfTie when upstream.ConfirmedHomeTeamId is not null && upstream.ConfirmedAwayTeamId is not null =>
+                    upstream.WinnerTeamId == upstream.ConfirmedHomeTeamId
+                        ? upstream.ConfirmedAwayTeamId
+                        : upstream.ConfirmedHomeTeamId,
+                _ => null
+            };
         }
     }
 
@@ -382,6 +458,11 @@ public class KnockoutUpdateService
         return official.Location.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Any(hint => location.Contains(TeamNameNormalizer.ToId(hint), StringComparison.Ordinal));
     }
+
+    private static bool MatchesPair(string? expectedHome, string? expectedAway, TournamentFixtureFeedRow row) =>
+        expectedHome is not null && expectedAway is not null &&
+        row.HomeTeamId is not null && row.AwayTeamId is not null &&
+        PairKey(expectedHome, expectedAway) == PairKey(row.HomeTeamId, row.AwayTeamId);
 
     private sealed record GroupSlots(string Winner, string RunnerUp, string Third);
     private sealed record ProjectedGroupSlots(
