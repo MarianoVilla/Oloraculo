@@ -9,7 +9,7 @@ _A medida que se recibe nueva información y se juegan partidos reales, el Olor�
 
 ### Torneo
 
-_Generado 2026-07-01 13:40 UTC a través de 10,000 simulaciones._
+_Generado 2026-07-01 17:35 UTC a través de 10,000 simulaciones._
 
 | Team | Group | Qualify | QF | SF | Final | Champion |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
@@ -46,7 +46,7 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 | 77 | France <sub>confirmed</sub> vs Sweden <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **3-0** |
 | 78 | Ivory Coast <sub>confirmed</sub> vs Norway <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **1-2** |
 | 79 | Mexico <sub>confirmed</sub> vs Ecuador <sub>confirmed</sub> | FT | 1-1; Mexico advances | **2-0** |
-| 80 | England <sub>confirmed</sub> vs Congo DR <sub>confirmed</sub> | NS | 1-1; England advances | - |
+| 80 | England <sub>confirmed</sub> vs Congo DR <sub>confirmed</sub> | 2H | 1-1; England advances | - |
 | 81 | United States <sub>confirmed</sub> vs Bosnia and Herzegovina <sub>confirmed</sub> | NS | 3-1; United States advances | - |
 | 82 | Belgium <sub>confirmed</sub> vs Senegal <sub>confirmed</sub> | NS | 1-1; Belgium advances | - |
 | 83 | Portugal <sub>confirmed</sub> vs Croatia <sub>confirmed</sub> | NS | 2-1; Portugal advances | - |
