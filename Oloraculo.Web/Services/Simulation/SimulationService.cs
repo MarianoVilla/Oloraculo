@@ -97,6 +97,124 @@ namespace Oloraculo.Web.Services.Simulation
             return projection;
         }
 
+        /// <summary>
+        /// Construye un unico cuadro "mas probable" (determinista, sin azar): ordena cada grupo
+        /// usando los resultados ya jugados mas el marcador mas probable de los pendientes,
+        /// define clasificados y resuelve todo el mata-mata oficial 2026 hasta el campeon.
+        /// </summary>
+        public async Task<DeterministicProjection> ProjectMostLikelyAsync(CancellationToken ct = default)
+        {
+            var groups = await _db.Groups.AsNoTracking().OrderBy(g => g.Name).ToListAsync(ct);
+            var fixtures = await _db.Fixtures.AsNoTracking().ToListAsync(ct);
+            var fifaPoints = await FifaPointsAsync(ct);
+            var predictionContext = await SimulationPredictionContext.CreateAsync(_db, _config, ct);
+            var sampler = new MatchSamplerCache(predictionContext.PredictPairAsync);
+
+            var groupSlots = new Dictionary<string, GroupSlots>(StringComparer.OrdinalIgnoreCase);
+            var rankedByGroup = new Dictionary<string, IReadOnlyList<GroupStanding>>(StringComparer.OrdinalIgnoreCase);
+            var thirds = new List<GroupStanding>();
+
+            foreach (var group in groups)
+            {
+                var table = new GroupTable(group, fifaPoints);
+                for (var i = 0; i < group.TeamIds.Count; i++)
+                {
+                    for (var j = i + 1; j < group.TeamIds.Count; j++)
+                    {
+                        var a = group.TeamIds[i];
+                        var b = group.TeamIds[j];
+                        var known = KnownFixtureScore(group.Name, a, b, fixtures);
+                        var score = known ?? MostLikelyScore(await sampler.GetPredictionAsync(a, b, ct));
+                        table.AddMatch(new SimulatedMatch(group.Name, a, b, score.Home, score.Away, known.HasValue));
+                    }
+                }
+
+                var ranked = table.Rank();
+                rankedByGroup[group.Name] = ranked;
+                groupSlots[group.Name] = new GroupSlots(ranked[0].TeamId, ranked[1].TeamId, ranked[2].TeamId);
+                thirds.Add(ranked[2]);
+            }
+
+            var bestThirds = GroupTable.RankBestThirds(thirds, fifaPoints).Take(8).ToList();
+            var qualifiedThirdGroups = bestThirds.Select(t => t.Group).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var groupProjections = groups.Select(group =>
+            {
+                var ranked = rankedByGroup[group.Name];
+                var standings = ranked.Select((standing, index) => new DeterministicStanding(
+                    index + 1,
+                    standing.TeamId,
+                    standing.Points,
+                    standing.GoalsFor,
+                    standing.GoalsAgainst,
+                    standing.GoalDiff,
+                    index switch
+                    {
+                        0 => QualificationKind.Winner,
+                        1 => QualificationKind.RunnerUp,
+                        2 => qualifiedThirdGroups.Contains(group.Name) ? QualificationKind.ThirdQualified : QualificationKind.ThirdOut,
+                        _ => QualificationKind.Eliminated
+                    })).ToList();
+                return new DeterministicGroup(group.Name, standings);
+            }).ToList();
+
+            var thirdAssignments = WorldCup2026Bracket.AssignThirdPlaceGroups(bestThirds.Select(t => t.Group).ToList());
+            var thirdByGroup = bestThirds.ToDictionary(t => t.Group, t => t.TeamId, StringComparer.OrdinalIgnoreCase);
+
+            var winners = new Dictionary<int, string>();
+            var ties = new List<DeterministicTie>();
+
+            foreach (var tie in WorldCup2026Bracket.KnockoutTies)
+            {
+                var homeId = ResolveSlot(tie, tie.Home);
+                var awayId = ResolveSlot(tie, tie.Away);
+                var prediction = await sampler.GetPredictionAsync(homeId, awayId, ct);
+                var (winner, home, away, penalties) = ResolveDeterministicTie(homeId, awayId, prediction);
+                winners[tie.Id] = winner;
+                ties.Add(new DeterministicTie(tie.Id, tie.Stage, homeId, awayId, winner, home, away, penalties));
+            }
+
+            return new DeterministicProjection(groupProjections, ties, winners[WorldCup2026Bracket.Final.Id]);
+
+            string ResolveSlot(BracketTie tie, BracketSlot slot) =>
+                slot.Kind switch
+                {
+                    BracketSlotKindEnum.GroupWinner => groupSlots[slot.Group!].Winner,
+                    BracketSlotKindEnum.GroupRunnerUp => groupSlots[slot.Group!].RunnerUp,
+                    BracketSlotKindEnum.GroupThird => thirdByGroup[thirdAssignments[tie.Id]],
+                    BracketSlotKindEnum.WinnerOfTie => winners[slot.TieId!.Value],
+                    _ => throw new InvalidOperationException($"Unsupported bracket slot {slot.Kind}.")
+                };
+        }
+
+        private static (int Home, int Away) MostLikelyScore(MatchPredictionResult prediction)
+        {
+            if (prediction.BestPrediction.MostLikelyScore is { } score)
+                return score;
+
+            return prediction.BestPrediction.Outcome.TopPick switch
+            {
+                "Home" => (1, 0),
+                "Away" => (0, 1),
+                _ => (1, 1)
+            };
+        }
+
+        private static (string Winner, int Home, int Away, bool Penalties) ResolveDeterministicTie(
+            string homeId, string awayId, MatchPredictionResult prediction)
+        {
+            var score = MostLikelyScore(prediction);
+            if (score.Home > score.Away)
+                return (homeId, score.Home, score.Away, false);
+            if (score.Away > score.Home)
+                return (awayId, score.Home, score.Away, false);
+
+            // Empate en el marcador mas probable: define el favorito por probabilidad de victoria.
+            var outcome = prediction.BestPrediction.Outcome;
+            var winner = outcome.HomeWin >= outcome.AwayWin ? homeId : awayId;
+            return (winner, score.Home, score.Away, true);
+        }
+
         private async Task<GroupTable> SimulateGroupAsync(
             Group group,
             IReadOnlyList<Fixture> fixtures,

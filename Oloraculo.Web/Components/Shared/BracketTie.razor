@@ -1,0 +1,21 @@
+@using Oloraculo.Web.Services.Simulation
+
+<div class="bracket-tie">
+    <div class="bracket-slot @(Tie.WinnerTeamId == Tie.HomeTeamId ? "winner" : "loser")">
+        <TeamLabel TeamId="@Tie.HomeTeamId" Name="@Name(Tie.HomeTeamId)" Compact="true" />
+        <span class="bracket-goals">@Tie.HomeGoals</span>
+    </div>
+    <div class="bracket-slot @(Tie.WinnerTeamId == Tie.AwayTeamId ? "winner" : "loser")">
+        <TeamLabel TeamId="@Tie.AwayTeamId" Name="@Name(Tie.AwayTeamId)" Compact="true" />
+        <span class="bracket-goals">@Tie.AwayGoals</span>
+    </div>
+    @if (Tie.DecidedOnPenalties)
+    {
+        <div class="bracket-pens">penales</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public DeterministicTie Tie { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<string, string> Name { get; set; } = default!;
+}

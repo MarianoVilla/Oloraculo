@@ -3,7 +3,9 @@
 @inject OloraculoDbContext Db
 @inject PredictionService Predictor
 @inject SnapshotService Snapshots
+@inject SimulationService Sim
 @inject ISnackbar Snackbar
+@using Oloraculo.Web.Services.Simulation
 
 <PageTitle>Fixture completo</PageTitle>
 
@@ -12,6 +14,9 @@
         <MudText Typo="Typo.h3">Fixture completo</MudText>
         <MudText Typo="Typo.body1" Color="Color.Secondary">Predicción masiva de todos los partidos de la fase de grupos.</MudText>
     </div>
+
+    <MudTabs Rounded="true" Border="false" ApplyEffectsToContainer="true" Class="fixture-tabs">
+    <MudTabPanel Text="Predicción de partidos" Icon="@Icons.Material.Filled.Insights">
 
     <MudPaper Class="surface-card" Elevation="0">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="action-row fixture-action-row">
@@ -96,6 +101,11 @@
     }
     else
     {
+        <div class="fixture-legend">
+            <span class="fixture-legend-item"><span class="fixture-legend-dot is-played"></span>Jugado (con resultado cargado)</span>
+            <span class="fixture-legend-item"><span class="fixture-legend-dot is-predicted"></span>Predicho (sin jugar)</span>
+            <span class="fixture-legend-item"><span class="fixture-legend-dot is-pending"></span>Pendiente</span>
+        </div>
         <div class="fixture-board">
             @foreach (var group in GroupedFixtures())
             {
@@ -111,12 +121,16 @@
                             var hasPrediction = _predictions.TryGetValue(fixture.Id, out var prediction);
                             var hasError = _predictionErrors.TryGetValue(fixture.Id, out var predictionError);
 
-                            <div class="fixture-match-card">
+                            <div class="fixture-match-card @CardStateClass(fixture, hasPrediction)">
                                 <div class="fixture-match-meta">
                                     <span>@DateText(fixture)</span>
                                     @if (fixture.IsPlayed && fixture.HomeGoals.HasValue && fixture.AwayGoals.HasValue)
                                     {
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">Final</MudChip>
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Jugado</MudChip>
+                                    }
+                                    else if (hasPrediction)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">Predicho</MudChip>
                                     }
                                 </div>
 
@@ -160,6 +174,132 @@
             }
         </div>
     }
+
+    </MudTabPanel>
+
+    <MudTabPanel Text="Grupos y llave" Icon="@Icons.Material.Filled.EmojiEvents">
+        <MudStack Spacing="3">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="action-row">
+                <BusyButton Text="Calcular cuadro"
+                            BusyText="Calculando"
+                            IsBusy="_projecting"
+                            Disabled="@(!_loaded)"
+                            Icon="@Icons.Material.Filled.AccountTree"
+                            OnClick="BuildBracket" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Cuadro más probable según los resultados cargados y las predicciones del modelo.</MudText>
+            </MudStack>
+
+            @if (!string.IsNullOrWhiteSpace(_projectionError))
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">@_projectionError</MudAlert>
+            }
+
+            @if (_projecting && _projection is null)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+            }
+            else if (_projection is null)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Tocá «Calcular cuadro» para ver el orden de cada grupo, los clasificados y todo el mata-mata hasta el campeón.</MudAlert>
+            }
+            else
+            {
+                <MudPaper Class="surface-card champion-banner" Elevation="0">
+                    <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Size="Size.Large" />
+                    <div>
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Campeón proyectado</MudText>
+                        <MudText Typo="Typo.h5"><TeamLabel TeamId="@_projection.ChampionTeamId" Name="@Name(_projection.ChampionTeamId)" /></MudText>
+                    </div>
+                </MudPaper>
+
+                <MudText Typo="Typo.h5">Grupos</MudText>
+                <div class="standings-board">
+                    @foreach (var group in _projection.Groups)
+                    {
+                        <MudPaper Class="surface-card" Elevation="0">
+                            <MudText Typo="Typo.h6">Grupo @group.Name</MudText>
+                            <table class="standings-table">
+                                <thead>
+                                    <tr><th>#</th><th>Equipo</th><th>Pts</th><th>DG</th><th>GF</th><th>Estado</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var s in group.Standings)
+                                    {
+                                        <tr class="@StandingRowClass(s.Qualification)">
+                                            <td class="pos">@s.Position</td>
+                                            <td><TeamLabel TeamId="@s.TeamId" Name="@Name(s.TeamId)" Compact="true" /></td>
+                                            <td class="num">@s.Points</td>
+                                            <td class="num">@(s.GoalDiff > 0 ? $"+{s.GoalDiff}" : s.GoalDiff.ToString())</td>
+                                            <td class="num">@s.GoalsFor</td>
+                                            <td>
+                                                @switch (s.Qualification)
+                                                {
+                                                    case QualificationKind.Winner:
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">1° · clasifica</MudChip>
+                                                        break;
+                                                    case QualificationKind.RunnerUp:
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">2° · clasifica</MudChip>
+                                                        break;
+                                                    case QualificationKind.ThirdQualified:
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">3° · mejor tercero</MudChip>
+                                                        break;
+                                                    case QualificationKind.ThirdOut:
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">3° · eliminado</MudChip>
+                                                        break;
+                                                    default:
+                                                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text">Eliminado</MudChip>
+                                                        break;
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </MudPaper>
+                    }
+                </div>
+
+                <MudText Typo="Typo.h5">Mata-mata</MudText>
+                <div class="bracket-symmetric">
+                    <div class="bracket-side">
+                        @for (var col = 0; col < LeftStages.Length; col++)
+                        {
+                            <div class="bracket-column">
+                                <div class="bracket-stage-title">@LeftTitles[col]</div>
+                                @foreach (var id in LeftStages[col])
+                                {
+                                    <BracketTie Tie="@TieById(id)" Name="Name" />
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="bracket-column bracket-center">
+                        <div class="bracket-stage-title">Final</div>
+                        <BracketTie Tie="@TieById(FinalTieId)" Name="Name" />
+                        <div class="bracket-champion">
+                            <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" />
+                            <TeamLabel TeamId="@_projection.ChampionTeamId" Name="@Name(_projection.ChampionTeamId)" Compact="true" />
+                        </div>
+                    </div>
+
+                    <div class="bracket-side">
+                        @for (var col = 0; col < RightStages.Length; col++)
+                        {
+                            <div class="bracket-column">
+                                <div class="bracket-stage-title">@RightTitles[col]</div>
+                                @foreach (var id in RightStages[col])
+                                {
+                                    <BracketTie Tie="@TieById(id)" Name="Name" />
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </MudStack>
+    </MudTabPanel>
+    </MudTabs>
 </MudStack>
 
 @code {
@@ -178,6 +318,9 @@
     private int? _activeFullFixtureSnapshotId;
     private DateTimeOffset? _predictedAt;
     private string _error = "";
+    private DeterministicProjection? _projection;
+    private bool _projecting;
+    private string _projectionError = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -371,6 +514,68 @@
         _activeFullFixtureSnapshotId is null;
 
     private string Name(string id) => _names.TryGetValue(id, out var name) ? name : id;
+
+    private static string CardStateClass(Fixture fixture, bool hasPrediction)
+    {
+        if (fixture.IsPlayed && fixture.HomeGoals.HasValue && fixture.AwayGoals.HasValue)
+            return "is-played";
+
+        return hasPrediction ? "is-predicted" : "";
+    }
+
+    private async Task BuildBracket()
+    {
+        _projecting = true;
+        _projectionError = "";
+        try
+        {
+            _projection = await Sim.ProjectMostLikelyAsync();
+        }
+        catch (Exception ex)
+        {
+            _projectionError = ex.Message;
+            Snackbar.Add("No se pudo calcular el cuadro del torneo.", Severity.Error);
+        }
+        finally
+        {
+            _projecting = false;
+        }
+    }
+
+    // Cuadro oficial 2026 dividido para el render simetrico: mitad izquierda y mitad derecha
+    // convergen a la final central. El orden vertical de cada columna respeta el arbol del bracket
+    // (cada cruce queda entre los dos cruces que lo alimentan).
+    private const int FinalTieId = 104;
+
+    private static readonly int[][] LeftStages =
+    [
+        [74, 77, 73, 75, 83, 84, 81, 82], // 16avos
+        [89, 90, 93, 94],                 // Octavos
+        [97, 98],                         // Cuartos
+        [101]                             // Semis
+    ];
+
+    private static readonly string[] LeftTitles = ["16avos", "Octavos", "Cuartos", "Semis"];
+
+    private static readonly int[][] RightStages =
+    [
+        [102],                            // Semis
+        [99, 100],                        // Cuartos
+        [91, 92, 95, 96],                 // Octavos
+        [76, 78, 79, 80, 86, 88, 85, 87]  // 16avos
+    ];
+
+    private static readonly string[] RightTitles = ["Semis", "Cuartos", "Octavos", "16avos"];
+
+    private DeterministicTie TieById(int id) => _projection!.Knockout.First(t => t.Id == id);
+
+    private static string StandingRowClass(QualificationKind qualification) => qualification switch
+    {
+        QualificationKind.Winner => "qualified-direct",
+        QualificationKind.RunnerUp => "qualified-direct",
+        QualificationKind.ThirdQualified => "qualified-third",
+        _ => "eliminated"
+    };
 
     private string StatusText => _predictions.Count switch
     {

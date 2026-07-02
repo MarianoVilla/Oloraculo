@@ -320,6 +320,218 @@ body {
     min-width: 0;
 }
 
+.fixture-match-card.is-predicted {
+    border-color: var(--away);
+    box-shadow: inset 4px 0 0 0 var(--away);
+    background: #f2f6fd;
+}
+
+.fixture-match-card.is-played {
+    border-color: var(--home);
+    box-shadow: inset 4px 0 0 0 var(--home);
+    background: #ecf6f2;
+}
+
+.fixture-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem 1.1rem;
+    margin-bottom: .35rem;
+    color: var(--muted);
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+.fixture-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+}
+
+.fixture-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    border: 1px solid var(--line);
+}
+
+.fixture-legend-dot.is-played {
+    background: var(--home);
+    border-color: var(--home);
+}
+
+.fixture-legend-dot.is-predicted {
+    background: var(--away);
+    border-color: var(--away);
+}
+
+.fixture-legend-dot.is-pending {
+    background: #fbfcfe;
+}
+
+/* ---- Grupos y llave (proyeccion determinista) ---- */
+.champion-banner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-left: 5px solid var(--draw);
+    background: linear-gradient(90deg, #fff8ec, #fbfcfe);
+}
+
+.champion-banner .mud-icon-root {
+    color: var(--draw);
+}
+
+.standings-board {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    gap: 1rem;
+}
+
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: .5rem;
+    font-size: .86rem;
+}
+
+.standings-table th,
+.standings-table td {
+    padding: .34rem .4rem;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+}
+
+.standings-table th {
+    color: var(--muted);
+    font-size: .74rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+
+.standings-table td.num,
+.standings-table th:nth-child(n+3) {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.standings-table td.pos {
+    width: 1.4rem;
+    color: var(--muted);
+    font-weight: 700;
+}
+
+.standings-table tr.qualified-direct {
+    background: #ecf6f2;
+}
+
+.standings-table tr.qualified-third {
+    background: #f2f6fd;
+}
+
+.standings-table tr.eliminated {
+    opacity: .7;
+}
+
+.bracket-symmetric {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: .55rem;
+    overflow-x: auto;
+    padding-bottom: .75rem;
+}
+
+.bracket-side {
+    display: flex;
+    align-items: stretch;
+    gap: .55rem;
+}
+
+.bracket-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: .6rem;
+    min-width: 160px;
+}
+
+.bracket-center {
+    justify-content: center;
+    min-width: 184px;
+}
+
+.bracket-champion {
+    margin-top: .55rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    font-weight: 800;
+    color: var(--ink);
+    border: 1px solid var(--draw);
+    background: #fff8ec;
+    border-radius: 6px;
+    padding: .4rem .5rem;
+}
+
+.bracket-champion .mud-icon-root {
+    color: var(--draw);
+}
+
+.bracket-stage-title {
+    text-align: center;
+    font-size: .76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--muted);
+    padding-bottom: .25rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.bracket-tie {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fbfcfe;
+    padding: .3rem;
+    display: grid;
+    gap: .2rem;
+}
+
+.bracket-slot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .4rem;
+    padding: .22rem .4rem;
+    border-radius: 4px;
+    font-size: .82rem;
+}
+
+.bracket-slot.winner {
+    background: #ecf6f2;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.bracket-slot.loser {
+    opacity: .55;
+}
+
+.bracket-slot .bracket-goals {
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+}
+
+.bracket-pens {
+    text-align: center;
+    font-size: .68rem;
+    color: var(--draw);
+    font-weight: 700;
+}
+
 .fixture-match-meta {
     display: flex;
     justify-content: space-between;
