@@ -9,26 +9,26 @@ _A medida que se recibe nueva información y se juegan partidos reales, el Olor�
 
 ### Torneo
 
-_Generado 2026-07-01 17:35 UTC a través de 10,000 simulaciones._
+_Generado 2026-07-02 01:36 UTC a través de 10,000 simulaciones._
 
 | Team | Group | Qualify | QF | SF | Final | Champion |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | J | 100 % | 76 % | 55 % | 38 % | **25.4 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | H | 100 % | 52 % | 38 % | 22 % | **12.3 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/fr.svg" width="18" alt=""> France | I | 100 % | 79 % | 45 % | 26 % | **12.2 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/ma.svg" width="18" alt=""> Morocco | C | 100 % | 72 % | 39 % | 22 % | **10.9 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/br.svg" width="18" alt=""> Brazil | C | 100 % | 71 % | 41 % | 18 % | **9.4 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/co.svg" width="18" alt=""> Colombia | K | 100 % | 64 % | 27 % | 16 % | **8.2 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/pt.svg" width="18" alt=""> Portugal | K | 100 % | 33 % | 23 % | 11 % | **5.4 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England | L | 100 % | 43 % | 24 % | 11 % | **5.2 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/mx.svg" width="18" alt=""> Mexico | A | 100 % | 47 % | 20 % | 7 % | **2.8 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/be.svg" width="18" alt=""> Belgium | G | 100 % | 35 % | 13 % | 5 % | **1.8 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/no.svg" width="18" alt=""> Norway | I | 100 % | 29 % | 11 % | 3 % | **1.1 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/ca.svg" width="18" alt=""> Canada | B | 100 % | 28 % | 9 % | 3 % | **0.9 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/us.svg" width="18" alt=""> United States | D | 100 % | 37 % | 11 % | 3 % | **0.8 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/au.svg" width="18" alt=""> Australia | D | 100 % | 15 % | 6 % | 2 % | **0.7 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/sn.svg" width="18" alt=""> Senegal | I | 100 % | 26 % | 9 % | 3 % | **0.7 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/ch.svg" width="18" alt=""> Switzerland | B | 100 % | 18 % | 5 % | 2 % | **0.5 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | J | 100 % | 75 % | 55 % | 39 % | **26.0 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/fr.svg" width="18" alt=""> France | I | 100 % | 78 % | 44 % | 24 % | **11.9 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | H | 100 % | 50 % | 37 % | 23 % | **11.8 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/ma.svg" width="18" alt=""> Morocco | C | 100 % | 71 % | 39 % | 22 % | **10.6 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/br.svg" width="18" alt=""> Brazil | C | 100 % | 71 % | 40 % | 17 % | **9.2 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/co.svg" width="18" alt=""> Colombia | K | 100 % | 64 % | 27 % | 15 % | **7.7 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England | L | 100 % | 60 % | 32 % | 14 % | **6.7 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/pt.svg" width="18" alt=""> Portugal | K | 100 % | 35 % | 22 % | 12 % | **5.1 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/be.svg" width="18" alt=""> Belgium | G | 100 % | 64 % | 24 % | 10 % | **3.2 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/mx.svg" width="18" alt=""> Mexico | A | 100 % | 40 % | 18 % | 6 % | **2.5 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/no.svg" width="18" alt=""> Norway | I | 100 % | 29 % | 11 % | 3 % | **1.0 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/us.svg" width="18" alt=""> United States | D | 100 % | 35 % | 10 % | 3 % | **0.9 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/au.svg" width="18" alt=""> Australia | D | 100 % | 15 % | 6 % | 2 % | **0.9 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/ca.svg" width="18" alt=""> Canada | B | 100 % | 29 % | 10 % | 3 % | **0.8 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/ch.svg" width="18" alt=""> Switzerland | B | 100 % | 18 % | 4 % | 1 % | **0.5 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/dz.svg" width="18" alt=""> Algeria | J | 100 % | 16 % | 4 % | 1 % | **0.4 %** |
 
 ### Eliminatorias
 
@@ -46,9 +46,9 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 | 77 | France <sub>confirmed</sub> vs Sweden <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **3-0** |
 | 78 | Ivory Coast <sub>confirmed</sub> vs Norway <sub>confirmed</sub> | FT | Pre-match prediction unavailable | **1-2** |
 | 79 | Mexico <sub>confirmed</sub> vs Ecuador <sub>confirmed</sub> | FT | 1-1; Mexico advances | **2-0** |
-| 80 | England <sub>confirmed</sub> vs Congo DR <sub>confirmed</sub> | 2H | 1-1; England advances | - |
-| 81 | United States <sub>confirmed</sub> vs Bosnia and Herzegovina <sub>confirmed</sub> | NS | 3-1; United States advances | - |
-| 82 | Belgium <sub>confirmed</sub> vs Senegal <sub>confirmed</sub> | NS | 1-1; Belgium advances | - |
+| 80 | England <sub>confirmed</sub> vs Congo DR <sub>confirmed</sub> | FT | 1-1; England advances | **2-1** |
+| 81 | United States <sub>confirmed</sub> vs Bosnia and Herzegovina <sub>confirmed</sub> | 2H | 3-1; United States advances | - |
+| 82 | Belgium <sub>confirmed</sub> vs Senegal <sub>confirmed</sub> | AET | 1-1; Belgium advances | **3-2** |
 | 83 | Portugal <sub>confirmed</sub> vs Croatia <sub>confirmed</sub> | NS | 2-1; Portugal advances | - |
 | 84 | Spain <sub>confirmed</sub> vs Austria <sub>confirmed</sub> | NS | 2-1; Spain advances | - |
 | 85 | Switzerland <sub>confirmed</sub> vs Algeria <sub>confirmed</sub> | NS | 2-1; Switzerland advances | - |
