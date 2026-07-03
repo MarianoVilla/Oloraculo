@@ -9,7 +9,7 @@ _A medida que se recibe nueva información y se juegan partidos reales, el Olor�
 
 ### Torneo
 
-_Generado 2026-07-03 13:36 UTC a través de 10,000 simulaciones._
+_Generado 2026-07-03 17:35 UTC a través de 10,000 simulaciones._
 
 | Team | Group | Qualify | QF | SF | Final | Champion |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
@@ -21,7 +21,7 @@ _Generado 2026-07-03 13:36 UTC a través de 10,000 simulaciones._
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/co.svg" width="18" alt=""> Colombia | K | 100 % | 61 % | 27 % | 15 % | **7.5 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England | L | 100 % | 59 % | 32 % | 14 % | **6.7 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/pt.svg" width="18" alt=""> Portugal | K | 100 % | 39 % | 26 % | 14 % | **6.1 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/mx.svg" width="18" alt=""> Mexico | A | 100 % | 41 % | 18 % | 6 % | **2.6 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/mx.svg" width="18" alt=""> Mexico | A | 100 % | 41 % | 18 % | 6 % | **2.5 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/be.svg" width="18" alt=""> Belgium | G | 100 % | 60 % | 19 % | 7 % | **2.4 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/no.svg" width="18" alt=""> Norway | I | 100 % | 29 % | 11 % | 3 % | **1.1 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/ch.svg" width="18" alt=""> Switzerland | B | 100 % | 36 % | 10 % | 3 % | **1.0 %** |
