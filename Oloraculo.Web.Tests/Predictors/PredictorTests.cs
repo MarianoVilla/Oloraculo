@@ -117,70 +117,91 @@ public class PredictorTests : TestFixtures
     }
 
     [Fact]
-    public void FinalSelector_ChoosesHighestUsableRungWithoutAveraging()
+    public void FinalSelector_BlendsUsableRungsAndKeepsHighestScoreline()
     {
         var form = Prediction(3, "Forma reciente", .05, .05, .90);
-        var goal = Prediction(4, "Goal", .90, .05, .05, scoreline: ProbabilityHelper.PoissonScoreline(3.0, .4));
-        var context = Prediction(5, "Context", .10, .80, .10, degraded: true, missing: ["availability"]);
+        var goal = Prediction(4, "Modelo de goles (Poisson)", .90, .05, .05, scoreline: ProbabilityHelper.PoissonScoreline(3.0, .4));
+        var context = Prediction(5, "Goles + contexto reciente", .10, .80, .10, degraded: true, missing: ["availability"]);
 
         var final = FinalPredictionSelector.Select([form, goal, context]);
 
         Assert.Equal("Oráculo final", final.PredictorName);
         Assert.Equal(4, final.PredictorPriority);
-        Assert.Equal(goal.Outcome, final.Outcome);
-        Assert.NotEqual(.475, final.Outcome.HomeWin, 3);
+        Assert.Equal(.71111, final.Outcome.HomeWin, 5);
+        Assert.Equal(.05000, final.Outcome.Draw, 5);
+        Assert.Equal(.23889, final.Outcome.AwayWin, 5);
+        Assert.Same(goal.Scoreline, final.Scoreline);
+        Assert.Contains(final.Drivers, d => d.Contains("ensamble calibrado"));
     }
 
     [Fact]
-    public void FinalSelector_AppliesLightRankingBiasWhenEloAndFifaAgreeAgainstSelected()
+    public void FinalSelector_BlendsRankingsWithGoalModelInsteadOfApplyingConditionalBias()
     {
         var fifa = Prediction(1, "Ranking FIFA", .15, .20, .65, sources: [SourceMetadata.FifaRankings]);
         var elo = Prediction(2, "Elo", .10, .20, .70, sources: [SourceMetadata.EloRatings]);
         var goalScoreline = ProbabilityHelper.PoissonScoreline(1.4, 1.1);
-        var goal = Prediction(4, "Goal", .45, .35, .20, scoreline: goalScoreline);
+        var goal = Prediction(4, "Modelo de goles (Poisson)", .45, .35, .20, scoreline: goalScoreline);
 
         var final = FinalPredictionSelector.Select([fifa, elo, goal]);
 
         Assert.Equal("Oráculo final", final.PredictorName);
         Assert.Equal(4, final.PredictorPriority);
-        Assert.Equal(.40125, final.Outcome.HomeWin, 5);
-        Assert.Equal(.3275, final.Outcome.Draw, 5);
-        Assert.Equal(.27125, final.Outcome.AwayWin, 5);
+        Assert.Equal(.27333, final.Outcome.HomeWin, 5);
+        Assert.Equal(.27000, final.Outcome.Draw, 5);
+        Assert.Equal(.45667, final.Outcome.AwayWin, 5);
         Assert.Same(goalScoreline, final.Scoreline);
-        Assert.Contains(final.Drivers, d => d.Contains("calibración Elo/FIFA"));
-        Assert.Contains("calibración Elo/FIFA", final.Explanation);
+        Assert.Contains(final.Drivers, d => d.Contains("Pesos efectivos"));
+        Assert.Contains("ensamble calibrado", final.Explanation);
         Assert.Contains(SourceMetadata.FifaRankings, final.Sources);
         Assert.Contains(SourceMetadata.EloRatings, final.Sources);
     }
 
     [Fact]
-    public void FinalSelector_DoesNotApplyRankingBiasWhenRankingModelsDisagree()
+    public void FinalSelector_StillUsesRankingModelsWhenTheyDisagree()
     {
         var fifa = Prediction(1, "Ranking FIFA", .65, .20, .15, sources: [SourceMetadata.FifaRankings]);
         var elo = Prediction(2, "Elo", .10, .20, .70, sources: [SourceMetadata.EloRatings]);
-        var goal = Prediction(4, "Goal", .45, .35, .20);
+        var goal = Prediction(4, "Modelo de goles (Poisson)", .45, .35, .20);
 
         var final = FinalPredictionSelector.Select([fifa, elo, goal]);
 
-        Assert.Equal(goal.Outcome, final.Outcome);
-        Assert.DoesNotContain(final.Drivers, d => d.Contains("calibración Elo/FIFA"));
-        Assert.DoesNotContain(SourceMetadata.FifaRankings, final.Sources);
-        Assert.DoesNotContain(SourceMetadata.EloRatings, final.Sources);
+        Assert.NotEqual(goal.Outcome, final.Outcome);
+        Assert.Contains(final.Drivers, d => d.Contains("Pesos efectivos"));
+        Assert.Contains(SourceMetadata.FifaRankings, final.Sources);
+        Assert.Contains(SourceMetadata.EloRatings, final.Sources);
     }
 
     [Fact]
-    public void FinalSelector_DoesNotApplyRankingBiasWhenRankingModelIsDegraded()
+    public void FinalSelector_ExcludesDegradedRankingModelsFromBlend()
     {
         var fifa = Prediction(1, "Ranking FIFA", .15, .20, .65, degraded: true, sources: [SourceMetadata.FifaRankings]);
         var elo = Prediction(2, "Elo", .10, .20, .70, sources: [SourceMetadata.EloRatings]);
-        var goal = Prediction(4, "Goal", .45, .35, .20);
+        var goal = Prediction(4, "Modelo de goles (Poisson)", .45, .35, .20);
 
         var final = FinalPredictionSelector.Select([fifa, elo, goal]);
 
-        Assert.Equal(goal.Outcome, final.Outcome);
-        Assert.DoesNotContain(final.Drivers, d => d.Contains("calibración Elo/FIFA"));
+        Assert.Equal(.30417, final.Outcome.HomeWin, 5);
+        Assert.Equal(.28750, final.Outcome.Draw, 5);
+        Assert.Equal(.40833, final.Outcome.AwayWin, 5);
+        Assert.DoesNotContain(final.Drivers, d => d.Contains("Ranking FIFA 20%"));
         Assert.DoesNotContain(SourceMetadata.FifaRankings, final.Sources);
-        Assert.DoesNotContain(SourceMetadata.EloRatings, final.Sources);
+        Assert.Contains(SourceMetadata.EloRatings, final.Sources);
+    }
+
+    [Fact]
+    public void KnockoutAdvanceProbability_TreatsDrawsAsNearCoinFlipWithSmallStrengthEdge()
+    {
+        var prediction = new MatchPredictionResult
+        {
+            Fixture = new Fixture { Id = "f", HomeTeamId = "a", AwayTeamId = "b" },
+            HomeTeamName = "A",
+            AwayTeamName = "B",
+            BestPrediction = Prediction(4, "Modelo de goles (Poisson)", .45, .30, .25)
+        };
+
+        var pHome = MatchSamplerCache.KnockoutAdvanceHomeProbability(prediction);
+
+        Assert.Equal(.612, pHome, 3);
     }
 
 }

@@ -60,10 +60,16 @@ namespace Oloraculo.Web.Services.Simulation
             if (score.Away > score.Home)
                 return awayId;
 
-            var outcome = prediction.BestPrediction.Outcome;
-            var decisive = outcome.HomeWin + outcome.AwayWin;
-            var pHome = decisive > 0 ? outcome.HomeWin / decisive : 0.5;
+            var pHome = KnockoutAdvanceHomeProbability(prediction);
             return rng.NextDouble() < pHome ? homeId : awayId;
+        }
+
+        public static double KnockoutAdvanceHomeProbability(MatchPredictionResult prediction)
+        {
+            var outcome = prediction.BestPrediction.Outcome.Normalize();
+            var strengthEdge = outcome.HomeWin - outcome.AwayWin;
+            var drawAdvanceShare = Math.Clamp(0.50 + 0.20 * strengthEdge, 0.40, 0.60);
+            return Math.Clamp(outcome.HomeWin + outcome.Draw * drawAdvanceShare, 0.01, 0.99);
         }
     }
 }

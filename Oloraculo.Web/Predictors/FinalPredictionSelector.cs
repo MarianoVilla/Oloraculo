@@ -5,9 +5,14 @@ namespace Oloraculo.Web.Predictors
 {
     public static class FinalPredictionSelector
     {
-        private const double RankingBiasWeight = 0.15;
-        private const string EloPredictorName = "Elo";
-        private const string FifaPredictorName = "Ranking FIFA";
+        private static readonly IReadOnlyDictionary<string, double> BaseWeights = new Dictionary<string, double>(StringComparer.Ordinal)
+        {
+            ["Ranking FIFA"] = 0.15,
+            ["Elo"] = 0.25,
+            ["Forma reciente"] = 0.10,
+            ["Modelo de goles (Poisson)"] = 0.35,
+            ["Goles + contexto reciente"] = 0.15
+        };
 
         public static MatchPrediction Select(IReadOnlyList<MatchPrediction> ladder)
         {
@@ -16,27 +21,23 @@ namespace Oloraculo.Web.Predictors
 
             var ordered = ladder.OrderBy(p => p.PredictorPriority).ToList();
             var selected = ordered.LastOrDefault(p => !p.Degraded) ?? ordered.First();
+            var blended = BlendUsablePredictions(ordered, selected);
             var skippedHigher = ordered
                 .Where(p => p.PredictorPriority > selected.PredictorPriority && p.Degraded)
                 .OrderByDescending(p => p.PredictorPriority)
                 .ToList();
-            var rankingBias = TryBuildRankingBias(ordered, selected);
 
             var drivers = new List<string>
             {
-                $"Seleccionó {selected.PredictorName} como el escalón usable más alto."
+                $"Usó {blended.ModelCount} modelos disponibles en un ensamble calibrado."
             };
             drivers.AddRange(skippedHigher.Select(p => $"Omitió {p.PredictorName}: {Reason(p)}"));
             drivers.AddRange(selected.Drivers);
-            if (rankingBias is not null)
-            {
-                drivers.Add(
-                    $"Aplicó una calibración Elo/FIFA de {RankingBiasWeight:P0} hacia {OutcomeLabel(rankingBias.ConsensusTopPick)} porque ambos modelos de ranking coincidieron contra {selected.PredictorName}.");
-            }
+            drivers.Add($"Pesos efectivos: {string.Join(", ", blended.WeightNotes)}.");
 
             var sources = selected.Sources
-                .Concat(rankingBias?.Sources ?? [])
-                .Concat([new SourceMetadata("model ladder", "derived", Notes: selected.PredictorName)])
+                .Concat(blended.Sources)
+                .Concat([new SourceMetadata("model ladder", "derived", Notes: string.Join(", ", blended.ModelNames))])
                 .Distinct()
                 .ToList();
 
@@ -47,62 +48,66 @@ namespace Oloraculo.Web.Predictors
                 FixtureId = selected.FixtureId,
                 HomeTeamId = selected.HomeTeamId,
                 AwayTeamId = selected.AwayTeamId,
-                Outcome = rankingBias?.Outcome ?? selected.Outcome,
+                Outcome = blended.Outcome,
                 ExpectedHomeGoals = selected.ExpectedHomeGoals,
                 ExpectedAwayGoals = selected.ExpectedAwayGoals,
                 Scoreline = selected.Scoreline,
                 MostLikelyScore = selected.MostLikelyScore,
-                Explanation = BuildExplanation(selected, skippedHigher, rankingBias),
+                Explanation = BuildExplanation(selected, skippedHigher, blended),
                 Drivers = drivers,
-                FeaturesUsed = selected.FeaturesUsed,
-                FeaturesMissing = selected.FeaturesMissing,
+                FeaturesUsed = ordered.Where(p => !p.Degraded).SelectMany(p => p.FeaturesUsed).Distinct().ToList(),
+                FeaturesMissing = skippedHigher.SelectMany(p => p.FeaturesMissing).Distinct().ToList(),
                 Sources = sources,
                 Degraded = selected.Degraded
             };
         }
 
-        private static RankingBias? TryBuildRankingBias(IReadOnlyList<MatchPrediction> ordered, MatchPrediction selected)
+        private static BlendedPrediction BlendUsablePredictions(IReadOnlyList<MatchPrediction> ordered, MatchPrediction fallback)
         {
-            var elo = ordered.LastOrDefault(p => p.PredictorName == EloPredictorName && !p.Degraded);
-            var fifa = ordered.LastOrDefault(p => p.PredictorName == FifaPredictorName && !p.Degraded);
-            if (elo is null || fifa is null)
-                return null;
+            var weighted = ordered
+                .Where(p => !p.Degraded)
+                .Select(p => new
+                {
+                    Prediction = p,
+                    Weight = BaseWeights.TryGetValue(p.PredictorName, out var weight) ? weight : 0.05
+                })
+                .Where(x => x.Weight > 0)
+                .ToList();
 
-            var consensusTopPick = elo.Outcome.TopPick;
-            if (consensusTopPick != fifa.Outcome.TopPick || consensusTopPick == selected.Outcome.TopPick)
-                return null;
+            if (weighted.Count == 0)
+                return new BlendedPrediction(
+                    fallback.Outcome,
+                    [fallback.PredictorName],
+                    [$"{fallback.PredictorName} 100%"],
+                    fallback.Sources,
+                    1);
 
-            var consensus = new OutcomeProbabilities(
-                (elo.Outcome.HomeWin + fifa.Outcome.HomeWin) / 2.0,
-                (elo.Outcome.Draw + fifa.Outcome.Draw) / 2.0,
-                (elo.Outcome.AwayWin + fifa.Outcome.AwayWin) / 2.0).Normalize();
-
-            var selectedWeight = 1.0 - RankingBiasWeight;
+            var total = weighted.Sum(x => x.Weight);
             var outcome = new OutcomeProbabilities(
-                selected.Outcome.HomeWin * selectedWeight + consensus.HomeWin * RankingBiasWeight,
-                selected.Outcome.Draw * selectedWeight + consensus.Draw * RankingBiasWeight,
-                selected.Outcome.AwayWin * selectedWeight + consensus.AwayWin * RankingBiasWeight).Normalize();
+                weighted.Sum(x => x.Prediction.Outcome.HomeWin * x.Weight) / total,
+                weighted.Sum(x => x.Prediction.Outcome.Draw * x.Weight) / total,
+                weighted.Sum(x => x.Prediction.Outcome.AwayWin * x.Weight) / total).Normalize();
 
-            return new RankingBias(
+            return new BlendedPrediction(
                 outcome,
-                consensusTopPick,
-                elo.Sources.Concat(fifa.Sources).ToList());
+                weighted.Select(x => x.Prediction.PredictorName).ToList(),
+                weighted.Select(x => $"{x.Prediction.PredictorName} {x.Weight / total:P0}").ToList(),
+                weighted.SelectMany(x => x.Prediction.Sources).ToList(),
+                weighted.Count);
         }
 
         private static string BuildExplanation(
             MatchPrediction selected,
             IReadOnlyList<MatchPrediction> skippedHigher,
-            RankingBias? rankingBias)
+            BlendedPrediction blended)
         {
-            var rankingSentence = rankingBias is null
-                ? ""
-                : $" Aplicó una calibración Elo/FIFA de {RankingBiasWeight:P0} hacia {OutcomeLabel(rankingBias.ConsensusTopPick)}.";
+            var ensembleSentence = $" El resultado final mezcla los modelos disponibles con pesos calibrados: {string.Join(", ", blended.WeightNotes)}.";
 
             if (skippedHigher.Count == 0)
-                return $"El Oráculo final seleccionó {selected.PredictorName}, el escalón usable más alto. {selected.Explanation}{rankingSentence}";
+                return $"El Oráculo final usó un ensamble calibrado y conservó la grilla de marcador de {selected.PredictorName}. {selected.Explanation}{ensembleSentence}";
 
             var skipped = string.Join("; ", skippedHigher.Select(p => $"{p.PredictorName} {Reason(p)}"));
-            return $"El Oráculo final seleccionó {selected.PredictorName} porque {skipped}. {selected.Explanation}{rankingSentence}";
+            return $"El Oráculo final usó un ensamble calibrado y conservó la grilla de marcador de {selected.PredictorName}; omitió {skipped}. {selected.Explanation}{ensembleSentence}";
         }
 
         private static string Reason(MatchPrediction prediction)
@@ -126,17 +131,11 @@ namespace Oloraculo.Web.Predictors
             Degraded = true
         };
 
-        private static string OutcomeLabel(string outcome) => outcome switch
-        {
-            "Home" => "equipo A",
-            "Away" => "equipo B",
-            "Draw" => "empate",
-            _ => outcome
-        };
-
-        private sealed record RankingBias(
+        private sealed record BlendedPrediction(
             OutcomeProbabilities Outcome,
-            string ConsensusTopPick,
-            IReadOnlyList<SourceMetadata> Sources);
+            IReadOnlyList<string> ModelNames,
+            IReadOnlyList<string> WeightNotes,
+            IReadOnlyList<SourceMetadata> Sources,
+            int ModelCount);
     }
 }

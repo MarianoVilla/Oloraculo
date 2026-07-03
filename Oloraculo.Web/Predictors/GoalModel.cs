@@ -6,13 +6,13 @@ namespace Oloraculo.Web.Predictors
     public class GoalModel : IPredictor
     {
         private const double DefaultAverageGoals = 1.25;
-        private const double PriorMatches = 2.0;
-        private const double GoalScale = 1.10;
-        private const double LowScoreRho = 0.00;
+        private const double PriorMatches = 6.0;
+        private const double GoalScale = 1.00;
+        private const double LowScoreRho = -0.06;
         private const double HomeAdvantageMultiplier = 1.08;
-        // Sanity-checked against bundled historical results; rerun tooling/goal_strength_calibration.py when revisiting.
+        // Conservative bounds for national-team samples; rerun tooling/goal_strength_calibration.py when revisiting.
         private const double GoalStrengthMinMultiplier = 0.25;
-        private const double GoalStrengthMaxMultiplier = 3.5;
+        private const double GoalStrengthMaxMultiplier = 2.5;
         private const int MinimumTeamMatches = 3;
         private const int Iterations = 8;
 
@@ -109,7 +109,7 @@ namespace Oloraculo.Web.Predictors
             var weighted = window.Select(r =>
             {
                 var yearsAgo = Math.Max(0, (latest - r.Date).TotalDays / 365.25);
-                return (Result: r, Weight: Math.Pow(0.75, yearsAgo));
+                return (Result: r, Weight: Math.Pow(0.75, yearsAgo) * CompetitionWeight(r));
             }).ToList();
 
             var totalWeight = weighted.Sum(r => r.Weight);
@@ -174,6 +174,19 @@ namespace Oloraculo.Web.Predictors
 
             static double ShrinkToNeutral(double value, double weight) =>
                 Math.Clamp(((value * weight) + PriorMatches) / (weight + PriorMatches), GoalStrengthMinMultiplier, GoalStrengthMaxMultiplier);
+
+            static double CompetitionWeight(MatchResult result)
+            {
+                var tournament = result.Tournament ?? "";
+                if (tournament.Contains("World Cup", StringComparison.OrdinalIgnoreCase))
+                    return 1.15;
+                if (tournament.Contains("Qualifier", StringComparison.OrdinalIgnoreCase))
+                    return 1.00;
+                if (tournament.Contains("Friendly", StringComparison.OrdinalIgnoreCase))
+                    return 0.55;
+
+                return 0.80;
+            }
 
             static void NormalizeMean(Dictionary<string, double> values)
             {
