@@ -9,7 +9,7 @@ _A medida que se recibe nueva información y se juegan partidos reales, el Olor�
 
 ### Torneo
 
-_Generado 2026-07-04 01:25 UTC a través de 10,000 simulaciones._
+_Generado 2026-07-04 01:36 UTC a través de 10,000 simulaciones._
 
 | Team | Group | Qualify | QF | SF | Final | Champion |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
@@ -53,7 +53,7 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 | 84 | <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | <img src="Oloraculo.Web/wwwroot/flags/4x3/at.svg" width="18" alt=""> Austria | FT | **2-1** · Spain advances | **3-0** |
 | 85 | <img src="Oloraculo.Web/wwwroot/flags/4x3/ch.svg" width="18" alt=""> Switzerland | <img src="Oloraculo.Web/wwwroot/flags/4x3/dz.svg" width="18" alt=""> Algeria | FT | **2-1** · Switzerland advances | **2-0** |
 | 86 | <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | <img src="Oloraculo.Web/wwwroot/flags/4x3/cv.svg" width="18" alt=""> Cape Verde | AET | **2-0** · Argentina advances | **3-2** |
-| 87 | <img src="Oloraculo.Web/wwwroot/flags/4x3/co.svg" width="18" alt=""> Colombia | <img src="Oloraculo.Web/wwwroot/flags/4x3/gh.svg" width="18" alt=""> Ghana | NS | **2-1** · Colombia advances | - |
+| 87 | <img src="Oloraculo.Web/wwwroot/flags/4x3/co.svg" width="18" alt=""> Colombia | <img src="Oloraculo.Web/wwwroot/flags/4x3/gh.svg" width="18" alt=""> Ghana | 1H | **2-1** · Colombia advances | - |
 | 88 | <img src="Oloraculo.Web/wwwroot/flags/4x3/au.svg" width="18" alt=""> Australia | <img src="Oloraculo.Web/wwwroot/flags/4x3/eg.svg" width="18" alt=""> Egypt | PEN | **1-1** · Australia advances | **1-1** (2-4 pens) |
 
 </details>
