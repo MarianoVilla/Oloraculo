@@ -9,7 +9,7 @@ _A medida que se recibe nueva información y se juegan partidos reales, el Olor�
 
 ### Torneo
 
-_Generado 2026-07-05 05:36 UTC a través de 10,000 simulaciones._
+_Generado 2026-07-05 09:35 UTC a través de 10,000 simulaciones._
 
 | Team | Group | Qualify | QF | SF | Final | Champion |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
@@ -79,7 +79,7 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 
 | # | Home | Away | Status | Prediction | Result |
 | ---: | --- | --- | :---: | --- | --- |
-| 97 | <img src="Oloraculo.Web/wwwroot/flags/4x3/fr.svg" width="18" alt=""> France <sub>projected</sub> | <img src="Oloraculo.Web/wwwroot/flags/4x3/ma.svg" width="18" alt=""> Morocco <sub>projected</sub> | Scheduled | **1-1** · France advances | - |
+| 97 | <img src="Oloraculo.Web/wwwroot/flags/4x3/fr.svg" width="18" alt=""> France | <img src="Oloraculo.Web/wwwroot/flags/4x3/ma.svg" width="18" alt=""> Morocco | NS | **1-1** · France advances | - |
 | 98 | <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain <sub>projected</sub> | <img src="Oloraculo.Web/wwwroot/flags/4x3/be.svg" width="18" alt=""> Belgium <sub>projected</sub> | Scheduled | **2-1** · Spain advances | - |
 | 99 | <img src="Oloraculo.Web/wwwroot/flags/4x3/br.svg" width="18" alt=""> Brazil <sub>projected</sub> | <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England <sub>projected</sub> | Scheduled | **1-1** · Brazil advances | - |
 | 100 | <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina <sub>projected</sub> | <img src="Oloraculo.Web/wwwroot/flags/4x3/co.svg" width="18" alt=""> Colombia <sub>projected</sub> | Scheduled | **1-1** · Argentina advances | - |
