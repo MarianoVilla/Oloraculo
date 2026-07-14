@@ -9,14 +9,13 @@ _A medida que se recibe nueva información y se juegan partidos reales, el Olor�
 
 ### Torneo
 
-_Generado 2026-07-14 17:36 UTC a través de 10,000 simulaciones._
+_Generado 2026-07-14 21:36 UTC a través de 10,000 simulaciones._
 
 | Team | Group | Qualify | QF | SF | Final | Champion |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | J | 100 % | 100 % | 100 % | 67 % | **39.4 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | H | 100 % | 100 % | 100 % | 57 % | **29.1 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/fr.svg" width="18" alt=""> France | I | 100 % | 100 % | 100 % | 43 % | **17.8 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England | L | 100 % | 100 % | 100 % | 33 % | **13.6 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | H | 100 % | 100 % | 100 % | 100 % | **53.0 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | J | 100 % | 100 % | 100 % | 67 % | **35.3 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England | L | 100 % | 100 % | 100 % | 33 % | **11.7 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/dz.svg" width="18" alt=""> Algeria | J | 100 % | 0 % | 0 % | 0 % | **0.0 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/au.svg" width="18" alt=""> Australia | D | 100 % | 0 % | 0 % | 0 % | **0.0 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/at.svg" width="18" alt=""> Austria | J | 100 % | 0 % | 0 % | 0 % | **0.0 %** |
@@ -29,6 +28,7 @@ _Generado 2026-07-14 17:36 UTC a través de 10,000 simulaciones._
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/cd.svg" width="18" alt=""> Congo DR | K | 100 % | 0 % | 0 % | 0 % | **0.0 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/hr.svg" width="18" alt=""> Croatia | L | 100 % | 0 % | 0 % | 0 % | **0.0 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/cw.svg" width="18" alt=""> Curacao | E | 0 % | 0 % | 0 % | 0 % | **0.0 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/cz.svg" width="18" alt=""> Czechia | A | 0 % | 0 % | 0 % | 0 % | **0.0 %** |
 
 ### Eliminatorias
 
@@ -91,7 +91,7 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 
 | # | Home | Away | Status | Prediction | Result |
 | ---: | --- | --- | :---: | --- | --- |
-| 101 | <img src="Oloraculo.Web/wwwroot/flags/4x3/fr.svg" width="18" alt=""> France | <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | NS | **1-1** · Spain advances | - |
+| 101 | <img src="Oloraculo.Web/wwwroot/flags/4x3/fr.svg" width="18" alt=""> France | <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | FT | **1-1** · Spain advances | **0-2** |
 | 102 | <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England | <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | NS | **1-1** · Argentina advances | - |
 
 </details>
