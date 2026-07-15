@@ -9,13 +9,12 @@ _A medida que se recibe nueva información y se juegan partidos reales, el Olor�
 
 ### Torneo
 
-_Generado 2026-07-15 17:36 UTC a través de 10,000 simulaciones._
+_Generado 2026-07-15 21:35 UTC a través de 10,000 simulaciones._
 
 | Team | Group | Qualify | QF | SF | Final | Champion |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | H | 100 % | 100 % | 100 % | 100 % | **53.0 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | J | 100 % | 100 % | 100 % | 67 % | **35.3 %** |
-| <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England | L | 100 % | 100 % | 100 % | 33 % | **11.7 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | J | 100 % | 100 % | 100 % | 100 % | **53.6 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | H | 100 % | 100 % | 100 % | 100 % | **46.4 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/dz.svg" width="18" alt=""> Algeria | J | 100 % | 0 % | 0 % | 0 % | **0.0 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/au.svg" width="18" alt=""> Australia | D | 100 % | 0 % | 0 % | 0 % | **0.0 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/at.svg" width="18" alt=""> Austria | J | 100 % | 0 % | 0 % | 0 % | **0.0 %** |
@@ -29,6 +28,7 @@ _Generado 2026-07-15 17:36 UTC a través de 10,000 simulaciones._
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/hr.svg" width="18" alt=""> Croatia | L | 100 % | 0 % | 0 % | 0 % | **0.0 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/cw.svg" width="18" alt=""> Curacao | E | 0 % | 0 % | 0 % | 0 % | **0.0 %** |
 | <img src="Oloraculo.Web/wwwroot/flags/4x3/cz.svg" width="18" alt=""> Czechia | A | 0 % | 0 % | 0 % | 0 % | **0.0 %** |
+| <img src="Oloraculo.Web/wwwroot/flags/4x3/ec.svg" width="18" alt=""> Ecuador | E | 100 % | 0 % | 0 % | 0 % | **0.0 %** |
 
 ### Eliminatorias
 
@@ -92,7 +92,7 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 | # | Home | Away | Status | Prediction | Result |
 | ---: | --- | --- | :---: | --- | --- |
 | 101 | <img src="Oloraculo.Web/wwwroot/flags/4x3/fr.svg" width="18" alt=""> France | <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | FT | **1-1** · Spain advances | **0-2** |
-| 102 | <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England | <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | NS | **1-1** · Argentina advances | - |
+| 102 | <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England | <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | FT | **1-1** · Argentina advances | **1-2** |
 
 </details>
 
@@ -101,7 +101,7 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 
 | # | Home | Away | Status | Prediction | Result |
 | ---: | --- | --- | :---: | --- | --- |
-| 103 | <img src="Oloraculo.Web/wwwroot/flags/4x3/fr.svg" width="18" alt=""> France <sub>projected</sub> | <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England <sub>projected</sub> | Scheduled | **1-1** · France advances | - |
+| 103 | <img src="Oloraculo.Web/wwwroot/flags/4x3/fr.svg" width="18" alt=""> France | <img src="Oloraculo.Web/wwwroot/flags/4x3/gb-eng.svg" width="18" alt=""> England | NS | **1-1** · France advances | - |
 
 </details>
 
@@ -110,7 +110,7 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 
 | # | Home | Away | Status | Prediction | Result |
 | ---: | --- | --- | :---: | --- | --- |
-| 104 | <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain <sub>projected</sub> | <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina <sub>projected</sub> | Scheduled | **1-1** · Argentina advances | - |
+| 104 | <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | NS | **1-1** · Argentina advances | - |
 
 </details>
 
