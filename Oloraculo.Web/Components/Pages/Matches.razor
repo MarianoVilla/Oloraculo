@@ -140,6 +140,7 @@
                         }
                         <MudStack Row="true" Spacing="1" Class="action-row">
                             <BusyButton Text="@(_saved ? "Snapshot guardado" : "Guardar predicción")" BusyText="Guardando" IsBusy="_saving" Disabled="@(_saved || _result is null)" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Save" OnClick="SaveSnapshot" />
+                            <BusyButton Text="Borrar predicción" BusyText="Borrando" IsBusy="_deleting" Disabled="@(_matchSnapshots.Count == 0 || _predicting || _saving || _refreshing || _loadingSnapshot)" Variant="Variant.Outlined" Color="Color.Error" Icon="@Icons.Material.Filled.Delete" OnClick="DeletePrediction" />
                             <BusyButton Text="Actualizar contexto API" BusyText="Actualizando" IsBusy="_refreshing" Variant="Variant.Outlined" Color="Color.Secondary" Icon="@Icons.Material.Filled.Sync" OnClick="RefreshContext" />
                         </MudStack>
                         @if (_refreshing || _loadingSnapshot)
@@ -187,14 +188,32 @@
                     }
 
                     <MudPaper Class="surface-card" Elevation="0">
-                        <MudText Typo="Typo.h6">Resultado</MudText>
-                        <MudGrid Spacing="2" Class="control-grid">
+                        <MudText Typo="Typo.h6">Resultado del partido</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Cargá el marcador final para que el partido cuente como jugado y entre en las simulaciones del torneo.
+                        </MudText>
+                        @if (_selected.IsPlayed && _selected.HomeGoals.HasValue && _selected.AwayGoals.HasValue)
+                        {
+                            <MudChip T="string" Class="mt-2" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">
+                                Jugado · @_selected.HomeGoals-@_selected.AwayGoals
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Class="mt-2" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Sin resultado cargado</MudChip>
+                        }
+                        <MudGrid Spacing="2" Class="control-grid mt-1">
                             <MudItem xs="12" md="3"><MudText Typo="Typo.body2"><TeamLabel TeamId="@_selected.HomeTeamId" Name="@Name(_selected.HomeTeamId)" /></MudText></MudItem>
                             <MudItem xs="5" md="2"><MudNumericField T="int" @bind-Value="_homeGoals" Min="0" Variant="Variant.Outlined" /></MudItem>
                             <MudItem xs="2" md="1" Class="score-separator"><MudText Typo="Typo.body1">-</MudText></MudItem>
                             <MudItem xs="5" md="2"><MudNumericField T="int" @bind-Value="_awayGoals" Min="0" Variant="Variant.Outlined" /></MudItem>
                             <MudItem xs="12" md="4"><MudText Typo="Typo.body2"><TeamLabel TeamId="@_selected.AwayTeamId" Name="@Name(_selected.AwayTeamId)" /></MudText></MudItem>
-                            <MudItem xs="12"><BusyButton Text="Evaluar snapshot" BusyText="Evaluando" IsBusy="_applying" Icon="@Icons.Material.Filled.FactCheck" OnClick="ApplyResult" /></MudItem>
+                            <MudItem xs="12">
+                                <MudStack Row="true" Spacing="1" Class="action-row">
+                                    <BusyButton Text="@(_selected.IsPlayed ? "Actualizar resultado" : "Guardar resultado")" BusyText="Guardando" IsBusy="_applying" Disabled="@_clearing" Icon="@Icons.Material.Filled.Save" OnClick="SaveResult" />
+                                    <BusyButton Text="Borrar resultado" BusyText="Borrando" IsBusy="_clearing" Disabled="@(!_selected.IsPlayed || _applying)" Variant="Variant.Outlined" Color="Color.Error" Icon="@Icons.Material.Filled.Delete" OnClick="ClearResult" />
+                                </MudStack>
+                            </MudItem>
                         </MudGrid>
                         @if (!string.IsNullOrWhiteSpace(_note))
                         {
@@ -226,6 +245,8 @@
     private bool _loadingSnapshot;
     private bool _refreshing;
     private bool _applying;
+    private bool _deleting;
+    private bool _clearing;
     private int _selectedMatchSnapshotId;
     private int? _activeMatchSnapshotId;
     private int _homeGoals;
@@ -429,27 +450,93 @@
         }
     }
 
-    private async Task ApplyResult()
+    private async Task DeletePrediction()
+    {
+        if (_selected is null)
+            return;
+
+        _deleting = true;
+        _error = "";
+        try
+        {
+            var count = await Snapshots.DeleteMatchSnapshotsAsync(_selected.Id);
+            _result = null;
+            _saved = false;
+            _activeMatchSnapshotId = null;
+            _selectedMatchSnapshotId = 0;
+            _resultSource = "";
+            await RefreshMatchSnapshotsForSelected();
+            var message = count == 0 ? "No había predicciones guardadas para este partido." : $"Se borraron {count} predicción(es) de este partido.";
+            Snackbar.Add(message, count == 0 ? Severity.Info : Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("No se pudo borrar la predicción.", Severity.Error);
+        }
+        finally
+        {
+            _deleting = false;
+        }
+    }
+
+    private async Task SaveResult()
     {
         if (_selected is null)
             return;
 
         _applying = true;
+        _error = "";
         try
         {
-            var count = await Evaluation.EvaluateLatestSnapshotAsync(_selected, _homeGoals, _awayGoals);
-            _note = count == 0 ? "No se encontró un snapshot previo guardado para este partido." : "Resultado guardado y último snapshot evaluado.";
+            var report = await Evaluation.RecordManualResultAsync(_selected, _homeGoals, _awayGoals);
+            _selected.IsPlayed = true;
+            _selected.HomeGoals = _homeGoals;
+            _selected.AwayGoals = _awayGoals;
+            _note = report.Evaluated
+                ? "Resultado guardado. La predicción guardada quedó evaluada y el partido entra en las simulaciones."
+                : "Resultado guardado. El partido ahora cuenta como jugado en las simulaciones del torneo.";
             await LoadFixtures();
-            Snackbar.Add(_note, count == 0 ? Severity.Warning : Severity.Success);
+            Snackbar.Add("Resultado guardado.", Severity.Success);
         }
         catch (Exception ex)
         {
             _error = ex.Message;
-            Snackbar.Add("No se pudo evaluar el snapshot.", Severity.Error);
+            Snackbar.Add("No se pudo guardar el resultado.", Severity.Error);
         }
         finally
         {
             _applying = false;
+        }
+    }
+
+    private async Task ClearResult()
+    {
+        if (_selected is null)
+            return;
+
+        _clearing = true;
+        _error = "";
+        try
+        {
+            await Evaluation.ClearResultAsync(_selected);
+            _selected.IsPlayed = false;
+            _selected.HomeGoals = null;
+            _selected.AwayGoals = null;
+            _homeGoals = 0;
+            _awayGoals = 0;
+            _note = "Resultado borrado. El partido vuelve a contar como no jugado.";
+            await LoadFixtures();
+            Snackbar.Add("Resultado borrado.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+            Snackbar.Add("No se pudo borrar el resultado.", Severity.Error);
+        }
+        finally
+        {
+            _clearing = false;
         }
     }
 

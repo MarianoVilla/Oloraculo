@@ -14,13 +14,65 @@ namespace Oloraculo.Web.Services
 
         public async Task<int> EvaluateLatestSnapshotAsync(Fixture fixture, int homeGoals, int awayGoals, CancellationToken ct = default)
         {
+            var evaluated = await TryAddEvaluationAsync(fixture, homeGoals, awayGoals, ct);
+            if (!evaluated)
+                return 0;
+
+            UpsertManualResult(fixture, homeGoals, awayGoals);
+            await _db.SaveChangesAsync(ct);
+            return 1;
+        }
+
+        /// <summary>
+        /// Guarda el resultado de un partido jugado (lo marca como jugado y persiste el marcador)
+        /// aunque todavia no exista una prediccion guardada. Si hay una prediccion sin evaluar,
+        /// ademas la evalua. Es idempotente: volver a guardar actualiza el marcador sin duplicarlo.
+        /// </summary>
+        public async Task<ManualResultReport> RecordManualResultAsync(Fixture fixture, int homeGoals, int awayGoals, CancellationToken ct = default)
+        {
+            var evaluated = await TryAddEvaluationAsync(fixture, homeGoals, awayGoals, ct);
+            UpsertManualResult(fixture, homeGoals, awayGoals);
+            await _db.SaveChangesAsync(ct);
+            return new ManualResultReport(true, evaluated);
+        }
+
+        /// <summary>
+        /// Deshace el resultado cargado: vuelve el partido a "no jugado", borra el marcador,
+        /// el resultado manual del historico y cualquier evaluacion asociada.
+        /// </summary>
+        public async Task<bool> ClearResultAsync(Fixture fixture, CancellationToken ct = default)
+        {
+            var hadResult = fixture.IsPlayed || fixture.HomeGoals.HasValue || fixture.AwayGoals.HasValue;
+
+            fixture.IsPlayed = false;
+            fixture.HomeGoals = null;
+            fixture.AwayGoals = null;
+
+            var manualId = ManualResultId(fixture.Id);
+            var existingResult = await _db.Results.FirstOrDefaultAsync(r => r.Id == manualId, ct);
+            if (existingResult is not null)
+                _db.Results.Remove(existingResult);
+
+            var evaluations = await _db.Evaluations.Where(e => e.FixtureId == fixture.Id).ToListAsync(ct);
+            if (evaluations.Count > 0)
+                _db.Evaluations.RemoveRange(evaluations);
+
+            await _db.SaveChangesAsync(ct);
+            return hadResult || existingResult is not null || evaluations.Count > 0;
+        }
+
+        private async Task<bool> TryAddEvaluationAsync(Fixture fixture, int homeGoals, int awayGoals, CancellationToken ct)
+        {
+            if (await _db.Evaluations.AnyAsync(e => e.FixtureId == fixture.Id, ct))
+                return false;
+
             var snapshot = (await _db.Snapshots
                 .Where(s => s.Kind == "match" && s.FixtureId == fixture.Id && s.HomeWin.HasValue)
                 .ToListAsync(ct))
                 .OrderByDescending(s => s.CreatedAt)
                 .FirstOrDefault();
             if (snapshot is null || snapshot.HomeWin is null || snapshot.Draw is null || snapshot.AwayWin is null)
-                return 0;
+                return false;
 
             var predicted = new OutcomeProbabilities(snapshot.HomeWin.Value, snapshot.Draw.Value, snapshot.AwayWin.Value).Normalize();
             var actual = OutcomeFromGoals(homeGoals, awayGoals);
@@ -42,25 +94,45 @@ namespace Oloraculo.Web.Services
                 TopPickCorrect = predicted.TopPick == actual,
                 PredictedAt = snapshot.CreatedAt
             });
+            return true;
+        }
 
-            _db.Results.Add(new MatchResult
+        private void UpsertManualResult(Fixture fixture, int homeGoals, int awayGoals)
+        {
+            var manualId = ManualResultId(fixture.Id);
+            var existing = _db.Results.Local.FirstOrDefault(r => r.Id == manualId)
+                ?? _db.Results.FirstOrDefault(r => r.Id == manualId);
+
+            if (existing is null)
             {
-                Id = CryptoUtil.GetSha256($"manual|{DateTimeOffset.UtcNow:O}|{fixture.HomeTeamId}|{fixture.AwayTeamId}|{homeGoals}-{awayGoals}"),
-                HomeTeamId = fixture.HomeTeamId,
-                AwayTeamId = fixture.AwayTeamId,
-                HomeGoals = homeGoals,
-                AwayGoals = awayGoals,
-                Date = DateTimeOffset.UtcNow,
-                Tournament = "FIFA World Cup 2026",
-                Neutral = fixture.NeutralVenue,
-                Source = "manual"
-            });
+                _db.Results.Add(new MatchResult
+                {
+                    Id = manualId,
+                    HomeTeamId = fixture.HomeTeamId,
+                    AwayTeamId = fixture.AwayTeamId,
+                    HomeGoals = homeGoals,
+                    AwayGoals = awayGoals,
+                    Date = DateTimeOffset.UtcNow,
+                    Tournament = "FIFA World Cup 2026",
+                    Neutral = fixture.NeutralVenue,
+                    Source = "manual"
+                });
+            }
+            else
+            {
+                existing.HomeTeamId = fixture.HomeTeamId;
+                existing.AwayTeamId = fixture.AwayTeamId;
+                existing.HomeGoals = homeGoals;
+                existing.AwayGoals = awayGoals;
+                existing.Neutral = fixture.NeutralVenue;
+            }
+
             fixture.IsPlayed = true;
             fixture.HomeGoals = homeGoals;
             fixture.AwayGoals = awayGoals;
-            await _db.SaveChangesAsync(ct);
-            return 1;
         }
+
+        private static string ManualResultId(string fixtureId) => CryptoUtil.GetSha256($"manual|{fixtureId}");
 
         public async Task<FixtureEvaluationRefreshReport> EvaluateUnevaluatedPlayedFixturesAsync(CancellationToken ct = default)
         {
@@ -130,4 +202,8 @@ namespace Oloraculo.Web.Services
         int Evaluated,
         int SkippedAlreadyEvaluated,
         int SkippedWithoutSnapshot);
+
+    public sealed record ManualResultReport(
+        bool Saved,
+        bool Evaluated);
 }
