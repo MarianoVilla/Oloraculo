@@ -9,7 +9,7 @@ _A medida que se recibe nueva información y se juegan partidos reales, el Olor�
 
 ### Torneo
 
-_Generado 2026-07-19 17:35 UTC a través de 10,000 simulaciones._
+_Generado 2026-07-19 21:36 UTC a través de 10,000 simulaciones._
 
 | Team | Group | Qualify | QF | SF | Final | Champion |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
@@ -110,7 +110,7 @@ _Los equipos marcados como proyectados todavía no están confirmados por la fue
 
 | # | Home | Away | Status | Prediction | Result |
 | ---: | --- | --- | :---: | --- | --- |
-| 104 | <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | NS | **1-1** · Argentina advances | - |
+| 104 | <img src="Oloraculo.Web/wwwroot/flags/4x3/es.svg" width="18" alt=""> Spain | <img src="Oloraculo.Web/wwwroot/flags/4x3/ar.svg" width="18" alt=""> Argentina | ET | **1-1** · Argentina advances | - |
 
 </details>
 
