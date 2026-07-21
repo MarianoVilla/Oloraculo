@@ -16,8 +16,8 @@ rank,team,elo_rating,rating_date,source,source_original
 15,Japan,1888,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 16,Croatia,1882,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 17,Ecuador,1871,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
-18,Denmark,1869,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 18,Italy,1869,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
+18,Denmark,1869,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 20,Turkey,1852,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 21,Uruguay,1841,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 22,Austria,1821,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
@@ -61,8 +61,8 @@ rank,team,elo_rating,rating_date,source,source_original
 60,Albania,1616,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 61,Cameroon,1614,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 62,Costa Rica,1608,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
-63,Northern Ireland,1605,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 63,Bosnia and Herzegovina,1605,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
+63,Northern Ireland,1605,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 65,Saudi Arabia,1596,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 66,North Macedonia,1589,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 67,Mali,1588,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
@@ -108,9 +108,9 @@ rank,team,elo_rating,rating_date,source,source_original
 106,Madagascar,1380,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 108,Togo,1379,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 109,Thailand,1376,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
+110,Comoros,1373,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 110,North Korea,1373,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 110,Armenia,1373,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
-110,Comoros,1373,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 113,Indonesia,1372,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 113,Zimbabwe,1372,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 115,Zambia,1371,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
@@ -119,8 +119,8 @@ rank,team,elo_rating,rating_date,source,source_original
 118,Vietnam,1353,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 119,Sudan,1350,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 120,Reunion,1346,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
-121,Mozambique,1342,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 121,El Salvador,1342,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
+121,Mozambique,1342,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 123,Sierra Leone,1341,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 124,Guadeloupe,1338,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 125,Rwanda,1336,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
@@ -141,8 +141,8 @@ rank,team,elo_rating,rating_date,source,source_original
 139,Latvia,1288,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 141,Ethiopia,1287,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 142,New Caledonia,1286,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
-143,Burundi,1285,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 143,Tajikistan,1285,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
+143,Burundi,1285,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 145,Dominican Republic,1283,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 146,Lithuania,1279,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 147,Moldova,1270,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
@@ -174,9 +174,9 @@ rank,team,elo_rating,rating_date,source,source_original
 173,Hong Kong,1101,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 174,Grenada,1098,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 175,Andorra,1080,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
-176,Mauritius,1073,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 176,Chad,1073,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 176,Belize,1073,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
+176,Mauritius,1073,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 179,Solomon Islands,1054,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 180,Saint Martin,1042,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 181,São Tomé e Príncipe,1035,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
@@ -186,8 +186,8 @@ rank,team,elo_rating,rating_date,source,source_original
 185,Somaliland,1002,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 186,Western Sahara,996,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 187,Myanmar,982,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
-188,Somalia,979,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 188,Aruba,979,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
+188,Somalia,979,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 190,Sint Maarten,975,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 191,Montserrat,972,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 192,Afghanistan,961,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
@@ -228,8 +228,8 @@ rank,team,elo_rating,rating_date,source,source_original
 227,Anguilla,646,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 228,Tibet,630,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 229,US Virgin Islands,628,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
-230,Bhutan,623,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 230,Cook Islands,623,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
+230,Bhutan,623,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 232,Macau,589,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 233,Brunei,572,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
 234,Falkland Islands,571,2026-07-21,https://www.international-football.net/elo-ratings-table?day=21&month=07&year=2026,https://www.eloratings.net/
